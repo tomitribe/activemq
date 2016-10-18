@@ -1891,7 +1891,6 @@ public class ActiveMQConnection implements Connection, TopicConnection, QueueCon
 
                     @Override
                     public Response processControlCommand(ControlCommand command) throws Exception {
-                        onControlCommand(command);
                         return null;
                     }
 
@@ -2236,25 +2235,6 @@ public class ActiveMQConnection implements Connection, TopicConnection, QueueCon
             asyncSendPacket(msg);
         } else {
             syncSendPacket(msg);
-        }
-    }
-
-    protected void onControlCommand(ControlCommand command) {
-        String text = command.getCommand();
-        if (text != null) {
-            if ("shutdown".equals(text)) {
-                LOG.info("JVM told to shutdown");
-                System.exit(0);
-            }
-
-            // TODO Should we handle the "close" case?
-            // if (false && "close".equals(text)){
-            //     LOG.error("Broker " + getBrokerInfo() + "shutdown connection");
-            //     try {
-            //         close();
-            //     } catch (JMSException e) {
-            //     }
-            // }
         }
     }
 
