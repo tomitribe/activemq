@@ -84,8 +84,9 @@ public class AutoTransportMaxConnectionsTest {
         service = new BrokerService();
         service.setPersistent(false);
         service.setUseJmx(false);
-        connector = service.addConnector(transportType + "://0.0.0.0:0?maxConnectionThreadPoolSize=10&maximumConnections="+maxConnections);
+        connector = service.addConnector(transportType + "://0.0.0.0:0?transport.verifyHostName=false&maxConnectionThreadPoolSize=10&maximumConnections="+maxConnections);
         connectionUri = connector.getPublishableConnectString();
+        }
         service.start();
         service.waitUntilStarted();
     }

@@ -35,6 +35,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 
@@ -55,6 +56,7 @@ public class NIOSSLTransport extends NIOTransport {
     protected boolean wantClientAuth;
     protected String[] enabledCipherSuites;
     protected String[] enabledProtocols;
+    protected boolean verifyHostName = true;
 
     protected SSLContext sslContext;
     protected SSLEngine sslEngine;
@@ -116,6 +118,12 @@ public class NIOSSLTransport extends NIOTransport {
                     sslEngine = sslContext.createSSLEngine(remoteHost, remotePort);
                 } else {
                     sslEngine = sslContext.createSSLEngine();
+                }
+
+                if (verifyHostName) {
+                    SSLParameters sslParams = new SSLParameters();
+                    sslParams.setEndpointIdentificationAlgorithm("HTTPS");
+                    sslEngine.setSSLParameters(sslParams);
                 }
 
                 sslEngine.setUseClientMode(false);
@@ -535,5 +543,13 @@ public class NIOSSLTransport extends NIOTransport {
 
     public void setEnabledProtocols(String[] enabledProtocols) {
         this.enabledProtocols = enabledProtocols;
+    }
+
+    public boolean isVerifyHostName() {
+        return verifyHostName;
+    }
+
+    public void setVerifyHostName(boolean verifyHostName) {
+        this.verifyHostName = verifyHostName;
     }
 }
