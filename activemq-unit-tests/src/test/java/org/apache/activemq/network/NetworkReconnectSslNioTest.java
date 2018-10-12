@@ -64,7 +64,7 @@ public class NetworkReconnectSslNioTest {
             }
         }));
 
-        final AtomicReference<DurableConduitBridge> bridge = new AtomicReference<>((DurableConduitBridge) networkConnector.activeBridges().iterator().next());
+        final AtomicReference<DurableConduitBridge> bridge = new AtomicReference<DurableConduitBridge>((DurableConduitBridge) networkConnector.activeBridges().iterator().next());
         assertTrue("Connected to R", bridge.get().getRemoteBrokerName().equals("R"));
 
         for (int i=0; i<200;  i++) {

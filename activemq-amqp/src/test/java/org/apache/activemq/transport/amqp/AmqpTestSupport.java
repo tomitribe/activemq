@@ -138,7 +138,7 @@ public class AmqpTestSupport {
         }
         if (isUseSslConnector()) {
             connector = brokerService.addConnector(
-                "amqp+ssl://0.0.0.0:" + amqpSslPort + "?transport.tcpNoDelay=true&transport.transformer=" + getAmqpTransformer() + getAdditionalConfig());
+                "amqp+ssl://0.0.0.0:" + sslPort + "?transport.tcpNoDelay=true&transport.transformer=" + getAmqpTransformer() + "&transport.verifyHostName=false");
             sslPort = connector.getConnectUri().getPort();
             LOG.debug("Using amqp+ssl port " + sslPort);
         }
@@ -150,7 +150,7 @@ public class AmqpTestSupport {
         }
         if (isUseNioPlusSslConnector()) {
             connector = brokerService.addConnector(
-                "amqp+nio+ssl://0.0.0.0:" + amqpNioPlusSslPort + "?transport.tcpNoDelay=true&transport.transformer=" + getAmqpTransformer() + getAdditionalConfig());
+                "amqp+nio+ssl://0.0.0.0:" + nioPlusSslPort + "?transport.tcpNoDelay=true&transport.transformer=" + getAmqpTransformer() + "&transport.verifyHostName=false");
             nioPlusSslPort = connector.getConnectUri().getPort();
             LOG.debug("Using amqp+nio+ssl port " + nioPlusSslPort);
         }

@@ -60,18 +60,11 @@ public class StompSslAuthTest extends StompTest {
         jmsUri = connector.getPublishableConnectString() + "?socket.verifyHostName=false";
     }
 	
-	@Override
-    protected String getAdditionalConfig() {
-        return "?needClientAuth=true&transport.verifyHostName=false";
-    }
-
     @Override
     protected void addStompConnector() throws Exception {
-        TransportConnector connector = brokerService.addConnector(
-                "stomp+ssl://0.0.0.0:"+port+"?needClientAuth=true&transport.verifyHostName=false");
+        TransportConnector connector = brokerService.addConnector("stomp+ssl://0.0.0.0:"+port+"?needClientAuth=true&transport.verifyHostName=false");
         sslPort = connector.getConnectUri().getPort();
     }
-
 
     // NOOP - These operations handled by jaas cert login module
     @Override
