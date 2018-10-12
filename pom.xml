@@ -25,7 +25,7 @@
 
   <groupId>org.apache.activemq</groupId>
   <artifactId>activemq-parent</artifactId>
-  <version>5.10.2</version>
+  <version>5.10.3-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>ActiveMQ</name>
   <inceptionYear>2005</inceptionYear>
@@ -272,7 +272,7 @@
     <connection>scm:git:https://github.com/tomitribe/activemq.git</connection>
     <developerConnection>scm:git:https://github.com/tomitribe/activemq.git</developerConnection>
     <url>https://github.com/tomitribe/activemq-git</url>
-    <tag>activemq-5.10.2</tag>
+    <tag>activemq-5.10.3-SNAPSHOT</tag>
   </scm>
 
   <dependencyManagement>
