@@ -751,7 +751,6 @@ public class TcpTransport extends TransportThreadSupport implements Transport, S
         return true;
     }
 
-    @Override
     public WireFormat getWireFormat() {
         return wireFormat;
     }
