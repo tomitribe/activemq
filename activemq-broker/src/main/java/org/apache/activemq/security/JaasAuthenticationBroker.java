@@ -16,17 +16,21 @@
  */
 package org.apache.activemq.security;
 
+import java.lang.reflect.Field;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
 import java.util.Set;
 
 import javax.security.auth.Subject;
+import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.LoginContext;
 
 import org.apache.activemq.broker.Broker;
 import org.apache.activemq.broker.ConnectionContext;
 import org.apache.activemq.command.ConnectionInfo;
 import org.apache.activemq.jaas.JassCredentialCallbackHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Logs a user in using JAAS.
@@ -36,6 +40,7 @@ import org.apache.activemq.jaas.JassCredentialCallbackHandler;
 public class JaasAuthenticationBroker extends AbstractAuthenticationBroker {
 
     private final String jassConfiguration;
+    private static Logger log = LoggerFactory.getLogger(JaasAuthenticationBroker.class);
 
     public JaasAuthenticationBroker(Broker next, String jassConfiguration) {
         super(next);
@@ -80,12 +85,31 @@ public class JaasAuthenticationBroker extends AbstractAuthenticationBroker {
         SecurityContext result = null;
         JassCredentialCallbackHandler callback = new JassCredentialCallbackHandler(username, password);
         try {
+            log.info("Obtaining login context for " + jassConfiguration);
             LoginContext lc = new LoginContext(jassConfiguration, callback);
-            lc.login();
-            Subject subject = lc.getSubject();
 
+            final Field field = LoginContext.class.getDeclaredField("moduleStack");
+            field.setAccessible(true);
+            Object[] stack = (Object[]) field.get(lc);
+
+            for (int i = 0, stackLength = stack.length; i < stackLength; i++) {
+                Object s = stack[i];
+                final Field moduleField = s.getClass().getDeclaredField("entry");
+                moduleField.setAccessible(true);
+                final AppConfigurationEntry entry = (AppConfigurationEntry) moduleField.get(s);
+                log.info("Module[" + i + "] = " + entry.getLoginModuleName());
+            }
+
+            log.info("Login context is: " + lc);
+
+            log.info("Calling login on context");
+            lc.login();
+            log.info("Login successful");
+
+            Subject subject = lc.getSubject();
             result = new JaasSecurityContext(username, subject);
         } catch (Exception ex) {
+            ex.printStackTrace();
             throw new SecurityException("User name [" + username + "] or password is invalid.", ex);
         }
 
