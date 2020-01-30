@@ -17,15 +17,17 @@
 package org.apache.activemq.broker.jmx;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
+import java.rmi.AccessException;
+import java.rmi.AlreadyBoundException;
 import java.rmi.NoSuchObjectException;
-import java.rmi.registry.LocateRegistry;
+import java.rmi.NotBoundException;
+import java.rmi.Remote;
+import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -40,8 +42,9 @@ import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 import javax.management.QueryExp;
 import javax.management.remote.JMXConnectorServer;
-import javax.management.remote.JMXConnectorServerFactory;
 import javax.management.remote.JMXServiceURL;
+import javax.management.remote.rmi.RMIConnectorServer;
+import javax.management.remote.rmi.RMIJRMPServerImpl;
 
 import org.apache.activemq.Service;
 import org.slf4j.Logger;
@@ -96,6 +99,8 @@ public class ManagementContext implements Service {
     private String brokerName;
     private String suppressMBean;
     private List<ObjectName> suppressMBeanList;
+	private Remote serverStub;
+    private RMIJRMPServerImpl server;
 
     public ManagementContext() {
         this(null);
@@ -138,21 +143,21 @@ public class ManagementContext implements Service {
                             MDC.put("activemq.broker", brokerName);
                         }
                         try {
-                            JMXConnectorServer server = connectorServer;
                             if (started.get() && server != null) {
                                 LOG.debug("Starting JMXConnectorServer...");
                                 connectorStarting.set(true);
                                 try {
                                     // need to remove MDC as we must not inherit MDC in child threads causing leaks
                                     MDC.remove("activemq.broker");
-                                    server.start();
+                                    connectorServer.start();
+                                    serverStub = server.toStub();
                                 } finally {
                                     if (brokerName != null) {
                                         MDC.put("activemq.broker", brokerName);
                                     }
                                     connectorStarting.set(false);
                                 }
-                                LOG.info("JMX consoles can connect to {}", server.getAddress());
+                                LOG.info("JMX consoles can connect to {}", connectorServer.getAddress());
                             }
                         } catch (IOException e) {
                             LOG.warn("Failed to start JMX connector {}. Will restart management to re-create JMX connector, trying to remedy this issue.", e.getMessage());
@@ -545,8 +550,9 @@ public class ManagementContext implements Service {
         try {
             if (registry == null) {
                 LOG.debug("Creating RMIRegistry on port {}", connectorPort);
-                registry = LocateRegistry.createRegistry(connectorPort);
+                registry = new JmxRegistry(connectorPort);
             }
+
             namingServiceObjectName = ObjectName.getInstance("naming:type=rmiregistry");
 
             // Do not use the createMBean as the mx4j jar may not be in the
@@ -569,10 +575,14 @@ public class ManagementContext implements Service {
             // This is handy to use if you have a firewall and need to force JMX to use fixed ports.
             rmiServer = ""+getConnectorHost()+":" + rmiServerPort;
         }
-        String serviceURL = "service:jmx:rmi://" + rmiServer + "/jndi/rmi://" +getConnectorHost()+":" + connectorPort + connectorPath;
-        JMXServiceURL url = new JMXServiceURL(serviceURL);
-        connectorServer = JMXConnectorServerFactory.newJMXConnectorServer(url, environment, mbeanServer);
 
+        final Map<String,Object> env = new HashMap<>();
+        server = new RMIJRMPServerImpl(connectorPort, null, null, environment);
+
+        final String serviceURL = "service:jmx:rmi://" + rmiServer + "/jndi/rmi://" +getConnectorHost()+":" + connectorPort + connectorPath;
+        final JMXServiceURL url = new JMXServiceURL(serviceURL);
+
+        connectorServer = new RMIConnectorServer(url, env, server, ManagementFactory.getPlatformMBeanServer());
         LOG.debug("Created JMXConnectorServer {}", connectorServer);
     }
 
@@ -662,5 +672,38 @@ public class ManagementContext implements Service {
 
     public String getSuppressMBean() {
         return suppressMBean;
+    }
+	
+	
+	@SuppressWarnings("restriction")
+    private class JmxRegistry extends sun.rmi.registry.RegistryImpl {
+        public static final String LOOKUP_NAME = "jmxrmi";
+
+        public JmxRegistry(int port) throws RemoteException {
+            super(port);
+        }
+
+        @Override
+
+        public Remote lookup(String s) throws RemoteException, NotBoundException {
+            return LOOKUP_NAME.equals(s) ? serverStub : null;
+        }
+
+        @Override
+        public void bind(String s, Remote remote) throws RemoteException, AlreadyBoundException, AccessException {
+        }
+
+        @Override
+        public void unbind(String s) throws RemoteException, NotBoundException, AccessException {
+        }
+
+        @Override
+        public void rebind(String s, Remote remote) throws RemoteException, AccessException {
+        }
+
+        @Override
+        public String[] list() throws RemoteException {
+            return new String[] {LOOKUP_NAME};
+        }
     }
 }
