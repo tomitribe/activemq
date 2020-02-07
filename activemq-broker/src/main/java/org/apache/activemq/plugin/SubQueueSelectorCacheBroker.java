@@ -203,6 +203,8 @@ public class SubQueueSelectorCacheBroker extends BrokerFilter implements Runnabl
                             subSelectorCache.forEach((k,v) -> {
                                 sb.append("\t").append(k).append(": ").append(v).append("\n");
                             });
+
+                            LOG.debug(sb.toString());
                         }
                     } catch (ClassNotFoundException ex) {
                         LOG.error("Invalid selector cache data found. Please remove file.", ex);
