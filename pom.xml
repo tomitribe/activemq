@@ -271,8 +271,8 @@
   </modules>
 
   <scm>
-    <connection>scm:git:https://github.com/tomitribe/activemq.git</connection>
-    <developerConnection>scm:git:https://github.com/tomitribe/activemq.git</developerConnection>
+    <connection>scm:git:git@github.com:tomitribe/activemq.git</connection>
+    <developerConnection>scm:git:git@github.com:tomitribe/activemq.git</developerConnection>
     <url>https://github.com/tomitribe/activemq-git</url>
   </scm>
 
