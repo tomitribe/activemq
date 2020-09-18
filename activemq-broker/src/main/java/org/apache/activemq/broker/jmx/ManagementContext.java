@@ -538,7 +538,7 @@ public class ManagementContext implements Service {
             rmiServer = ""+getConnectorHost()+":" + rmiServerPort;
         }
 
-        final Map<String,Object> env = new HashMap<>();
+        final Map<String,Object> env = new HashMap<String, Object>();
         server = new RMIJRMPServerImpl(connectorPort, null, null, environment);
 
         final String serviceURL = "service:jmx:rmi://" + rmiServer + "/jndi/rmi://" +getConnectorHost()+":" + connectorPort + connectorPath;
