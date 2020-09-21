@@ -59,7 +59,7 @@ public class StompSslAuthTest extends StompTest {
         TransportConnector connector = brokerService.addConnector("ssl://0.0.0.0:0?needClientAuth=true");
         jmsUri = connector.getPublishableConnectString() + "?socket.verifyHostName=false";
     }
-	
+
     @Override
     protected void addStompConnector() throws Exception {
         TransportConnector connector = brokerService.addConnector("stomp+ssl://0.0.0.0:"+port+"?needClientAuth=true&transport.verifyHostName=false");

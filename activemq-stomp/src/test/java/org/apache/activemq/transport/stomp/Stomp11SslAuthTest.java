@@ -42,7 +42,7 @@ public class Stomp11SslAuthTest extends Stomp11Test {
     protected void addOpenWireConnector() throws Exception {
         TransportConnector connector = brokerService.addConnector(
                 "ssl://0.0.0.0:0?needClientAuth=true");
-        jmsUri = connector.getPublishableConnectString();
+        jmsUri = connector.getPublishableConnectString() + "?socket.verifyHostName=false";
     }
 
     @Override
