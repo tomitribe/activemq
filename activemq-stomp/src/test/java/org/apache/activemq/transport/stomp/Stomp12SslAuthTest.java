@@ -41,14 +41,14 @@ public class Stomp12SslAuthTest extends Stomp12Test {
     @Override
     protected void addOpenWireConnector() throws Exception {
         TransportConnector connector = brokerService.addConnector(
-                "ssl://0.0.0.0:0?needClientAuth=true");
-        jmsUri = connector.getPublishableConnectString();
+                "ssl://0.0.0.0:0?transport.needClientAuth=true&transport.verifyHostName=false");
+        jmsUri = connector.getPublishableConnectString() + "?socket.verifyHostName=false";
     }
 
     @Override
     protected void addStompConnector() throws Exception {
         TransportConnector connector = brokerService.addConnector(
-                "stomp+ssl://0.0.0.0:"+port+"?needClientAuth=true");
+                "stomp+ssl://0.0.0.0:"+port+"?transport.needClientAuth=true&transport.verifyHostName=false");
         sslPort = connector.getConnectUri().getPort();
     }
 
