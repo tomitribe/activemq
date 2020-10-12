@@ -16,14 +16,11 @@
  */
 package org.apache.activemq.broker.region.cursors;
 
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.ListIterator;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.activemq.broker.region.Destination;
 import org.apache.activemq.broker.region.MessageReference;
@@ -40,6 +37,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class AbstractStoreCursor extends AbstractPendingMessageCursor implements MessageRecoveryListener {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractStoreCursor.class);
+    private static final Logger DUPLICATE_LOG = LoggerFactory.getLogger("org.apache.activemq.broker.region.cursors.TRACE_DUPLICATE");
     protected final Destination regionDestination;
     protected final PendingList batchList;
     private Iterator<MessageReference> iterator = null;
@@ -51,7 +49,9 @@ public abstract class AbstractStoreCursor extends AbstractPendingMessageCursor i
     final MessageId[] lastCachedIds = new MessageId[2];
     protected boolean hadSpace = false;
 
-
+    private static final Map<Long, String> TRACES = new ConcurrentHashMap<>();
+    private static final Map<Long, Long> TRACE_COUNTS = new ConcurrentHashMap<>();
+    private static final AtomicLong LAST_LOGGED = new AtomicLong(0);
 
     protected AbstractStoreCursor(Destination destination) {
         super((destination != null ? destination.isPrioritizedMessages():false));
@@ -65,7 +65,7 @@ public abstract class AbstractStoreCursor extends AbstractPendingMessageCursor i
 
 
     @Override
-    public final synchronized void start() throws Exception{
+    public final synchronized void start() throws Exception {
         if (!isStarted()) {
             super.start();
             resetBatch();
@@ -162,7 +162,31 @@ public abstract class AbstractStoreCursor extends AbstractPendingMessageCursor i
     // track for processing outside of store index lock so we can dlq
     final LinkedList<Message> duplicatesFromStore = new LinkedList<Message>();
     private void duplicate(Message message) {
+        trace();
         duplicatesFromStore.add(message);
+    }
+
+    private void trace() {
+        final StringWriter sw = new StringWriter();
+        final PrintWriter pw = new PrintWriter(sw);
+        new Throwable().printStackTrace(pw);
+
+        final long hash = XxHash64.hash(sw.toString());
+        if (! TRACES.containsKey(hash)) {
+            TRACES.put(hash, sw.toString());
+
+            DUPLICATE_LOG.warn("Duplicate message: {}", sw.toString());
+        }
+
+        TRACE_COUNTS.putIfAbsent(hash, 1L);
+        TRACE_COUNTS.compute(hash, (k, v) -> (v == null) ? 1L : v + 1);
+
+        if (LAST_LOGGED.get() < (System.currentTimeMillis() - 60000)) {
+            LAST_LOGGED.set(System.currentTimeMillis());
+
+            TRACE_COUNTS.forEach((k, v) ->
+                    DUPLICATE_LOG.warn("Seen trace ID: " + k + " occurences: " + v));
+        }
     }
 
     void dealWithDuplicates() {
