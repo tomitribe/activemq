@@ -135,7 +135,7 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
     }
 
     protected void record(final String messageId, final Class cls, final String method, final long start) {
-        final long end = System.currentTimeMillis();
+        final long end = System.nanoTime();
         try {
             final AccessLogPlugin accessLog = (AccessLogPlugin) brokerService.getBroker().getAdaptor(AccessLogPlugin.class);
             if (accessLog != null) {
@@ -1047,7 +1047,7 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
             ByteSequence sequence = toByteSequence(data);
 
             Location location;
-            long lockStart = System.currentTimeMillis();
+            long lockStart = System.nanoTime();
 
             try {
                 checkpointLock.readLock().lock();

@@ -161,12 +161,12 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
         public TimeoutMessage(Message message, ConnectionContext context, long delay) {
             this.message = message;
             this.context = context;
-            this.trigger = System.currentTimeMillis() + delay;
+            this.trigger = System.nanoTime() + delay;
         }
 
         @Override
         public long getDelay(TimeUnit unit) {
-            long n = trigger - System.currentTimeMillis();
+            long n = trigger - System.nanoTime();
             return unit.convert(n, TimeUnit.MILLISECONDS);
         }
 

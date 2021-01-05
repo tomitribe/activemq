@@ -115,10 +115,15 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         long start = System.nanoTime();
 
         try {
-            timings.start(messageSend);
+            if (enabled.get()) {
+                timings.start(messageSend);
+            }
             super.send(producerExchange, messageSend);
         } finally {
-            timings.end(messageSend, start);
+            if (enabled.get()) {
+                timings.end(messageSend, start);
+            }
+
             THREAD_MESSAGE_ID.set(null);
         }
     }
