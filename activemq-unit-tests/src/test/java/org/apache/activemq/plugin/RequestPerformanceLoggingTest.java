@@ -30,7 +30,9 @@ import org.slf4j.LoggerFactory;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
+import javax.jms.MapMessage;
 import javax.jms.Message;
+import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Queue;
 import javax.jms.Session;
@@ -54,10 +56,11 @@ public class RequestPerformanceLoggingTest extends TestCase {
 
     public void testMultiThread() throws Exception {
         final int threads = 40;
-        final int iterations = 1000;
+        final int iterations = 15000;
         final int totalNumberOfIterations = threads * iterations;
 
         latch = new CountDownLatch(totalNumberOfIterations);
+        final DescriptiveStatistics descriptiveStatistics = new DescriptiveStatistics();
 
         final ExecutorService executorService = Executors.newFixedThreadPool(20);
         for (int t = 0 ; t < threads ; t++) {
@@ -66,14 +69,27 @@ public class RequestPerformanceLoggingTest extends TestCase {
                 @Override
                 public void run() {
                     try {
-                        final Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-                        final Queue testQueue = session.createQueue("Test.Queue." + currentThread);
-                        MessageProducer producer = session.createProducer(testQueue);
+                        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+                        Queue replyTo = session.createTemporaryQueue();
+                        MessageConsumer consumer = session.createConsumer(replyTo);
+                        Queue query = session.createQueue(StatisticsBroker.STATS_BROKER_PREFIX);
+                        MessageProducer producer = session.createProducer(query);
                         for (int i = 0; i < iterations; i++) {
-                            Message msg = session.createTextMessage("This is a test");
+                            final long start = System.nanoTime();
+                            Message msg = session.createMessage();
+                            msg.setJMSReplyTo(replyTo);
                             producer.send(msg);
 
+                            MapMessage reply = (MapMessage) consumer.receive(10 * 1000);
+                            assertNotNull(reply);
+                            assertTrue(reply.getMapNames().hasMoreElements());
+                            assertTrue(reply.getJMSTimestamp() > 0);
+                            assertEquals(Message.DEFAULT_PRIORITY, reply.getJMSPriority());
+
+                            latch.countDown();
+                            descriptiveStatistics.addValue(System.nanoTime() - start);
                         }
+
                     } catch (JMSException e) {
                         e.printStackTrace();
                     }
@@ -82,21 +98,19 @@ public class RequestPerformanceLoggingTest extends TestCase {
         }
 
         latch.await(1, TimeUnit.MINUTES);
-        Assert.assertEquals(totalNumberOfIterations, timingList.size());
 
-        final DescriptiveStatistics descriptiveStatistics = new DescriptiveStatistics();
         long total = 0;
         for (AccessLogPlugin.Timing timing : timingList) {
             for (AccessLogPlugin.Breakdown breakdown : timing.getBreakdowns()) {
                 if ("whole_request".equals(breakdown.getWhat())) {
                     total += breakdown.getTiming();
-                    descriptiveStatistics.addValue(breakdown.getTiming());
                     break;
                 }
             }
         }
 
         System.out.println("Average for whole request = " + total / totalNumberOfIterations);
+
         System.out.println("Stats for whole request = " + descriptiveStatistics.toString());
         System.out.println("90 percentile for whole request = " + descriptiveStatistics.getPercentile(90d));
         System.out.println("95 percentile for whole request = " + descriptiveStatistics.getPercentile(95d));
@@ -136,7 +150,7 @@ public class RequestPerformanceLoggingTest extends TestCase {
 
     @Override
     protected void setUp() throws Exception {
-        broker = createBroker();
+        broker = createBroker(false);
         ConnectionFactory factory = new ActiveMQConnectionFactory(broker.getTransportConnectorURIsAsMap().get("tcp"));
         connection = factory.createConnection();
         connection.start();
@@ -152,22 +166,29 @@ public class RequestPerformanceLoggingTest extends TestCase {
         }
     }
 
-    protected BrokerService createBroker() throws Exception {
+    protected BrokerService createBroker(final boolean withAccessLogPlugin) throws Exception {
         BrokerService answer = new BrokerService();
-        BrokerPlugin[] plugins = new BrokerPlugin[1];
-        final AccessLogPlugin accessLogPlugin = new AccessLogPlugin();
-        accessLogPlugin.setEnabled(true);
-        accessLogPlugin.setThreshold(0);
-        accessLogPlugin.setCallback(new AccessLogPlugin.RecordingCallback() {
+        BrokerPlugin[] plugins;
+        if (withAccessLogPlugin) {
+            plugins = new BrokerPlugin[2];
+            plugins[0] = new StatisticsBrokerPlugin();
 
-            @Override
-            public void sendComplete(AccessLogPlugin.Timing timing) {
-                timingList.add(timing);
-                latch.countDown();
-            }
-        });
+            final AccessLogPlugin accessLogPlugin = new AccessLogPlugin();
+            accessLogPlugin.setEnabled(true);
+            accessLogPlugin.setThreshold(0);
+            accessLogPlugin.setCallback(new AccessLogPlugin.RecordingCallback() {
 
-        plugins[0] = accessLogPlugin;
+                @Override
+                public void sendComplete(AccessLogPlugin.Timing timing) {
+                    timingList.add(timing);
+                }
+            });
+            plugins[1] = accessLogPlugin;
+
+        } else {
+            plugins = new BrokerPlugin[1];
+            plugins[0] = new StatisticsBrokerPlugin();
+        }
         answer.setPlugins(plugins);
         answer.setDeleteAllMessagesOnStartup(true);
         answer.addConnector("tcp://localhost:0");
