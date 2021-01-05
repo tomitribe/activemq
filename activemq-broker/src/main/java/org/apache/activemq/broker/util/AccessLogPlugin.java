@@ -39,6 +39,8 @@ import java.util.function.BiFunction;
 
 /**
  * Tracks and logs timings for messages being sent to a destination
+ *
+ * @org.apache.xbean.XBean
  */
 public class AccessLogPlugin extends BrokerPluginSupport {
 
@@ -53,6 +55,18 @@ public class AccessLogPlugin extends BrokerPluginSupport {
 
     @PostConstruct
     private void postConstruct() {
+        try {
+            afterPropertiesSet();
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    /**
+     * @throws Exception
+     * @org.apache.xbean.InitMethod
+     */
+    public void afterPropertiesSet() throws Exception {
         LOG.info("Created AccessLogPlugin: {}", this.toString());
     }
 
