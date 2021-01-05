@@ -170,10 +170,11 @@ public class AccessLogPlugin extends BrokerPluginSupport {
             final Timing timing = inflight.remove(messageId);
 
             final int th = threshold.get();
-            if (th <= 0 || ((long)th < duration)) {
+            if (th <= 0 || ((long)th < (duration / 1000000))) {
+                /*
                 if (LOG.isInfoEnabled()) {
                     LOG.info(timing.toString());
-                }
+                }*/
                 if (recordingCallback != null) {
                     recordingCallback.sendComplete(timing);
                 }
@@ -231,7 +232,7 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
 
         public Long getTiming() {
-            return timing / 1000000;
+            return timing;
         }
 
         @Override

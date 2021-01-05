@@ -22,12 +22,14 @@ import org.apache.activemq.broker.BrokerFactory;
 import org.apache.activemq.broker.BrokerPlugin;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.util.AccessLogPlugin;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
+import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Queue;
@@ -38,6 +40,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class RequestPerformanceLoggingTest extends TestCase {
@@ -48,7 +52,59 @@ public class RequestPerformanceLoggingTest extends TestCase {
     private CountDownLatch latch;
     private List<AccessLogPlugin.Timing> timingList = new ArrayList<>();
 
-    public void testDestinationStats() throws Exception{
+    public void testMultiThread() throws Exception {
+        final int threads = 40;
+        final int iterations = 1000;
+        final int totalNumberOfIterations = threads * iterations;
+
+        latch = new CountDownLatch(totalNumberOfIterations);
+
+        final ExecutorService executorService = Executors.newFixedThreadPool(20);
+        for (int t = 0 ; t < threads ; t++) {
+            final int currentThread = t;
+            executorService.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        final Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+                        final Queue testQueue = session.createQueue("Test.Queue." + currentThread);
+                        MessageProducer producer = session.createProducer(testQueue);
+                        for (int i = 0; i < iterations; i++) {
+                            Message msg = session.createTextMessage("This is a test");
+                            producer.send(msg);
+
+                        }
+                    } catch (JMSException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+
+        latch.await(1, TimeUnit.MINUTES);
+        Assert.assertEquals(totalNumberOfIterations, timingList.size());
+
+        final DescriptiveStatistics descriptiveStatistics = new DescriptiveStatistics();
+        long total = 0;
+        for (AccessLogPlugin.Timing timing : timingList) {
+            for (AccessLogPlugin.Breakdown breakdown : timing.getBreakdowns()) {
+                if ("whole_request".equals(breakdown.getWhat())) {
+                    total += breakdown.getTiming();
+                    descriptiveStatistics.addValue(breakdown.getTiming());
+                    break;
+                }
+            }
+        }
+
+        System.out.println("Average for whole request = " + total / totalNumberOfIterations);
+        System.out.println("Stats for whole request = " + descriptiveStatistics.toString());
+        System.out.println("90 percentile for whole request = " + descriptiveStatistics.getPercentile(90d));
+        System.out.println("95 percentile for whole request = " + descriptiveStatistics.getPercentile(95d));
+        System.out.println("99 percentile for whole request = " + descriptiveStatistics.getPercentile(99d));
+
+    }
+
+    public void testDestinationStats() throws Exception {
         latch = new CountDownLatch(1);
 
         final Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
