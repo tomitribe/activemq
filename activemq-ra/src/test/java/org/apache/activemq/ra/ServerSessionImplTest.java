@@ -151,7 +151,7 @@ public class ServerSessionImplTest {
                 allowing(messageEndpointFactory).createEndpoint(with(any(XAResource.class)));
                 will(returnValue(messageEndpoint));
 
-                allowing(workManager).scheduleWork((Work) with(anything()), with(any(long.class)), with(any(ExecutionContext.class)),
+                allowing(workManager).scheduleWork(with(any(Work.class)), with(any(long.class)), with(any(ExecutionContext.class)),
                     with(any(WorkListener.class)));
                 will(new Action() {
                     @Override
@@ -164,7 +164,7 @@ public class ServerSessionImplTest {
                     }
                 });
 
-                allowing(messageEndpoint).beforeDelivery((Method) with(anything()));
+                allowing(messageEndpoint).beforeDelivery(with(any(Method.class)));
                 allowing(messageEndpoint).onMessage(with(any(javax.jms.Message.class)));
                 will(new Action() {
                     @Override
