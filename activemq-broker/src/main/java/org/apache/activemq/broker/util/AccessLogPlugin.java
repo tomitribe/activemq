@@ -190,10 +190,10 @@ public class AccessLogPlugin extends BrokerPluginSupport {
 
             final int th = threshold.get();
             if (th <= 0 || ((long)th < (duration / 1000000))) {
-                /*
+
                 if (LOG.isInfoEnabled()) {
                     LOG.info(timing.toString());
-                }*/
+                }
                 if (recordingCallback != null) {
                     recordingCallback.sendComplete(timing);
                 }
