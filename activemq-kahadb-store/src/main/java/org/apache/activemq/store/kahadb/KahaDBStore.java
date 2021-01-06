@@ -1313,7 +1313,7 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
 
         @Override
         public boolean cancel() {
-            long start = System.currentTimeMillis();
+            final long start = System.nanoTime();
 
             try {
                 if (this.done.compareAndSet(false, true)) {
@@ -1327,7 +1327,7 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
 
         @Override
         public void aquireLocks() {
-            long start = System.currentTimeMillis();
+            final long start = System.nanoTime();
 
             try {
                 if (this.locked.compareAndSet(false, true)) {
@@ -1340,13 +1340,13 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
                     }
                 }
             } finally {
-                record(this.message.getMessageId().toString(), StoreQueueTask.class, "aquireLocks", start);
+                record(this.message.getMessageId().toString(), StoreQueueTask.class, "acquireLocks", start);
             }
         }
 
         @Override
         public void releaseLocks() {
-            long start = System.currentTimeMillis();
+            final long start = System.nanoTime();
 
             try {
                 if (this.locked.compareAndSet(true, false)) {
@@ -1362,14 +1362,14 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
 
         @Override
         public void run() {
-            long start = System.currentTimeMillis();
+            final long start = System.nanoTime();
             setThreadMessageId(message.getMessageId().toString());
 
             try {
                 this.store.doneTasks++;
                 try {
                     if (this.done.compareAndSet(false, true)) {
-                        long startStore = System.currentTimeMillis();
+                        final long startStore = System.nanoTime();
                         try {
                             this.store.addMessage(context, message);
                         } finally {
@@ -1451,7 +1451,7 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
 
         @Override
         public void aquireLocks() {
-            final long start = System.currentTimeMillis();
+            final long start = System.nanoTime();
 
             try {
                 if (this.locked.compareAndSet(false, true)) {
@@ -1464,13 +1464,13 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
                     }
                 }
             } finally {
-                record(this.message.getMessageId().toString(), StoreTopicTask.class, "aquireLocks", start);
+                record(this.message.getMessageId().toString(), StoreTopicTask.class, "acquireLocks", start);
             }
         }
 
         @Override
         public void releaseLocks() {
-            final long start = System.currentTimeMillis();
+            final long start = System.nanoTime();
 
             try {
                 if (this.locked.compareAndSet(true, false)) {
@@ -1490,7 +1490,7 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
          * @return true if all acknowledgements received
          */
         public boolean addSubscriptionKey(String key) {
-            final long start = System.currentTimeMillis();
+            final long start = System.nanoTime();
             try {
                 synchronized (this.subscriptionKeys) {
                     this.subscriptionKeys.add(key);
@@ -1503,14 +1503,14 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
 
         @Override
         public void run() {
-            final long start = System.currentTimeMillis();
+            final long start = System.nanoTime();
             setThreadMessageId(message.getMessageId().toString());
 
             try {
                 this.store.doneTasks++;
                 try {
                     if (this.done.compareAndSet(false, true)) {
-                        final long storeStart = System.currentTimeMillis();
+                        final long storeStart = System.nanoTime();
 
                         try {
                             this.topicStore.addMessage(context, message);

@@ -1057,11 +1057,13 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
             try {
 
                 long start = System.currentTimeMillis();
+                final long startNanos = System.nanoTime();
                 location = onJournalStoreComplete == null ? journal.write(sequence, sync) :  journal.write(sequence, onJournalStoreComplete) ;
-                record(null, MessageDatabase.class, "journal_write", start);
+                record(null, MessageDatabase.class, "journal_write", startNanos);
                 long start2 = System.currentTimeMillis();
+                final long startNanos2 = System.nanoTime();
                 process(data, location, before);
-                record(null, MessageDatabase.class, "index_write", start2);
+                record(null, MessageDatabase.class, "index_write", startNanos2);
                 long end = System.currentTimeMillis();
                 if( LOG_SLOW_ACCESS_TIME>0 && end-start > LOG_SLOW_ACCESS_TIME) {
                     if (LOG.isInfoEnabled()) {
