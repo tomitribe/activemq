@@ -19,7 +19,9 @@ package org.apache.activemq.broker.util;
 import org.apache.activemq.broker.BrokerPluginSupport;
 import org.apache.activemq.broker.ProducerBrokerExchange;
 import org.apache.activemq.broker.jmx.AsyncAnnotatedMBean;
+import org.apache.activemq.broker.jmx.OpenTypeSupport;
 import org.apache.activemq.command.Message;
+import org.apache.activemq.management.TimeStatisticImpl;
 import org.apache.activemq.util.JMXSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,15 +29,17 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.PostConstruct;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+import javax.management.openmbean.OpenDataException;
+import javax.management.openmbean.SimpleType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
 
 /**
  * Tracks and logs timings for messages being sent to a destination
@@ -75,6 +79,44 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         super.start();
 
         if (getBrokerService().isUseJmx()) {
+            OpenTypeSupport.addFactory(TimeStatisticImpl.class, new OpenTypeSupport.AbstractOpenTypeFactory() {
+                @Override
+                protected String getTypeName() {
+                    return TimeStatisticImpl.class.getName();
+                }
+
+                @Override
+                protected void init() throws OpenDataException {
+                    super.init();
+                    addItem("name", "name", SimpleType.STRING);
+                    addItem("count", "count", SimpleType.LONG);
+                    addItem("minTime", "minTime", SimpleType.LONG);
+                    addItem("maxTime", "maxTime", SimpleType.LONG);
+                    addItem("totalTime", "totalTime", SimpleType.LONG);
+                    addItem("averageTime", "averageTime", SimpleType.DOUBLE);
+                    // addItem("averagePerSecond", "averagePerSecond", SimpleType.DOUBLE);
+                    // addItem("averagePerSecondExcludingMinMax", "averagePerSecondExcludingMinMax", SimpleType.DOUBLE);
+                    addItem("averageTimeExcludingMinMax", "averageTimeExcludingMinMax", SimpleType.DOUBLE);
+                    addItem("lastSampleTime", "lastSampleTime", SimpleType.LONG);
+                }
+
+                @Override
+                public Map<String, Object> getFields(Object o) throws OpenDataException {
+                    TimeStatisticImpl statistic = (TimeStatisticImpl) o;
+                    Map<String, Object> rc = super.getFields(o);
+                    rc.put("name", statistic.getName());
+                    rc.put("count", statistic.getCount());
+                    rc.put("minTime", statistic.getMinTime());
+                    rc.put("maxTime", statistic.getMaxTime());
+                    rc.put("totalTime", statistic.getTotalTime());
+                    rc.put("averageTime", statistic.getAverageTime());
+                    // rc.put("averagePerSecond", statistic.getAveragePerSecond());
+                    // rc.put("averagePerSecondExcludingMinMax", statistic.getAveragePerSecondExcludingMinMax());
+                    rc.put("averageTimeExcludingMinMax", statistic.getAverageTimeExcludingMinMax());
+                    rc.put("lastSampleTime", statistic.getLastSampleTime());
+                    return rc;
+                }
+            });
             AsyncAnnotatedMBean.registerMBean(
                     this.getBrokerService().getManagementContext(),
                     new AccessLogView(this),
@@ -116,6 +158,14 @@ public class AccessLogPlugin extends BrokerPluginSupport {
 
     public void setThreshold(final int threshold) {
         this.threshold.set(threshold);
+    }
+
+    public void resetTimeStatistics() {
+        timings.resetStatistics();
+    }
+
+    public TimeStatisticImpl[] getTimeStatistics() {
+        return timings.getStatistics();
     }
 
     @Override
@@ -169,6 +219,7 @@ public class AccessLogPlugin extends BrokerPluginSupport {
 
     private class Timings {
         private ConcurrentMap<String, Timing> inflight = new ConcurrentHashMap<>();
+        private ConcurrentMap<String, TimeStatisticImpl> timeStatistics = new ConcurrentHashMap<>();
 
         public void start(final Message message) {
             final String messageId = message.getMessageId().toString();
@@ -191,9 +242,9 @@ public class AccessLogPlugin extends BrokerPluginSupport {
             final int th = threshold.get();
             if (th <= 0 || ((long)th < (duration / 1000000))) {
 
-                if (LOG.isInfoEnabled()) {
+                /*if (LOG.isInfoEnabled()) {
                     LOG.info(timing.toString());
-                }
+                }*/
                 if (recordingCallback != null) {
                     recordingCallback.sendComplete(timing);
                 }
@@ -202,6 +253,19 @@ public class AccessLogPlugin extends BrokerPluginSupport {
 
         public void record(final String messageId, final String what, final long duration) {
             inflight.computeIfPresent(messageId, (key, timing) -> timing.add(what, duration));
+            timeStatistics.computeIfAbsent(what, ((key) -> new TimeStatisticImpl(key, "ns", key)));
+            timeStatistics.computeIfPresent(what, (key, timing) -> {
+                timing.addTime(duration);
+                return timing;
+            });
+        }
+
+        public TimeStatisticImpl[] getStatistics() {
+            return timeStatistics.values().toArray(new TimeStatisticImpl[0]);
+        }
+
+        public void resetStatistics() {
+            timeStatistics.forEach((key, timing) -> timing.reset());
         }
     }
 

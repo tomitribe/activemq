@@ -535,6 +535,10 @@ public final class OpenTypeSupport {
         return OPEN_TYPE_FACTORIES.get(clazz);
     }
 
+    public static void addFactory(final Class<?> clazz, final AbstractOpenTypeFactory factory) throws OpenDataException {
+        OPEN_TYPE_FACTORIES.put(clazz, factory);
+    }
+
     public static CompositeData convert(Object message) throws OpenDataException {
         OpenTypeFactory f = getFactory(message.getClass());
         if (f == null) {
