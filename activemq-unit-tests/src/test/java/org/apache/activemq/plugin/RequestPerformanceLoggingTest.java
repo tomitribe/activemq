@@ -101,6 +101,9 @@ public class RequestPerformanceLoggingTest extends TestCase {
         }
 
         System.out.println("======");
+        for (AccessLogPlugin.Breakdown b : timingList.get(0).getBreakdowns()) {
+            System.out.printf("name = %-60s, average = %10d \n", b.getWhat(), b.getTiming());
+        }
         for (Map.Entry<String, DescriptiveStatistics> entry : stats.entrySet()) {
             System.out.printf("name = %-60s, count = %-5d, average = %10.0f, min = %10.0f, max = %10.0f, 90p = %-10.0f, 95p = %-10.0f, 99p = %-10.0f \n", entry.getKey(),
                               entry.getValue().getN(), entry.getValue().getMean(),
