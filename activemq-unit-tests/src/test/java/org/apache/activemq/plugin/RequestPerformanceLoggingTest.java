@@ -22,6 +22,7 @@ import org.apache.activemq.broker.BrokerPlugin;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.util.AccessLogPlugin;
 import org.apache.activemq.management.TimeStatisticImpl;
+import org.apache.activemq.store.kahadb.KahaDBPersistenceAdapter;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -34,6 +35,7 @@ import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Queue;
 import javax.jms.Session;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -100,7 +102,7 @@ public class RequestPerformanceLoggingTest extends TestCase {
 
         System.out.println("======");
         for (Map.Entry<String, DescriptiveStatistics> entry : stats.entrySet()) {
-            System.out.printf("name = %-60s, count = %-5d, average = %-10.0f, min = %-10.0f, max = %-10.0f, 90p = %-10.0f, 95p = %-10.0f, 99p = %-10.0f \n", entry.getKey(),
+            System.out.printf("name = %-60s, count = %-5d, average = %10.0f, min = %10.0f, max = %10.0f, 90p = %-10.0f, 95p = %-10.0f, 99p = %-10.0f \n", entry.getKey(),
                               entry.getValue().getN(), entry.getValue().getMean(),
                               entry.getValue().getMin(), entry.getValue().getMax(),
                               entry.getValue().getPercentile(90), entry.getValue().getPercentile(95),
@@ -116,7 +118,7 @@ public class RequestPerformanceLoggingTest extends TestCase {
     private void displayTimings(final TimeStatisticImpl[] timeStatistics) {
         System.out.println("======");
         for (TimeStatisticImpl timeStatistic : timeStatistics) {
-            System.out.printf("name = %-60s, count = %-5d, average = %-10.0f, min = %-10d, max = %-10d \n", timeStatistic.getName(),
+            System.out.printf("name = %-60s, count = %-5d, average = %10.0f, min = %10d, max = %10d \n", timeStatistic.getName(),
                               timeStatistic.getCount(), timeStatistic.getAverageTime(),
                               timeStatistic.getMinTime(), timeStatistic.getMaxTime());
         }
@@ -199,6 +201,11 @@ public class RequestPerformanceLoggingTest extends TestCase {
         }
         answer.setDeleteAllMessagesOnStartup(true);
         answer.addConnector("tcp://localhost:0");
+
+        final KahaDBPersistenceAdapter persistenceAdapter = new KahaDBPersistenceAdapter();
+        persistenceAdapter.setDirectory(new File("target/kahadb"));
+        answer.setPersistenceAdapter(persistenceAdapter);
+
         answer.start();
 
         return answer;
