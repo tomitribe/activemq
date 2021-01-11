@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,7 +34,6 @@ import javax.management.openmbean.SimpleType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -118,24 +117,28 @@ public class AccessLogPlugin extends BrokerPluginSupport {
                 }
             });
             AsyncAnnotatedMBean.registerMBean(
-                    this.getBrokerService().getManagementContext(),
-                    new AccessLogView(this),
-                    createJmxName(getBrokerService().getBrokerObjectName().toString(), "AccessLogPlugin")
-            );
+                this.getBrokerService().getManagementContext(),
+                new AccessLogView(this),
+                createJmxName(getBrokerService().getBrokerObjectName().toString(), "AccessLogPlugin")
+                                             );
         }
     }
 
     @Override
     public void stop() throws Exception {
         if (getBrokerService().isUseJmx()) {
-            final ObjectName name = createJmxName(getBrokerService().getBrokerObjectName().toString(), "AccessLogPlugin");
+            final ObjectName name =
+                createJmxName(getBrokerService().getBrokerObjectName().toString(), "AccessLogPlugin");
             getBrokerService().getManagementContext().unregisterMBean(name);
         }
+
+        dumpStats();
 
         super.stop();
     }
 
-    public static ObjectName createJmxName(final String brokerObjectName, final String name) throws MalformedObjectNameException {
+    public static ObjectName createJmxName(final String brokerObjectName, final String name)
+        throws MalformedObjectNameException {
         String objectNameStr = brokerObjectName;
 
         objectNameStr += "," + "service=AccessLog";
@@ -170,7 +173,7 @@ public class AccessLogPlugin extends BrokerPluginSupport {
 
     @Override
     public void send(final ProducerBrokerExchange producerExchange, final Message messageSend) throws Exception {
-        if (! enabled.get()) {
+        if (!enabled.get()) {
             super.send(producerExchange, messageSend);
             return;
         }
@@ -193,7 +196,7 @@ public class AccessLogPlugin extends BrokerPluginSupport {
     }
 
     public void record(final String messageId, final String what, final long duration) {
-        if (! enabled.get()) {
+        if (!enabled.get()) {
             return;
         }
 
@@ -203,7 +206,8 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
 
         if (id == null) {
-            return;
+            LOG.info(String.format("Discarding timing breakdown without messageId (%40s=%10d)", what, duration));
+            // return;
         }
 
         timings.record(id, what, duration);
@@ -240,11 +244,11 @@ public class AccessLogPlugin extends BrokerPluginSupport {
             final Timing timing = inflight.remove(messageId);
 
             final int th = threshold.get();
-            if (th <= 0 || ((long)th < (duration / 1000000))) {
+            if (th <= 0 || ((long) th < (duration / 1000000))) {
 
-                /*if (LOG.isInfoEnabled()) {
+                if (false && LOG.isInfoEnabled()) {
                     LOG.info(timing.toString());
-                }*/
+                }
                 if (recordingCallback != null) {
                     recordingCallback.sendComplete(timing);
                 }
@@ -252,7 +256,15 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
 
         public void record(final String messageId, final String what, final long duration) {
-            inflight.computeIfPresent(messageId, (key, timing) -> timing.add(what, duration));
+
+            /*
+            if (false && Arrays.asList("MessageDatabase.journal_write", "MessageDatabase.index_write").contains(what)) {
+                new Throwable().printStackTrace();
+            }
+            */
+            if (messageId != null) {
+                inflight.computeIfPresent(messageId, (key, timing) -> timing.add(what, duration));
+            }
             timeStatistics.computeIfAbsent(what, ((key) -> new TimeStatisticImpl(key, "ns", key)));
             timeStatistics.computeIfPresent(what, (key, timing) -> {
                 timing.addTime(duration);
@@ -289,19 +301,19 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         @Override
         public String toString() {
             return "Timing{" +
-                    "messageId='" + messageId + '\'' +
-                    ", destination='" + destination + '\'' +
-                    ", messageSize='" + messageSize + '\'' +
-                    ", timingBreakdowns=" + timingBreakdowns +
-                    '}';
-            }
+                   "messageId='" + messageId + '\'' +
+                   ", destination='" + destination + '\'' +
+                   ", messageSize='" + messageSize + '\'' +
+                   ", timingBreakdowns=" + timingBreakdowns +
+                   '}';
+        }
 
         public List<Breakdown> getBreakdowns() {
             return timingBreakdowns;
         }
     }
 
-    public class Breakdown {
+    public static class Breakdown {
         private final String what;
         private final Long timing;
 
@@ -321,10 +333,34 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         @Override
         public String toString() {
             return "Breakdown{" +
-                    "what='" + getWhat() + '\'' +
-                    ", timing=" + getTiming() +
-                    '}';
+                   "what='" + getWhat() + '\'' +
+                   ", timing=" + getTiming() +
+                   '}';
         }
+    }
+
+    private void dumpStats() {
+        final TimeStatisticImpl[] timeStatistics = getTimeStatistics();
+        displayTimings(timeStatistics);
+
+    }
+
+    private void displayTimings(final TimeStatisticImpl[] timeStatistics) {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("\n\n======");
+        double wholeRequestTps = 0;
+        for (TimeStatisticImpl timeStatistic : timeStatistics) {
+            sb.append(String.format("name = %-60s, count = %-5d, average = %10.0f, min = %10d, max = %10d \n", timeStatistic.getName(),
+                              timeStatistic.getCount(), timeStatistic.getAverageTime(),
+                              timeStatistic.getMinTime(), timeStatistic.getMaxTime()));
+
+            if ("whole_request".equals(timeStatistic.getName())) {
+                wholeRequestTps = timeStatistic.getCount() / ((double) timeStatistic.getTotalTime() / (double) 1_000_000_000);
+            }
+        }
+
+        sb.append(String.format("\n>> Whole Request TPS = %10.0f \n\n", wholeRequestTps));
+        LOG.info(sb.toString());
     }
 
     public interface RecordingCallback {

@@ -21,8 +21,8 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerPlugin;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.util.AccessLogPlugin;
-import org.apache.activemq.management.TimeStatisticImpl;
 import org.apache.activemq.store.kahadb.KahaDBPersistenceAdapter;
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.junit.Assert;
 import org.slf4j.Logger;
@@ -57,15 +57,16 @@ public class RequestPerformanceLoggingTest extends TestCase {
     private List<AccessLogPlugin.Timing> timingList = new ArrayList<>();
 
     public void testMultiThread() throws Exception {
-        final int threads = 3;
-        final int iterations = 17;
+        final int threads = 13;
+        final int iterations = 137;
         final int totalNumberOfIterations = threads * iterations;
+
+        final String randomString = RandomStringUtils.randomAlphanumeric(1024 * 1024 * 5); // 5 MB
 
         latch = new CountDownLatch(totalNumberOfIterations);
 
         final ExecutorService executorService = Executors.newFixedThreadPool(threads);
         for (int t = 0 ; t < threads ; t++) {
-            final int currentThread = t;
             executorService.submit(new Runnable() {
                 @Override
                 public void run() {
@@ -75,7 +76,7 @@ public class RequestPerformanceLoggingTest extends TestCase {
                         MessageProducer producer = session.createProducer(testQueue);
 
                         for (int i = 0; i < iterations; i++) {
-                            Message msg = session.createTextMessage("This is a test " + currentThread + "/" + i);
+                            Message msg = session.createTextMessage(randomString);
                             producer.send(msg);
 
                         }
@@ -101,9 +102,11 @@ public class RequestPerformanceLoggingTest extends TestCase {
         }
 
         System.out.println("======");
+        /*
         for (AccessLogPlugin.Breakdown b : timingList.get(0).getBreakdowns()) {
             System.out.printf("name = %-60s, average = %10d \n", b.getWhat(), b.getTiming());
         }
+         */
         for (Map.Entry<String, DescriptiveStatistics> entry : stats.entrySet()) {
             System.out.printf("name = %-60s, count = %-5d, average = %10.0f, min = %10.0f, max = %10.0f, 90p = %-10.0f, 95p = %-10.0f, 99p = %-10.0f \n", entry.getKey(),
                               entry.getValue().getN(), entry.getValue().getMean(),
@@ -111,31 +114,7 @@ public class RequestPerformanceLoggingTest extends TestCase {
                               entry.getValue().getPercentile(90), entry.getValue().getPercentile(95),
                               entry.getValue().getPercentile(99));
         }
-        System.out.println("======");
 
-        final AccessLogPlugin plugin = (AccessLogPlugin) broker.getPlugins()[0];
-        final TimeStatisticImpl[] timeStatistics = plugin.getTimeStatistics();
-        displayTimings(timeStatistics);
-    }
-
-    private void displayTimings(final TimeStatisticImpl[] timeStatistics) {
-        System.out.println("======");
-        for (TimeStatisticImpl timeStatistic : timeStatistics) {
-            System.out.printf("name = %-60s, count = %-5d, average = %10.0f, min = %10d, max = %10d \n", timeStatistic.getName(),
-                              timeStatistic.getCount(), timeStatistic.getAverageTime(),
-                              timeStatistic.getMinTime(), timeStatistic.getMaxTime());
-        }
-        System.out.println("======");
-    }
-
-    private void displayStats(final String what, final DescriptiveStatistics statistics) {
-        final StringBuilder sb = new StringBuilder();
-        sb.append("--> Stats for ").append(what).append(" --> ").append("\n");
-        sb.append("\t").append(statistics.toString());
-        sb.append("90 percentile = ").append(statistics.getPercentile(90d)).append("\n");
-        sb.append("95 percentile = ").append(statistics.getPercentile(95d)).append("\n");
-        sb.append("99 percentile = ").append(statistics.getPercentile(99d)).append("\n");
-        System.out.println(sb.toString());
     }
 
     public void testDestinationStats() throws Exception {
@@ -207,6 +186,17 @@ public class RequestPerformanceLoggingTest extends TestCase {
 
         final KahaDBPersistenceAdapter persistenceAdapter = new KahaDBPersistenceAdapter();
         persistenceAdapter.setDirectory(new File("target/kahadb"));
+
+        //persistenceAdapter.setEnableIndexDiskSyncs(false); // default true
+        //persistenceAdapter.setEnableIndexWriteAsync(true); // default false
+
+        //persistenceAdapter.setEnableJournalDiskSyncs(false); // default true
+
+        //persistenceAdapter.setJournalMaxFileLength(1024 * 1024 * 8); // default 32mb
+
+        persistenceAdapter.setIgnoreMissingJournalfiles(true);
+        persistenceAdapter.setLockKeepAlivePeriod(5000); // default 0
+
         answer.setPersistenceAdapter(persistenceAdapter);
 
         answer.start();
