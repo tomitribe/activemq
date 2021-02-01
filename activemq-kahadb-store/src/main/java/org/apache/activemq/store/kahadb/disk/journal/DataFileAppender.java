@@ -341,7 +341,7 @@ class DataFileAppender implements FileAppender {
                 }
 
                 if (dataFile != wb.dataFile) {
-                    final long rolloverStart = System.currentTimeMillis();
+                    final long rolloverStart = System.nanoTime();
                     if (file != null) {
                         dataFile.closeRandomAccessFile(file);
                     }
@@ -352,12 +352,12 @@ class DataFileAppender implements FileAppender {
                     if (file.length() == 0l) {
                         journal.preallocateEntireJournalDataFile(file);
                     }
-                    wb.setRolloverDuration(System.currentTimeMillis() - rolloverStart);
+                    wb.setRolloverDuration(System.nanoTime() - rolloverStart);
                 }
 
                 Journal.WriteCommand write = wb.writes.getHead();
 
-                final long startWrite = System.currentTimeMillis();
+                final long startWrite = System.nanoTime();
 
                 // Write an empty batch control record.
                 buff.reset();
@@ -421,7 +421,7 @@ class DataFileAppender implements FileAppender {
 
                 signalDone(wb);
 
-                final long endWrite = System.currentTimeMillis();
+                final long endWrite = System.nanoTime();
                 wb.duration = endWrite - startWrite;
             }
         } catch (IOException e) {
