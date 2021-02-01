@@ -848,20 +848,14 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
         record(message.getMessageId().toString(), Queue.class, "producerExchange.getConnectionContext()", System.nanoTime() - start);
         ListenableFuture<Object> result = null;
 
-        final long startIncrementSend = System.nanoTime();
         producerExchange.incrementSend();
-        record(message.getMessageId().toString(), Queue.class, "doMessageSend.producerExchange.incrementSend()", System.nanoTime() - startIncrementSend);
         do {
-            final long startCheckUsage = System.nanoTime();
             checkUsage(context, producerExchange, message);
-            record(message.getMessageId().toString(), Queue.class, "doMessageSend.checkUsage()", System.nanoTime() - startCheckUsage);
             final long startLock = System.nanoTime();
             sendLock.lockInterruptibly();
             record(message.getMessageId().toString(), Queue.class, "doMessageSend.sendLock.lockInterruptibly()", System.nanoTime() - startLock);
             try {
-                final long startGetDestinationSequenceId = System.nanoTime();
                 message.getMessageId().setBrokerSequenceId(getDestinationSequenceId());
-                record(message.getMessageId().toString(), Queue.class, "doMessageSend.message.setBrokerSequenceId()", System.nanoTime() - startGetDestinationSequenceId);
 
                 final long startStore = System.nanoTime();
                 if (store != null && message.isPersistent()) {
@@ -889,9 +883,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
                     break;
                 }
             } finally {
-                final long startUnlock = System.nanoTime();
                 sendLock.unlock();
-                record(message.getMessageId().toString(), Queue.class, "doMessageSend.sendLock.unlock()", System.nanoTime() - startUnlock);
             }
         } while (started.get());
 
@@ -916,7 +908,6 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
     }
 
     private boolean tryOrderedCursorAdd(Message message, ConnectionContext context) throws Exception {
-        long startTryOrderedCursorAdd = System.nanoTime();
         boolean result = true;
 
         if (context.isInTransaction()) {
@@ -928,7 +919,6 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
             result = tryCursorAdd(message);
         }
 
-        record(message.getMessageId().toString(), Queue.class, "tryOrderedCursorAdd()", System.nanoTime() - startTryOrderedCursorAdd);
         return result;
     }
 
