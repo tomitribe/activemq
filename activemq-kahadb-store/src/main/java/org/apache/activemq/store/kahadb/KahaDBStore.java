@@ -1313,34 +1313,22 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
 
         @Override
         public boolean cancel() {
-            final long start = System.nanoTime();
-
-            try {
-                if (this.done.compareAndSet(false, true)) {
-                    return this.future.cancel(false);
-                }
-                return false;
-            } finally {
-                record(this.message.getMessageId().toString(), StoreQueueTask.class, "cancel", start);
+            if (this.done.compareAndSet(false, true)) {
+                return this.future.cancel(false);
             }
+            return false;
         }
 
         @Override
         public void aquireLocks() {
-            final long start = System.nanoTime();
-
-            try {
-                if (this.locked.compareAndSet(false, true)) {
-                    try {
-                        globalQueueSemaphore.acquire();
-                        store.acquireLocalAsyncLock();
-                        message.incrementReferenceCount();
-                    } catch (InterruptedException e) {
-                        LOG.warn("Failed to aquire lock", e);
-                    }
+            if (this.locked.compareAndSet(false, true)) {
+                try {
+                    globalQueueSemaphore.acquire();
+                    store.acquireLocalAsyncLock();
+                    message.incrementReferenceCount();
+                } catch (InterruptedException e) {
+                    LOG.warn("Failed to aquire lock", e);
                 }
-            } finally {
-                record(this.message.getMessageId().toString(), StoreQueueTask.class, "acquireLocks", start);
             }
         }
 
@@ -1451,35 +1439,23 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
 
         @Override
         public void aquireLocks() {
-            final long start = System.nanoTime();
-
-            try {
-                if (this.locked.compareAndSet(false, true)) {
-                    try {
-                        globalTopicSemaphore.acquire();
-                        store.acquireLocalAsyncLock();
-                        message.incrementReferenceCount();
-                    } catch (InterruptedException e) {
-                        LOG.warn("Failed to aquire lock", e);
-                    }
+            if (this.locked.compareAndSet(false, true)) {
+                try {
+                    globalTopicSemaphore.acquire();
+                    store.acquireLocalAsyncLock();
+                    message.incrementReferenceCount();
+                } catch (InterruptedException e) {
+                    LOG.warn("Failed to aquire lock", e);
                 }
-            } finally {
-                record(this.message.getMessageId().toString(), StoreTopicTask.class, "acquireLocks", start);
             }
         }
 
         @Override
         public void releaseLocks() {
-            final long start = System.nanoTime();
-
-            try {
-                if (this.locked.compareAndSet(true, false)) {
-                    message.decrementReferenceCount();
-                    store.releaseLocalAsyncLock();
-                    globalTopicSemaphore.release();
-                }
-            } finally {
-                record(this.message.getMessageId().toString(), StoreTopicTask.class, "releaseLocks", start);
+            if (this.locked.compareAndSet(true, false)) {
+                message.decrementReferenceCount();
+                store.releaseLocalAsyncLock();
+                globalTopicSemaphore.release();
             }
         }
 

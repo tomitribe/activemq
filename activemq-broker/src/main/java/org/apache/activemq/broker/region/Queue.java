@@ -843,7 +843,6 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
             Exception {
 
         final long start = System.nanoTime();
-
         final ConnectionContext context = producerExchange.getConnectionContext();
         record(message.getMessageId().toString(), Queue.class, "producerExchange.getConnectionContext()", System.nanoTime() - start);
         ListenableFuture<Object> result = null;
@@ -887,11 +886,9 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
             }
         } while (started.get());
 
-        long startMessageSent = System.nanoTime();
         if (store == null || (!context.isInTransaction() && !message.isPersistent())) {
             messageSent(context, message);
         }
-        record(message.getMessageId().toString(), Queue.class, "doMessageSend.messageSent()", System.nanoTime() - startMessageSent);
 
         long startGetResult = System.nanoTime();
         if (result != null && message.isResponseRequired() && !result.isCancelled()) {
@@ -903,8 +900,6 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
             }
         }
         record(message.getMessageId().toString(), Queue.class, "doMessageSend.result.get()", System.nanoTime() - startGetResult);
-
-        record(message.getMessageId().toString(), Queue.class, "doMessageSend", System.nanoTime() - start);
     }
 
     private boolean tryOrderedCursorAdd(Message message, ConnectionContext context) throws Exception {
