@@ -16,36 +16,6 @@
  */
 package org.apache.activemq.broker.region;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.DelayQueue;
-import java.util.concurrent.Delayed;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import javax.jms.InvalidSelectorException;
-import javax.jms.JMSException;
-import javax.jms.ResourceAllocationException;
-
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.BrokerStoppedException;
 import org.apache.activemq.broker.ConnectionContext;
@@ -96,6 +66,35 @@ import org.apache.activemq.util.ThreadPoolUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+
+import javax.jms.InvalidSelectorException;
+import javax.jms.JMSException;
+import javax.jms.ResourceAllocationException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.DelayQueue;
+import java.util.concurrent.Delayed;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * The Queue is a List of MessageEntry objects that are dispatched to matching
@@ -608,22 +607,35 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
         }
     }
 
-    protected void record(final String messageId, final Class cls, final String method, final long duration) {
+    protected void startRecord(final String messageId, final Class cls, final String method) {
         try {
             final AccessLogPlugin accessLog = (AccessLogPlugin) brokerService.getBroker().getAdaptor(AccessLogPlugin.class);
             if (accessLog != null) {
-                accessLog.record(messageId, cls.getSimpleName() + "." + method, duration);
+                accessLog.startRecord(messageId, cls.getSimpleName() + "." + method);
             }
         } catch (final BrokerStoppedException e) {
             // ignore this so we aren't dumping errors
         } catch (final Exception e) {
-            LOG.error("Unable to record timing for " + cls.getSimpleName() + "." + method + ". Time taken: " + (duration) + "ns", e);
+            LOG.error("Unable to record timing for " + cls.getSimpleName() + "." + method + ".", e);
+        }
+    }
+
+    protected void record(final String messageId) {
+        try {
+            final AccessLogPlugin accessLog = (AccessLogPlugin) brokerService.getBroker().getAdaptor(AccessLogPlugin.class);
+            if (accessLog != null) {
+                accessLog.record(messageId);
+            }
+        } catch (final BrokerStoppedException e) {
+            // ignore this so we aren't dumping errors
+        } catch (final Exception e) {
+            LOG.error("Unable to record timing.", e);
         }
     }
 
     @Override
     public void send(final ProducerBrokerExchange producerExchange, final Message message) throws Exception {
-        final long start = System.nanoTime();
+        startRecord(message.getMessageId().toString(), Queue.class, "send");
 
         final ConnectionContext context = producerExchange.getConnectionContext();
         // There is delay between the client sending it and it arriving at the
@@ -750,7 +762,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
             context.getConnection().dispatchAsync(ack);
         }
 
-        record(message.getMessageId().toString(), Queue.class, "send", System.nanoTime() - start);
+        record(message.getMessageId().toString());
     }
 
     private void registerCallbackForNotFullNotification() {
@@ -842,27 +854,29 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
     void doMessageSend(final ProducerBrokerExchange producerExchange, final Message message) throws IOException,
             Exception {
 
-        final long start = System.nanoTime();
+        startRecord(message.getMessageId().toString(), Queue.class, "producerExchange.getConnectionContext()");
         final ConnectionContext context = producerExchange.getConnectionContext();
-        record(message.getMessageId().toString(), Queue.class, "producerExchange.getConnectionContext()", System.nanoTime() - start);
+        record(message.getMessageId().toString());
         ListenableFuture<Object> result = null;
 
         producerExchange.incrementSend();
         do {
             checkUsage(context, producerExchange, message);
-            final long startLock = System.nanoTime();
+            startRecord(message.getMessageId().toString(), Queue.class, "doMessageSend.sendLock.lockInterruptibly()");
             sendLock.lockInterruptibly();
-            record(message.getMessageId().toString(), Queue.class, "doMessageSend.sendLock.lockInterruptibly()", System.nanoTime() - startLock);
+            record(message.getMessageId().toString());
             try {
                 message.getMessageId().setBrokerSequenceId(getDestinationSequenceId());
 
-                final long startStore = System.nanoTime();
+                startRecord(message.getMessageId().toString(), Queue.class, "doMessageSend.store()");
                 if (store != null && message.isPersistent()) {
                     message.getMessageId().setFutureOrSequenceLong(null);
                     try {
                         if (messages.isCacheEnabled()) {
                             result = store.asyncAddQueueMessage(context, message, isOptimizeStorage());
+                            startRecord(message.getMessageId().toString(), Queue.class, "increaseMemoryUsage");
                             result.addListener(new PendingMarshalUsageTracker(message));
+                            record(message.getMessageId().toString());
                         } else {
                             store.addMessage(context, message);
                         }
@@ -876,7 +890,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
                         throw e;
                     }
                 }
-                record(message.getMessageId().toString(), Queue.class, "doMessageSend.store()", System.nanoTime() - startStore);
+                record(message.getMessageId().toString());
 
                 if(tryOrderedCursorAdd(message, context)) {
                     break;
@@ -890,7 +904,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
             messageSent(context, message);
         }
 
-        long startGetResult = System.nanoTime();
+        startRecord(message.getMessageId().toString(), Queue.class, "doMessageSend.result.get()");
         if (result != null && message.isResponseRequired() && !result.isCancelled()) {
             try {
                 result.get();
@@ -899,7 +913,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
                 // has already been deleted
             }
         }
-        record(message.getMessageId().toString(), Queue.class, "doMessageSend.result.get()", System.nanoTime() - startGetResult);
+        record(message.getMessageId().toString());
     }
 
     private boolean tryOrderedCursorAdd(Message message, ConnectionContext context) throws Exception {

@@ -16,14 +16,7 @@
  */
 package org.apache.activemq.store.kahadb.disk.journal;
 
-import java.io.IOException;
-import java.io.InterruptedIOException;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.zip.Adler32;
-import java.util.zip.Checksum;
-
+import org.apache.activemq.broker.BrokerStoppedException;
 import org.apache.activemq.broker.util.AccessLogPlugin;
 import org.apache.activemq.store.kahadb.disk.util.DataByteArrayOutputStream;
 import org.apache.activemq.store.kahadb.disk.util.LinkedNodeList;
@@ -31,6 +24,14 @@ import org.apache.activemq.util.ByteSequence;
 import org.apache.activemq.util.RecoverableRandomAccessFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.zip.Adler32;
+import java.util.zip.Checksum;
 
 /**
  * An optimized writer to do batch appends to a data file. This object is thread
@@ -83,8 +84,6 @@ class DataFileAppender implements FileAppender {
     }
 
     public class WriteBatch {
-        protected long duration = 0;
-        protected long rolloverDuration = 0;
         public final DataFile dataFile;
 
         public final LinkedNodeList<Journal.WriteCommand> writes = new LinkedNodeList<Journal.WriteCommand>();
@@ -124,21 +123,6 @@ class DataFileAppender implements FileAppender {
             journal.addToTotalLength(s);
         }
 
-        public long getDuration() {
-            return duration;
-        }
-
-        public void setDuration(long duration) {
-            this.duration = duration;
-        }
-
-        public long getRolloverDuration() {
-            return rolloverDuration;
-        }
-
-        public void setRolloverDuration(long rolloverDuration) {
-            this.rolloverDuration = rolloverDuration;
-        }
     }
 
     /**
@@ -151,14 +135,29 @@ class DataFileAppender implements FileAppender {
         this.syncOnComplete = this.journal.isEnableAsyncDiskSync();
     }
 
-    protected void record(final String messageId, final Class cls, final String method, final long duration) {
+    protected void startRecord(final String messageId, final Class cls, final String method) {
         try {
             final AccessLogPlugin accessLog = (AccessLogPlugin) this.journal.getBroker().getBroker().getAdaptor(AccessLogPlugin.class);
             if (accessLog != null) {
-                accessLog.record(messageId, cls.getSimpleName() + "." + method, duration);
+                accessLog.startRecord(messageId, cls.getSimpleName() + "." + method);
             }
-        } catch (Exception e) {
-            logger.error("Unable to record timing for " + cls.getSimpleName() + "." + method + ". Time taken: " + duration + "ms", e);
+        } catch (final BrokerStoppedException e) {
+            // ignore this so we aren't dumping errors
+        } catch (final Exception e) {
+            logger.error("Unable to record timing for " + cls.getSimpleName() + "." + method + ".", e);
+        }
+    }
+
+    protected void record(final String messageId) {
+        try {
+            final AccessLogPlugin accessLog = (AccessLogPlugin) this.journal.getBroker().getBroker().getAdaptor(AccessLogPlugin.class);
+            if (accessLog != null) {
+                accessLog.record(messageId);
+            }
+        } catch (final BrokerStoppedException e) {
+            // ignore this so we aren't dumping errors
+        } catch (final Exception e) {
+            logger.error("Unable to record timing.", e);
         }
     }
 
@@ -187,9 +186,6 @@ class DataFileAppender implements FileAppender {
                 throw exception;
             }
         }
-
-        record(null, DataFileAppender.class, "writeBatch", batch.getDuration());
-        record(null, DataFileAppender.class, "rollover", batch.getRolloverDuration());
 
         return location;
     }
@@ -342,6 +338,7 @@ class DataFileAppender implements FileAppender {
 
                 if (dataFile != wb.dataFile) {
                     final long rolloverStart = System.nanoTime();
+                    startRecord(null, DataFileAppender.class, "rollover");
                     if (file != null) {
                         dataFile.closeRandomAccessFile(file);
                     }
@@ -352,12 +349,12 @@ class DataFileAppender implements FileAppender {
                     if (file.length() == 0l) {
                         journal.preallocateEntireJournalDataFile(file);
                     }
-                    wb.setRolloverDuration(System.nanoTime() - rolloverStart);
+                    record(null);
                 }
 
                 Journal.WriteCommand write = wb.writes.getHead();
 
-                final long startWrite = System.nanoTime();
+                startRecord(null, DataFileAppender.class, "writeBatch");
 
                 // Write an empty batch control record.
                 buff.reset();
@@ -421,8 +418,7 @@ class DataFileAppender implements FileAppender {
 
                 signalDone(wb);
 
-                final long endWrite = System.nanoTime();
-                wb.duration = endWrite - startWrite;
+                record(null);
             }
         } catch (IOException e) {
             logger.info("Journal failed while writing at: " + wb.offset);

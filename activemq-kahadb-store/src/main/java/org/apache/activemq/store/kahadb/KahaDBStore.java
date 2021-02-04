@@ -16,35 +16,9 @@
  */
 package org.apache.activemq.store.kahadb;
 
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InterruptedIOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.activemq.broker.Broker;
 import org.apache.activemq.broker.ConnectionContext;
 import org.apache.activemq.broker.region.BaseDestination;
 import org.apache.activemq.broker.scheduler.JobSchedulerStore;
-import org.apache.activemq.broker.util.AccessLogPlugin;
 import org.apache.activemq.command.ActiveMQDestination;
 import org.apache.activemq.command.ActiveMQQueue;
 import org.apache.activemq.command.ActiveMQTempQueue;
@@ -68,7 +42,6 @@ import org.apache.activemq.store.PersistenceAdapter;
 import org.apache.activemq.store.TopicMessageStore;
 import org.apache.activemq.store.TransactionIdTransformer;
 import org.apache.activemq.store.TransactionStore;
-import org.apache.activemq.store.kahadb.MessageDatabase.Metadata;
 import org.apache.activemq.store.kahadb.data.KahaAddMessageCommand;
 import org.apache.activemq.store.kahadb.data.KahaDestination;
 import org.apache.activemq.store.kahadb.data.KahaDestination.DestinationType;
@@ -87,6 +60,30 @@ import org.apache.activemq.util.ThreadPoolUtils;
 import org.apache.activemq.wireformat.WireFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
     static final Logger LOG = LoggerFactory.getLogger(KahaDBStore.class);
@@ -441,7 +438,9 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
             command.setTransactionInfo(TransactionIdConversion.convert(transactionIdTransformer.transform(message.getTransactionId())));
             command.setPriority(message.getPriority());
             command.setPrioritySupported(isPrioritizedMessages());
+            startRecord(message.getMessageId().toString(), KahaDBStore.class, "marshalMessage");
             org.apache.activemq.util.ByteSequence packet = wireFormat.marshal(message);
+            record(message.getMessageId().toString());
             command.setMessage(new Buffer(packet.getData(), packet.getOffset(), packet.getLength()));
             store(command, isEnableJournalDiskSyncs() && message.isResponseRequired(), new IndexAware() {
                 // sync add? (for async, future present from getFutureOrSequenceLong)
@@ -1321,20 +1320,26 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
 
         @Override
         public void aquireLocks() {
-            if (this.locked.compareAndSet(false, true)) {
-                try {
-                    globalQueueSemaphore.acquire();
-                    store.acquireLocalAsyncLock();
-                    message.incrementReferenceCount();
-                } catch (InterruptedException e) {
-                    LOG.warn("Failed to aquire lock", e);
+            startRecord(this.message.getMessageId().toString(), StoreQueueTask.class, "releaseLocks");
+
+            try {
+                if (this.locked.compareAndSet(false, true)) {
+                    try {
+                        globalQueueSemaphore.acquire();
+                        store.acquireLocalAsyncLock();
+                        message.incrementReferenceCount();
+                    } catch (InterruptedException e) {
+                        LOG.warn("Failed to aquire lock", e);
+                    }
                 }
+            } finally {
+                record(message.getMessageId().toString());
             }
         }
 
         @Override
         public void releaseLocks() {
-            final long start = System.nanoTime();
+            startRecord(this.message.getMessageId().toString(), StoreQueueTask.class, "releaseLocks");
 
             try {
                 if (this.locked.compareAndSet(true, false)) {
@@ -1343,25 +1348,25 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
                     message.decrementReferenceCount();
                 }
             } finally {
-                record(this.message.getMessageId().toString(), StoreQueueTask.class, "releaseLocks", start);
+                record(message.getMessageId().toString());
             }
         }
 
 
         @Override
         public void run() {
-            final long start = System.nanoTime();
             setThreadMessageId(message.getMessageId().toString());
+            startRecord(this.message.getMessageId().toString(), StoreQueueTask.class, "run");
 
             try {
                 this.store.doneTasks++;
                 try {
                     if (this.done.compareAndSet(false, true)) {
-                        final long startStore = System.nanoTime();
+                        startRecord(this.message.getMessageId().toString(), StoreQueueTask.class, "store.addMessage");
                         try {
                             this.store.addMessage(context, message);
                         } finally {
-                            record(this.message.getMessageId().toString(), StoreQueueTask.class, "store.addMessage", startStore);
+                            record(message.getMessageId().toString());
                         }
 
                         removeQueueTask(this.store, this.message.getMessageId());
@@ -1375,7 +1380,7 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
                     this.future.setException(e);
                 }
             } finally {
-                record(this.message.getMessageId().toString(), StoreQueueTask.class, "run", start);
+                record(message.getMessageId().toString());
                 setThreadMessageId(null);
             }
         }
@@ -1416,9 +1421,12 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
             private void fireListener() {
                 if (listener != null) {
                     try {
+                        startRecord(null, InnerFutureTask.class, "run");
                         listener.run();
                     } catch (Exception ignored) {
                         LOG.warn("Unexpected exception from future {} listener callback {}", this, listener, ignored);
+                    } finally {
+                        record(null);
                     }
                 }
             }
@@ -1466,32 +1474,31 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
          * @return true if all acknowledgements received
          */
         public boolean addSubscriptionKey(String key) {
-            final long start = System.nanoTime();
+            startRecord(this.message.getMessageId().toString(), StoreTopicTask.class, "addSubscriptionKey");
             try {
                 synchronized (this.subscriptionKeys) {
                     this.subscriptionKeys.add(key);
                 }
                 return this.subscriptionKeys.size() >= this.subscriptionCount;
             } finally {
-                record(this.message.getMessageId().toString(), StoreTopicTask.class, "addSubscriptionKey", start);
+                record(message.getMessageId().toString());
             }
         }
 
         @Override
         public void run() {
-            final long start = System.nanoTime();
             setThreadMessageId(message.getMessageId().toString());
+            startRecord(this.message.getMessageId().toString(), StoreTopicTask.class, "run");
 
             try {
                 this.store.doneTasks++;
                 try {
                     if (this.done.compareAndSet(false, true)) {
-                        final long storeStart = System.nanoTime();
-
+                        startRecord(this.message.getMessageId().toString(), StoreTopicTask.class, "topicStore.addMessage");
                         try {
                             this.topicStore.addMessage(context, message);
                         } finally {
-                            record(this.message.getMessageId().toString(), StoreTopicTask.class, "topicStore.addMessage", storeStart);
+                            record(message.getMessageId().toString());
                         }
                         // apply any acks we have
                         synchronized (this.subscriptionKeys) {
@@ -1511,7 +1518,7 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
                     this.future.setException(e);
                 }
             } finally {
-                record(this.message.getMessageId().toString(), StoreTopicTask.class, "run", start);
+                record(message.getMessageId().toString());
                 setThreadMessageId(null);
             }
         }

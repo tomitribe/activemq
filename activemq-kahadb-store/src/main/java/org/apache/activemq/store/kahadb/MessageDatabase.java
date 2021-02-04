@@ -16,42 +16,6 @@
  */
 package org.apache.activemq.store.kahadb;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.EOFException;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InterruptedIOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 import org.apache.activemq.ActiveMQMessageAuditNoSync;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.BrokerServiceAware;
@@ -105,6 +69,42 @@ import org.apache.activemq.util.ServiceSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.EOFException;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InterruptedIOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 public abstract class MessageDatabase extends ServiceSupport implements BrokerServiceAware {
 
     protected BrokerService brokerService;
@@ -134,17 +134,29 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
         }
     }
 
-    protected void record(final String messageId, final Class cls, final String method, final long start) {
-        final long end = System.nanoTime();
+    protected void startRecord(final String messageId, final Class cls, final String method) {
         try {
             final AccessLogPlugin accessLog = (AccessLogPlugin) brokerService.getBroker().getAdaptor(AccessLogPlugin.class);
             if (accessLog != null) {
-                accessLog.record(messageId, cls.getSimpleName() + "." + method, end - start);
+                accessLog.startRecord(messageId, cls.getSimpleName() + "." + method);
             }
-        } catch (BrokerStoppedException e) {
+        } catch (final BrokerStoppedException e) {
             // ignore this so we aren't dumping errors
-        } catch (Exception e) {
-            LOG.error("Unable to record timing for " + cls.getSimpleName() + "." + method + ". Time taken: " + (end - start) + "ms", e);
+        } catch (final Exception e) {
+            LOG.error("Unable to record timing for " + cls.getSimpleName() + "." + method + ".", e);
+        }
+    }
+
+    protected void record(final String messageId) {
+        try {
+            final AccessLogPlugin accessLog = (AccessLogPlugin) brokerService.getBroker().getAdaptor(AccessLogPlugin.class);
+            if (accessLog != null) {
+                accessLog.record(messageId);
+            }
+        } catch (final BrokerStoppedException e) {
+            // ignore this so we aren't dumping errors
+        } catch (final Exception e) {
+            LOG.error("Unable to record timing.", e);
         }
     }
 
@@ -994,31 +1006,42 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
     }
 
     protected void checkpointCleanup(final boolean cleanup) throws IOException {
-        long start;
-        this.indexLock.writeLock().lock();
+        startRecord(null, getClass(), "checkpointCleanup");
         try {
-            start = System.currentTimeMillis();
-            if( !opened.get() ) {
-                return;
+
+            long start;
+            this.indexLock.writeLock().lock();
+            try {
+                start = System.currentTimeMillis();
+                if (!opened.get()) {
+                    return;
+                }
+            } finally {
+                this.indexLock.writeLock().unlock();
+            }
+            checkpointUpdate(cleanup);
+            long end = System.currentTimeMillis();
+            if (LOG_SLOW_ACCESS_TIME > 0 && end - start > LOG_SLOW_ACCESS_TIME) {
+                if (LOG.isInfoEnabled()) {
+                    LOG.info("Slow KahaDB access: cleanup took " + (end - start));
+                }
             }
         } finally {
-            this.indexLock.writeLock().unlock();
-        }
-        checkpointUpdate(cleanup);
-        long end = System.currentTimeMillis();
-        if (LOG_SLOW_ACCESS_TIME > 0 && end - start > LOG_SLOW_ACCESS_TIME) {
-            if (LOG.isInfoEnabled()) {
-                LOG.info("Slow KahaDB access: cleanup took " + (end - start));
-            }
+            record(null);
         }
     }
 
     public ByteSequence toByteSequence(JournalCommand<?> data) throws IOException {
-        int size = data.serializedSizeFramed();
-        DataByteArrayOutputStream os = new DataByteArrayOutputStream(size + 1);
-        os.writeByte(data.type().getNumber());
-        data.writeFramed(os);
-        return os.toByteSequence();
+        startRecord(null, getClass(), "toByteSequence");
+        try {
+            int size = data.serializedSizeFramed();
+            DataByteArrayOutputStream os = new DataByteArrayOutputStream(size + 1);
+            os.writeByte(data.type().getNumber());
+            data.writeFramed(os);
+            return os.toByteSequence();
+        } finally {
+            record(null);
+        }
     }
 
     // /////////////////////////////////////////////////////////////////
@@ -1047,23 +1070,23 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
             ByteSequence sequence = toByteSequence(data);
 
             Location location;
-            long lockStart = System.nanoTime();
+            startRecord(null, MessageDatabase.class, "store:checkpointLock.readLock().lock()");
 
             try {
                 checkpointLock.readLock().lock();
             } finally {
-                record(null, MessageDatabase.class, "store:checkpointLock.readLock().lock()", lockStart);
+                record(null);
             }
             try {
 
                 long start = System.currentTimeMillis();
-                final long startNanos = System.nanoTime();
+                startRecord(null, MessageDatabase.class, "journal_write");
                 location = onJournalStoreComplete == null ? journal.write(sequence, sync) :  journal.write(sequence, onJournalStoreComplete) ;
-                record(null, MessageDatabase.class, "journal_write", startNanos);
+                record(null);
                 long start2 = System.currentTimeMillis();
-                final long startNanos2 = System.nanoTime();
+                startRecord(null, MessageDatabase.class, "index_write");
                 process(data, location, before);
-                record(null, MessageDatabase.class, "index_write", startNanos2);
+                record(null);
                 long end = System.currentTimeMillis();
                 if( LOG_SLOW_ACCESS_TIME>0 && end-start > LOG_SLOW_ACCESS_TIME) {
                     if (LOG.isInfoEnabled()) {

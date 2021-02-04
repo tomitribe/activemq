@@ -61,7 +61,7 @@ public class RequestPerformanceLoggingTest extends TestCase {
         final int iterations = 137;
         final int totalNumberOfIterations = threads * iterations;
 
-        final String randomString = RandomStringUtils.randomAlphanumeric(1024 * 1024 * 5); // 5 MB
+        final String randomString = RandomStringUtils.randomAlphanumeric(1024 * 1024 * 1); // 5 MB
 
         latch = new CountDownLatch(totalNumberOfIterations);
 
@@ -88,7 +88,7 @@ public class RequestPerformanceLoggingTest extends TestCase {
             });
         }
 
-        latch.await(5, TimeUnit.MINUTES);
+        latch.await(1, TimeUnit.MINUTES);
 
         final ConcurrentMap<String, DescriptiveStatistics> stats = new ConcurrentHashMap<>();
         for (AccessLogPlugin.Timing timing : timingList) {
@@ -102,17 +102,17 @@ public class RequestPerformanceLoggingTest extends TestCase {
         }
 
         System.out.println("======");
-        /*
-        for (AccessLogPlugin.Breakdown b : timingList.get(0).getBreakdowns()) {
-            System.out.printf("name = %-60s, average = %10d \n", b.getWhat(), b.getTiming());
+
+        for (AccessLogPlugin.Breakdown b : timingList.get(10).getBreakdowns()) {
+            System.out.println(b.prettyPrint());
         }
-         */
+
         for (Map.Entry<String, DescriptiveStatistics> entry : stats.entrySet()) {
             System.out.printf("name = %-60s, count = %-5d, average = %10.0f, min = %10.0f, max = %10.0f, 90p = %-10.0f, 95p = %-10.0f, 99p = %-10.0f \n", entry.getKey(),
-                              entry.getValue().getN(), entry.getValue().getMean(),
-                              entry.getValue().getMin(), entry.getValue().getMax(),
-                              entry.getValue().getPercentile(90), entry.getValue().getPercentile(95),
-                              entry.getValue().getPercentile(99));
+                              entry.getValue().getN(), entry.getValue().getMean() / 1_000_000,
+                              entry.getValue().getMin() / 1_000_000, entry.getValue().getMax() / 1_000_000,
+                              entry.getValue().getPercentile(90) / 1_000_000, entry.getValue().getPercentile(95) / 1_000_000,
+                              entry.getValue().getPercentile(99) / 1_000_000);
         }
 
     }
@@ -130,10 +130,10 @@ public class RequestPerformanceLoggingTest extends TestCase {
         Assert.assertEquals(1, timingList.size());
 
         final Set<String> items = new HashSet<>();
-        List<AccessLogPlugin.Breakdown> breakdownList = timingList.get(0).getBreakdowns();
+        final List<AccessLogPlugin.Breakdown> breakdownList = timingList.get(0).getBreakdowns();
         for (final AccessLogPlugin.Breakdown breakdown : breakdownList) {
             items.add(breakdown.getWhat());
-            System.out.println(breakdown.getWhat() + "=" + breakdown.getTiming());
+            System.out.println(breakdown.prettyPrint());
         }
 
         Assert.assertTrue(items.contains("StoreQueueTask.acquireLocks"));

@@ -19,9 +19,7 @@ package org.apache.activemq.broker.util;
 import org.apache.activemq.broker.BrokerPluginSupport;
 import org.apache.activemq.broker.ProducerBrokerExchange;
 import org.apache.activemq.broker.jmx.AsyncAnnotatedMBean;
-import org.apache.activemq.broker.jmx.OpenTypeSupport;
 import org.apache.activemq.command.Message;
-import org.apache.activemq.management.TimeStatisticImpl;
 import org.apache.activemq.util.JMXSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,12 +27,13 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.PostConstruct;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-import javax.management.openmbean.OpenDataException;
-import javax.management.openmbean.SimpleType;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -78,44 +77,6 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         super.start();
 
         if (getBrokerService().isUseJmx()) {
-            OpenTypeSupport.addFactory(TimeStatisticImpl.class, new OpenTypeSupport.AbstractOpenTypeFactory() {
-                @Override
-                protected String getTypeName() {
-                    return TimeStatisticImpl.class.getName();
-                }
-
-                @Override
-                protected void init() throws OpenDataException {
-                    super.init();
-                    addItem("name", "name", SimpleType.STRING);
-                    addItem("count", "count", SimpleType.LONG);
-                    addItem("minTime", "minTime", SimpleType.LONG);
-                    addItem("maxTime", "maxTime", SimpleType.LONG);
-                    addItem("totalTime", "totalTime", SimpleType.LONG);
-                    addItem("averageTime", "averageTime", SimpleType.DOUBLE);
-                    // addItem("averagePerSecond", "averagePerSecond", SimpleType.DOUBLE);
-                    // addItem("averagePerSecondExcludingMinMax", "averagePerSecondExcludingMinMax", SimpleType.DOUBLE);
-                    addItem("averageTimeExcludingMinMax", "averageTimeExcludingMinMax", SimpleType.DOUBLE);
-                    addItem("lastSampleTime", "lastSampleTime", SimpleType.LONG);
-                }
-
-                @Override
-                public Map<String, Object> getFields(Object o) throws OpenDataException {
-                    TimeStatisticImpl statistic = (TimeStatisticImpl) o;
-                    Map<String, Object> rc = super.getFields(o);
-                    rc.put("name", statistic.getName());
-                    rc.put("count", statistic.getCount());
-                    rc.put("minTime", statistic.getMinTime());
-                    rc.put("maxTime", statistic.getMaxTime());
-                    rc.put("totalTime", statistic.getTotalTime());
-                    rc.put("averageTime", statistic.getAverageTime());
-                    // rc.put("averagePerSecond", statistic.getAveragePerSecond());
-                    // rc.put("averagePerSecondExcludingMinMax", statistic.getAveragePerSecondExcludingMinMax());
-                    rc.put("averageTimeExcludingMinMax", statistic.getAverageTimeExcludingMinMax());
-                    rc.put("lastSampleTime", statistic.getLastSampleTime());
-                    return rc;
-                }
-            });
             AsyncAnnotatedMBean.registerMBean(
                 this.getBrokerService().getManagementContext(),
                 new AccessLogView(this),
@@ -131,8 +92,6 @@ public class AccessLogPlugin extends BrokerPluginSupport {
                 createJmxName(getBrokerService().getBrokerObjectName().toString(), "AccessLogPlugin");
             getBrokerService().getManagementContext().unregisterMBean(name);
         }
-
-        dumpStats();
 
         super.stop();
     }
@@ -163,14 +122,6 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         this.threshold.set(threshold);
     }
 
-    public void resetTimeStatistics() {
-        timings.resetStatistics();
-    }
-
-    public TimeStatisticImpl[] getTimeStatistics() {
-        return timings.getStatistics();
-    }
-
     @Override
     public void send(final ProducerBrokerExchange producerExchange, final Message messageSend) throws Exception {
         if (!enabled.get()) {
@@ -195,7 +146,7 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
     }
 
-    public void record(final String messageId, final String what, final long duration) {
+    public void startRecord(final String messageId, final String what) {
         if (!enabled.get()) {
             return;
         }
@@ -206,11 +157,27 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
 
         if (id == null) {
-            LOG.info(String.format("Discarding timing breakdown without messageId (%40s=%10d)", what, duration));
-            // return;
+            return;
         }
 
-        timings.record(id, what, duration);
+        timings.startRecord(id, what);
+    }
+
+    public void record(final String messageId) {
+        if (!enabled.get()) {
+            return;
+        }
+
+        String id = messageId;
+        if (id == null) {
+            id = THREAD_MESSAGE_ID.get();
+        }
+
+        if (id == null) {
+            return;
+        }
+
+        timings.stopRecord(id);
     }
 
     public void setThreadMessageId(final String messageId) {
@@ -223,7 +190,6 @@ public class AccessLogPlugin extends BrokerPluginSupport {
 
     private class Timings {
         private ConcurrentMap<String, Timing> inflight = new ConcurrentHashMap<>();
-        private ConcurrentMap<String, TimeStatisticImpl> timeStatistics = new ConcurrentHashMap<>();
 
         public void start(final Message message) {
             final String messageId = message.getMessageId().toString();
@@ -233,20 +199,22 @@ public class AccessLogPlugin extends BrokerPluginSupport {
                 final String destination = message.getDestination() != null ? message.getDestination().toString() : "";
                 return new Timing(key, destination, messageSize);
             });
+
+            startRecord(messageId, "whole_request");
         }
 
         public void end(final Message message, final long start) {
             final long duration = System.nanoTime() - start;
             final String messageId = message.getMessageId().toString();
 
-            record(messageId, "whole_request", duration);
+            stopRecord(messageId);
 
             final Timing timing = inflight.remove(messageId);
 
             final int th = threshold.get();
             if (th <= 0 || ((long) th < (duration / 1000000))) {
 
-                if (LOG.isInfoEnabled()) {
+                if (false && LOG.isInfoEnabled()) {
                     LOG.info(timing.toString());
                 }
                 if (recordingCallback != null) {
@@ -255,30 +223,18 @@ public class AccessLogPlugin extends BrokerPluginSupport {
             }
         }
 
-        public void record(final String messageId, final String what, final long duration) {
-
-            /*
-            if (false && Arrays.asList("MessageDatabase.journal_write", "MessageDatabase.index_write").contains(what)) {
-                new Throwable().printStackTrace();
-            }
-            */
+        public void startRecord(final String messageId, final String what) {
             if (messageId != null) {
-                inflight.computeIfPresent(messageId, (key, timing) -> timing.add(what, duration));
+                inflight.computeIfPresent(messageId, (key, timing) -> timing.start(what));
             }
-            timeStatistics.computeIfAbsent(what, ((key) -> new TimeStatisticImpl(key, "ns", key)));
-            timeStatistics.computeIfPresent(what, (key, timing) -> {
-                timing.addTime(duration);
-                return timing;
-            });
         }
 
-        public TimeStatisticImpl[] getStatistics() {
-            return timeStatistics.values().toArray(new TimeStatisticImpl[0]);
+        public void stopRecord(final String messageId) {
+            if (messageId != null) {
+                inflight.computeIfPresent(messageId, (key, timing) -> timing.stop());
+            }
         }
 
-        public void resetStatistics() {
-            timeStatistics.forEach((key, timing) -> timing.reset());
-        }
     }
 
     public class Timing {
@@ -286,6 +242,7 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         private final String destination;
         private final int messageSize;
         private final List<Breakdown> timingBreakdowns = Collections.synchronizedList(new ArrayList<>());
+        private final Deque<Breakdown> records = new ArrayDeque<>();
 
         private Timing(final String messageId, final String destination, final int messageSize) {
             this.messageId = messageId;
@@ -294,12 +251,34 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
 
         public Timing add(final String what, final long duration) {
-            timingBreakdowns.add(new Breakdown(what, duration));
+            timingBreakdowns.add(new Breakdown(what, duration, 0));
             return this;
+        }
+
+        public Timing start(final String what) {
+            records.push(new Breakdown(what, System.nanoTime(), records.size()));
+            return this;
+        }
+
+        public Timing stop() {
+            final Breakdown lastRecord = records.pop();
+            if (lastRecord != null) {
+                timingBreakdowns.add(new Breakdown(lastRecord.getWhat(), System.nanoTime() - lastRecord.getTiming(), lastRecord.getLevel()));
+            }
+            return this;
+        }
+
+        public void checkMissingStop() {
+            final Iterator<Breakdown> iterator = records.descendingIterator();
+            while (iterator.hasNext()) {
+                final Breakdown breakdown = iterator.next();
+                // System.out.println("Breakdown with missing stop " + breakdown);
+            }
         }
 
         @Override
         public String toString() {
+            checkMissingStop();
             return "Timing{" +
                    "messageId='" + messageId + '\'' +
                    ", destination='" + destination + '\'' +
@@ -313,13 +292,15 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
     }
 
-    public static class Breakdown {
+    public static class Breakdown implements Comparable<Breakdown> {
         private final String what;
         private final Long timing;
+        private final int level;
 
-        public Breakdown(final String what, final Long timing) {
+        public Breakdown(final String what, final Long timing, final int level) {
             this.what = what;
             this.timing = timing;
+            this.level = level;
         }
 
         public String getWhat() {
@@ -330,37 +311,36 @@ public class AccessLogPlugin extends BrokerPluginSupport {
             return timing;
         }
 
+        public int getLevel() {
+            return level;
+        }
+
         @Override
         public String toString() {
             return "Breakdown{" +
                    "what='" + getWhat() + '\'' +
                    ", timing=" + getTiming() +
+                   ", level=" + getLevel() +
                    '}';
         }
-    }
 
-    private void dumpStats() {
-        final TimeStatisticImpl[] timeStatistics = getTimeStatistics();
-        displayTimings(timeStatistics);
-
-    }
-
-    private void displayTimings(final TimeStatisticImpl[] timeStatistics) {
-        final StringBuilder sb = new StringBuilder();
-        sb.append("\n\n======");
-        double wholeRequestTps = 0;
-        for (TimeStatisticImpl timeStatistic : timeStatistics) {
-            sb.append(String.format("name = %-60s, count = %-5d, average = %10.0f, min = %10d, max = %10d \n", timeStatistic.getName(),
-                              timeStatistic.getCount(), timeStatistic.getAverageTime(),
-                              timeStatistic.getMinTime(), timeStatistic.getMaxTime()));
-
-            if ("whole_request".equals(timeStatistic.getName())) {
-                wholeRequestTps = timeStatistic.getCount() / ((double) timeStatistic.getTotalTime() / (double) 1_000_000_000);
-            }
+        public String prettyPrint() {
+            return String.format("%10d %s %-60s", getTiming(), pad(getLevel()), getWhat());
         }
 
-        sb.append(String.format("\n>> Whole Request TPS = %10.0f \n\n", wholeRequestTps));
-        LOG.info(sb.toString());
+        private String pad(final int level) {
+            final StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append("|-");
+            for (int i = 0; i < level; i++) {
+                stringBuilder.append("--");
+            }
+            return stringBuilder.toString();
+        }
+
+        @Override
+        public int compareTo(final Breakdown o) {
+            return Integer.compare(level, o.getLevel());
+        }
     }
 
     public interface RecordingCallback {
