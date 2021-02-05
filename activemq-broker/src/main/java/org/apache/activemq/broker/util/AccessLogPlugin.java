@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -214,7 +213,7 @@ public class AccessLogPlugin extends BrokerPluginSupport {
             final int th = threshold.get();
             if (th <= 0 || ((long) th < (duration / 1000000))) {
 
-                if (false && LOG.isInfoEnabled()) {
+                if (LOG.isInfoEnabled()) {
                     LOG.info(timing.toString());
                 }
                 if (recordingCallback != null) {

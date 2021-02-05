@@ -25,8 +25,6 @@ import org.apache.activemq.store.kahadb.KahaDBPersistenceAdapter;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.junit.Assert;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -50,7 +48,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class RequestPerformanceLoggingTest extends TestCase {
-    private static final Logger LOG = LoggerFactory.getLogger(RequestPerformanceLoggingTest.class);
 
     private Connection connection;
     private BrokerService broker;
@@ -62,7 +59,7 @@ public class RequestPerformanceLoggingTest extends TestCase {
         final int iterations = 13759;
         final int totalNumberOfIterations = threads * iterations;
 
-        final String randomString = RandomStringUtils.randomAlphanumeric(1024 * 1024 * 1); // 5 MB
+        final String randomString = RandomStringUtils.randomAlphanumeric(1024 * 1024); // 5 MB
 
         latch = new CountDownLatch(totalNumberOfIterations);
 
