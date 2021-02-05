@@ -932,6 +932,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
     }
 
     private void checkUsage(ConnectionContext context,ProducerBrokerExchange producerBrokerExchange, Message message) throws ResourceAllocationException, IOException, InterruptedException {
+        startRecord(message.getMessageId().toString(), Queue.class, "checkUsage");
         if (message.isPersistent()) {
             if (store != null && systemUsage.getStoreUsage().isFull(getStoreUsageHighWaterMark())) {
                 final String logMessage = "Persistent store is Full, " + getStoreUsageHighWaterMark() + "% of "
@@ -951,6 +952,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
 
             waitForSpace(context, producerBrokerExchange, messages.getSystemUsage().getTempUsage(), logMessage);
         }
+        record(message.getMessageId().toString());
     }
 
     private void expireMessages() {

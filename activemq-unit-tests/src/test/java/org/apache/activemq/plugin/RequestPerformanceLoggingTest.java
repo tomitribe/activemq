@@ -37,6 +37,7 @@ import javax.jms.Queue;
 import javax.jms.Session;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +59,7 @@ public class RequestPerformanceLoggingTest extends TestCase {
 
     public void testMultiThread() throws Exception {
         final int threads = 13;
-        final int iterations = 137;
+        final int iterations = 13759;
         final int totalNumberOfIterations = threads * iterations;
 
         final String randomString = RandomStringUtils.randomAlphanumeric(1024 * 1024 * 1); // 5 MB
@@ -88,7 +89,7 @@ public class RequestPerformanceLoggingTest extends TestCase {
             });
         }
 
-        latch.await(1, TimeUnit.MINUTES);
+        latch.await(10, TimeUnit.MINUTES);
 
         final ConcurrentMap<String, DescriptiveStatistics> stats = new ConcurrentHashMap<>();
         for (AccessLogPlugin.Timing timing : timingList) {
@@ -107,13 +108,17 @@ public class RequestPerformanceLoggingTest extends TestCase {
             System.out.println(b.prettyPrint());
         }
 
-        for (Map.Entry<String, DescriptiveStatistics> entry : stats.entrySet()) {
-            System.out.printf("name = %-60s, count = %-5d, average = %10.0f, min = %10.0f, max = %10.0f, 90p = %-10.0f, 95p = %-10.0f, 99p = %-10.0f \n", entry.getKey(),
-                              entry.getValue().getN(), entry.getValue().getMean() / 1_000_000,
-                              entry.getValue().getMin() / 1_000_000, entry.getValue().getMax() / 1_000_000,
-                              entry.getValue().getPercentile(90) / 1_000_000, entry.getValue().getPercentile(95) / 1_000_000,
-                              entry.getValue().getPercentile(99) / 1_000_000);
-        }
+        stats.entrySet().stream().sorted(new Comparator<Map.Entry<String, DescriptiveStatistics>>() {
+            @Override public int compare(
+                final Map.Entry<String, DescriptiveStatistics> o1, final Map.Entry<String, DescriptiveStatistics> o2) {
+                return o1.getKey().compareTo(o2.getKey());
+            }
+        }).forEach(entry ->
+                    System.out.printf("name = %-60s, count = %-5d, average = %10.0f, min = %10.0f, max = %10.0f, 90p = %-10.0f, 95p = %-10.0f, 99p = %-10.0f \n", entry.getKey(),
+                                     entry.getValue().getN(), entry.getValue().getMean() / 1_000_000,
+                                     entry.getValue().getMin() / 1_000_000, entry.getValue().getMax() / 1_000_000,
+                                     entry.getValue().getPercentile(90) / 1_000_000, entry.getValue().getPercentile(95) / 1_000_000,
+                                     entry.getValue().getPercentile(99) / 1_000_000));
 
     }
 

@@ -383,24 +383,32 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
         @Override
         public ListenableFuture<Object> asyncAddQueueMessage(final ConnectionContext context, final Message message)
                 throws IOException {
-            if (isConcurrentStoreAndDispatchQueues()) {
-                StoreQueueTask result = new StoreQueueTask(this, context, message);
-                ListenableFuture<Object> future = result.getFuture();
-                message.getMessageId().setFutureOrSequenceLong(future);
-                message.setRecievedByDFBridge(true); // flag message as concurrentStoreAndDispatch
-                result.aquireLocks();
-                addQueueTask(this, result);
-                if (indexListener != null) {
-                    indexListener.onAdd(new IndexListener.MessageContext(context, message, null));
+            startRecord(message.getMessageId().toString(), KahaDBMessageStore.class, "asyncAddQueueMessage");
+            try {
+                if (isConcurrentStoreAndDispatchQueues()) {
+                    StoreQueueTask result = new StoreQueueTask(this, context, message);
+                    ListenableFuture<Object> future = result.getFuture();
+                    message.getMessageId().setFutureOrSequenceLong(future);
+                    message.setRecievedByDFBridge(true); // flag message as concurrentStoreAndDispatch
+                    result.aquireLocks();
+                    addQueueTask(this, result);
+                    if (indexListener != null) {
+                        indexListener.onAdd(new IndexListener.MessageContext(context, message, null));
+                    }
+                    return future;
+                } else {
+                    return super.asyncAddQueueMessage(context, message);
                 }
-                return future;
-            } else {
-                return super.asyncAddQueueMessage(context, message);
+
+            } finally {
+                record(message.getMessageId().toString());
+
             }
         }
 
         @Override
         public void removeAsyncMessage(ConnectionContext context, MessageAck ack) throws IOException {
+            startRecord(ack.getLastMessageId().toProducerKey(), KahaDBMessageStore.class, "removeAsyncMessage");
             if (isConcurrentStoreAndDispatchQueues()) {
                 AsyncJobKey key = new AsyncJobKey(ack.getLastMessageId(), getDestination());
                 StoreQueueTask task = null;
@@ -428,10 +436,12 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
             } else {
                 removeMessage(context, ack);
             }
+            record(ack.getLastMessageId().toProducerKey());
         }
 
         @Override
         public void addMessage(final ConnectionContext context, final Message message) throws IOException {
+            startRecord(message.getMessageId().toString(), KahaDBMessageStore.class, "addMessage");
             final KahaAddMessageCommand command = new KahaAddMessageCommand();
             command.setDestination(dest);
             command.setMessageId(message.getMessageId().toProducerKey());
@@ -462,10 +472,12 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
                     }
                 }
             }, null);
+            record(message.getMessageId().toString());
         }
 
         @Override
         public void updateMessage(Message message) throws IOException {
+            startRecord(message.getMessageId().toString(), KahaDBMessageStore.class, "updateMessage");
             if (LOG.isTraceEnabled()) {
                 LOG.trace("updating: " + message.getMessageId() + " with deliveryCount: " + message.getRedeliveryCounter());
             }
@@ -479,10 +491,12 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
             command.setMessage(new Buffer(packet.getData(), packet.getOffset(), packet.getLength()));
             updateMessageCommand.setMessage(command);
             store(updateMessageCommand, isEnableJournalDiskSyncs(), null, null);
+            record(message.getMessageId().toString());
         }
 
         @Override
         public void removeMessage(ConnectionContext context, MessageAck ack) throws IOException {
+            startRecord(ack.getLastMessageId().toProducerKey(), KahaDBMessageStore.class, "removeMessage");
             KahaRemoveMessageCommand command = new KahaRemoveMessageCommand();
             command.setDestination(dest);
             command.setMessageId(ack.getLastMessageId().toProducerKey());
@@ -491,6 +505,7 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
             org.apache.activemq.util.ByteSequence packet = wireFormat.marshal(ack);
             command.setAck(new Buffer(packet.getData(), packet.getOffset(), packet.getLength()));
             store(command, isEnableJournalDiskSyncs() && ack.isResponseRequired(), null, null);
+            record(ack.getLastMessageId().toProducerKey());
         }
 
         @Override
