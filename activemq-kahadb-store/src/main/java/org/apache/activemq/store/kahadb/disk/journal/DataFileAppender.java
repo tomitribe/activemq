@@ -264,7 +264,7 @@ class DataFileAppender implements FileAppender {
                         // Otherwise wait for the queuedCommand to be null
                         try {
                             while (nextWriteBatch != null) {
-                                startRecord(null, DataFileAppender.class, "enqueue.wait");
+                                startRecord(null, DataFileAppender.class, "enqueue.waitAndWrite");
                                 try {
                                     final long start = System.currentTimeMillis();
                                     enqueueMutex.wait();
