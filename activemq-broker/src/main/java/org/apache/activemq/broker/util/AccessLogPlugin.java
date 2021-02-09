@@ -291,6 +291,7 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
 
         public Timing stop() {
+            if (records.isEmpty()) return this;
             final Breakdown lastRecord = records.pop();
             if (lastRecord != null) {
                 timingBreakdowns.add(new Breakdown(lastRecord.getWhat(), System.nanoTime() - lastRecord.getTiming(), lastRecord.getLevel()));
@@ -299,6 +300,7 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
 
         public Timing stop(final Map<String, String> data) {
+            if (records.isEmpty()) return this;
             final Breakdown lastRecord = records.pop();
             if (lastRecord != null) {
                 timingBreakdowns.add(new Breakdown(lastRecord.getWhat(), System.nanoTime() - lastRecord.getTiming(), lastRecord.getLevel(), data));
@@ -307,6 +309,7 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
 
         public void checkMissingStop() {
+            if (records.isEmpty()) return;
             final long stop = System.nanoTime();
             final Iterator<Breakdown> iterator = records.descendingIterator();
             while (iterator.hasNext()) {
