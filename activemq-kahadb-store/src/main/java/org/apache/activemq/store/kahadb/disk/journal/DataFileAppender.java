@@ -353,97 +353,106 @@ class DataFileAppender implements FileAppender {
 
                 if (dataFile != wb.dataFile) {
                     startRecord(null, DataFileAppender.class, "rollover");
-                    if (file != null) {
-                        dataFile.closeRandomAccessFile(file);
+                    try {
+                        if (file != null) {
+                            dataFile.closeRandomAccessFile(file);
+                        }
+                        dataFile = wb.dataFile;
+                        file = dataFile.openRandomAccessFile();
+                        // pre allocate on first open of new file (length==0)
+                        // note dataFile.length cannot be used because it is updated in enqueue
+                        if (file.length() == 0l) {
+                            journal.preallocateEntireJournalDataFile(file);
+                        }
+
+                    } finally {
+                        final WriteBatch tempWriteBatch = wb;
+                        record(null, new HashMap<String, String>() {{
+                            put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
+                            put("writeBatchSize", String.valueOf(tempWriteBatch.size));
+                            put("writeBatchWriteSize", String.valueOf(tempWriteBatch.writes.size()));
+                        }});
+
                     }
-                    dataFile = wb.dataFile;
-                    file = dataFile.openRandomAccessFile();
-                    // pre allocate on first open of new file (length==0)
-                    // note dataFile.length cannot be used because it is updated in enqueue
-                    if (file.length() == 0l) {
-                        journal.preallocateEntireJournalDataFile(file);
+                }
+
+                Journal.WriteCommand write = wb.writes.getHead();
+
+                startRecord(null, DataFileAppender.class, "writeBatch");
+                try {
+
+                    // Write an empty batch control record.
+                    buff.reset();
+                    buff.writeInt(Journal.BATCH_CONTROL_RECORD_SIZE);
+                    buff.writeByte(Journal.BATCH_CONTROL_RECORD_TYPE);
+                    buff.write(Journal.BATCH_CONTROL_RECORD_MAGIC);
+                    buff.writeInt(0);
+                    buff.writeLong(0);
+
+                    boolean forceToDisk = false;
+                    while (write != null) {
+                        forceToDisk |= write.sync | (syncOnComplete && write.onComplete != null);
+                        buff.writeInt(write.location.getSize());
+                        buff.writeByte(write.location.getType());
+                        buff.write(write.data.getData(), write.data.getOffset(), write.data.getLength());
+                        write = write.getNext();
                     }
 
+                    // append 'unset' next batch (5 bytes) so read can always find eof
+                    buff.writeInt(0);
+                    buff.writeByte(0);
+
+                    ByteSequence sequence = buff.toByteSequence();
+
+                    // Now we can fill in the batch control record properly.
+                    buff.reset();
+                    buff.skip(5 + Journal.BATCH_CONTROL_RECORD_MAGIC.length);
+                    buff.writeInt(sequence.getLength() - Journal.BATCH_CONTROL_RECORD_SIZE - 5);
+                    if (journal.isChecksum()) {
+                        Checksum checksum = new Adler32();
+                        checksum.update(sequence.getData(), sequence.getOffset() + Journal.BATCH_CONTROL_RECORD_SIZE,
+                                        sequence.getLength() - Journal.BATCH_CONTROL_RECORD_SIZE - 5);
+                        buff.writeLong(checksum.getValue());
+                    }
+
+                    // Now do the 1 big write.
+                    file.seek(wb.offset);
+                    if (maxStat > 0) {
+                        if (statIdx < maxStat) {
+                            stats[statIdx++] = sequence.getLength();
+                        } else {
+                            long all = 0;
+                            for (; statIdx > 0; ) {
+                                all += stats[--statIdx];
+                            }
+                            logger.info("Ave writeSize: " + all / maxStat);
+                        }
+                    }
+                    file.write(sequence.getData(), sequence.getOffset(), sequence.getLength());
+
+                    ReplicationTarget replicationTarget = journal.getReplicationTarget();
+                    if (replicationTarget != null) {
+                        replicationTarget.replicate(wb.writes.getHead().location, sequence, forceToDisk);
+                    }
+
+                    if (forceToDisk) {
+                        file.sync();
+                    }
+
+                    Journal.WriteCommand lastWrite = wb.writes.getTail();
+                    journal.setLastAppendLocation(lastWrite.location);
+
+                    signalDone(wb);
+
+                } finally {
                     final WriteBatch tempWriteBatch = wb;
                     record(null, new HashMap<String, String>() {{
                         put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
                         put("writeBatchSize", String.valueOf(tempWriteBatch.size));
                         put("writeBatchWriteSize", String.valueOf(tempWriteBatch.writes.size()));
                     }});
+
                 }
-
-                Journal.WriteCommand write = wb.writes.getHead();
-
-                startRecord(null, DataFileAppender.class, "writeBatch");
-
-                // Write an empty batch control record.
-                buff.reset();
-                buff.writeInt(Journal.BATCH_CONTROL_RECORD_SIZE);
-                buff.writeByte(Journal.BATCH_CONTROL_RECORD_TYPE);
-                buff.write(Journal.BATCH_CONTROL_RECORD_MAGIC);
-                buff.writeInt(0);
-                buff.writeLong(0);
-
-                boolean forceToDisk = false;
-                while (write != null) {
-                    forceToDisk |= write.sync | (syncOnComplete && write.onComplete != null);
-                    buff.writeInt(write.location.getSize());
-                    buff.writeByte(write.location.getType());
-                    buff.write(write.data.getData(), write.data.getOffset(), write.data.getLength());
-                    write = write.getNext();
-                }
-
-                // append 'unset' next batch (5 bytes) so read can always find eof
-                buff.writeInt(0);
-                buff.writeByte(0);
-
-                ByteSequence sequence = buff.toByteSequence();
-
-                // Now we can fill in the batch control record properly.
-                buff.reset();
-                buff.skip(5+Journal.BATCH_CONTROL_RECORD_MAGIC.length);
-                buff.writeInt(sequence.getLength()-Journal.BATCH_CONTROL_RECORD_SIZE - 5);
-                if( journal.isChecksum() ) {
-                    Checksum checksum = new Adler32();
-                    checksum.update(sequence.getData(), sequence.getOffset()+Journal.BATCH_CONTROL_RECORD_SIZE, sequence.getLength()-Journal.BATCH_CONTROL_RECORD_SIZE - 5);
-                    buff.writeLong(checksum.getValue());
-                }
-
-                // Now do the 1 big write.
-                file.seek(wb.offset);
-                if (maxStat > 0) {
-                    if (statIdx < maxStat) {
-                        stats[statIdx++] = sequence.getLength();
-                    } else {
-                        long all = 0;
-                        for (;statIdx > 0;) {
-                            all+= stats[--statIdx];
-                        }
-                        logger.info("Ave writeSize: " + all/maxStat);
-                    }
-                }
-                file.write(sequence.getData(), sequence.getOffset(), sequence.getLength());
-
-                ReplicationTarget replicationTarget = journal.getReplicationTarget();
-                if( replicationTarget!=null ) {
-                    replicationTarget.replicate(wb.writes.getHead().location, sequence, forceToDisk);
-                }
-
-                if (forceToDisk) {
-                    file.sync();
-                }
-
-                Journal.WriteCommand lastWrite = wb.writes.getTail();
-                journal.setLastAppendLocation(lastWrite.location);
-
-                signalDone(wb);
-
-                final WriteBatch tempWriteBatch = wb;
-                record(null, new HashMap<String, String>() {{
-                    put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
-                    put("writeBatchSize", String.valueOf(tempWriteBatch.size));
-                    put("writeBatchWriteSize", String.valueOf(tempWriteBatch.writes.size()));
-                }});
             }
         } catch (IOException e) {
             logger.info("Journal failed while writing at: " + wb.offset);

@@ -35,7 +35,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -240,7 +242,7 @@ public class AccessLogPlugin extends BrokerPluginSupport {
 
             // also flush out the
             final Timing async = inflight.remove("async");
-            if (async != null) {
+            if (async != null && async.getBreakdowns() != null && async.getBreakdowns().size() > 0) {
                 if (LOG.isInfoEnabled()) {
                     LOG.info(async.toString());
                 }
@@ -272,7 +274,7 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         private final String destination;
         private final int messageSize;
         private final List<Breakdown> timingBreakdowns = Collections.synchronizedList(new ArrayList<>());
-        private final Deque<Breakdown> records = new ArrayDeque<>();
+        private final Deque<Breakdown> records = new ConcurrentLinkedDeque<>();
 
         private Timing(final String messageId, final String destination, final int messageSize) {
             this.messageId = messageId;
@@ -291,32 +293,29 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
 
         public Timing stop() {
-            if (records.isEmpty()) return this;
-            final Breakdown lastRecord = records.pop();
-            if (lastRecord != null) {
-                timingBreakdowns.add(new Breakdown(lastRecord.getWhat(), System.nanoTime() - lastRecord.getTiming(), lastRecord.getLevel()));
-            }
-            return this;
+            return stop(Collections.EMPTY_MAP);
         }
 
         public Timing stop(final Map<String, String> data) {
-            if (records.isEmpty()) return this;
-            final Breakdown lastRecord = records.pop();
-            if (lastRecord != null) {
-                timingBreakdowns.add(new Breakdown(lastRecord.getWhat(), System.nanoTime() - lastRecord.getTiming(), lastRecord.getLevel(), data));
+            final Breakdown lastRecord;
+            try {
+                lastRecord = records.pop();
+                if (lastRecord != null) {
+                    timingBreakdowns.add(new Breakdown(lastRecord.getWhat(), System.nanoTime() - lastRecord.getTiming(), lastRecord.getLevel(), data));
+                }
+            } catch (final NoSuchElementException e) {
+                // ignore - for async another thread may have already picked it up
             }
             return this;
         }
 
         public void checkMissingStop() {
-            if (records.isEmpty()) return;
             final long stop = System.nanoTime();
             final Iterator<Breakdown> iterator = records.descendingIterator();
             while (iterator.hasNext()) {
                 final Breakdown breakdown = iterator.next();
                 final Breakdown b = new Breakdown(breakdown.getWhat(), stop - breakdown.getTiming(), breakdown.getLevel());
-                timingBreakdowns.add(b);
-                // System.out.println(">> Breakdown with missing stop " + b.toString());
+                LOG.info("Breakdown stop " + b.toString());
             }
         }
 

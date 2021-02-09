@@ -63,7 +63,7 @@ public class RequestPerformanceNoLoggingTest extends TestCase {
         final int iterations = 1_000_000;
         final int totalNumberOfIterations = threads * iterations;
 
-        final String randomString = RandomStringUtils.randomAlphanumeric(1024); // 5 MB
+        final String randomString = RandomStringUtils.randomAlphanumeric(1024 * 5); // 5 MB
 
         latch = new CountDownLatch(totalNumberOfIterations);
 

@@ -1071,7 +1071,6 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
 
             Location location;
             startRecord(null, MessageDatabase.class, "store:checkpointLock.readLock().lock()");
-
             try {
                 checkpointLock.readLock().lock();
             } finally {
