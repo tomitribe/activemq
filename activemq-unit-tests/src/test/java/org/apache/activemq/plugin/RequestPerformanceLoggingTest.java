@@ -56,7 +56,7 @@ public class RequestPerformanceLoggingTest extends TestCase {
 
     public void testMultiThread() throws Exception {
         final int threads = 13;
-        final int iterations = 13759;
+        final int iterations = 13;
         final int totalNumberOfIterations = threads * iterations;
 
         final String randomString = RandomStringUtils.randomAlphanumeric(1024 * 1024); // 5 MB
@@ -138,10 +138,7 @@ public class RequestPerformanceLoggingTest extends TestCase {
             System.out.println(breakdown.prettyPrint());
         }
 
-        Assert.assertTrue(items.contains("StoreQueueTask.acquireLocks"));
         Assert.assertTrue(items.contains("MessageDatabase.store:checkpointLock.readLock().lock()"));
-        Assert.assertTrue(items.contains("DataFileAppender.writeBatch"));
-        Assert.assertTrue(items.contains("DataFileAppender.rollover"));
         Assert.assertTrue(items.contains("MessageDatabase.journal_write"));
         Assert.assertTrue(items.contains("MessageDatabase.index_write"));
         Assert.assertTrue(items.contains("StoreQueueTask.store.addMessage"));

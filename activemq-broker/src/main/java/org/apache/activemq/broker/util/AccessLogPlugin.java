@@ -31,10 +31,13 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -156,13 +159,17 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
 
         if (id == null) {
-            return;
+            id = "async";
         }
 
         timings.startRecord(id, what);
     }
 
     public void record(final String messageId) {
+        record(messageId, null);
+    }
+
+    public void record(final String messageId, final Map<String, String> data) {
         if (!enabled.get()) {
             return;
         }
@@ -173,10 +180,15 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
 
         if (id == null) {
-            return;
+            id = "async";
         }
 
-        timings.stopRecord(id);
+        if (data == null) {
+            timings.stopRecord(id);
+
+        } else {
+            timings.stopRecord(id, data);
+        }
     }
 
     public void setThreadMessageId(final String messageId) {
@@ -199,6 +211,11 @@ public class AccessLogPlugin extends BrokerPluginSupport {
                 return new Timing(key, destination, messageSize);
             });
 
+            // this is so we can catch the async timings not belonging to a message being processed in the current thread
+            inflight.computeIfAbsent("async", (key) -> {
+                return new Timing(key, null, 0);
+            });
+
             startRecord(messageId, "whole_request");
         }
 
@@ -211,13 +228,21 @@ public class AccessLogPlugin extends BrokerPluginSupport {
             final Timing timing = inflight.remove(messageId);
 
             final int th = threshold.get();
-            if (th <= 0 || ((long) th < (duration / 1000000))) {
+            if (th <= 0 || ((long) th < (duration / 1_000_000))) {
 
                 if (LOG.isInfoEnabled()) {
                     LOG.info(timing.toString());
                 }
                 if (recordingCallback != null) {
                     recordingCallback.sendComplete(timing);
+                }
+            }
+
+            // also flush out the
+            final Timing async = inflight.remove("async");
+            if (async != null) {
+                if (LOG.isInfoEnabled()) {
+                    LOG.info(async.toString());
                 }
             }
         }
@@ -231,6 +256,12 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         public void stopRecord(final String messageId) {
             if (messageId != null) {
                 inflight.computeIfPresent(messageId, (key, timing) -> timing.stop());
+            }
+        }
+
+        public void stopRecord(final String messageId, final Map<String, String> data) {
+            if (messageId != null) {
+                inflight.computeIfPresent(messageId, (key, timing) -> timing.stop(data));
             }
         }
 
@@ -267,11 +298,22 @@ public class AccessLogPlugin extends BrokerPluginSupport {
             return this;
         }
 
+        public Timing stop(final Map<String, String> data) {
+            final Breakdown lastRecord = records.pop();
+            if (lastRecord != null) {
+                timingBreakdowns.add(new Breakdown(lastRecord.getWhat(), System.nanoTime() - lastRecord.getTiming(), lastRecord.getLevel(), data));
+            }
+            return this;
+        }
+
         public void checkMissingStop() {
+            final long stop = System.nanoTime();
             final Iterator<Breakdown> iterator = records.descendingIterator();
             while (iterator.hasNext()) {
                 final Breakdown breakdown = iterator.next();
-                // System.out.println("Breakdown with missing stop " + breakdown);
+                final Breakdown b = new Breakdown(breakdown.getWhat(), stop - breakdown.getTiming(), breakdown.getLevel());
+                timingBreakdowns.add(b);
+                // System.out.println(">> Breakdown with missing stop " + b.toString());
             }
         }
 
@@ -295,15 +337,25 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         private final String what;
         private final Long timing;
         private final int level;
+        private final Map<String, String> data;
 
         public Breakdown(final String what, final Long timing, final int level) {
+            this(what, timing, level, new HashMap<>());
+        }
+
+        public Breakdown(final String what, final Long timing, final int level, final Map<String, String> data) {
             this.what = what;
             this.timing = timing;
             this.level = level;
+            this.data = data;
         }
 
         public String getWhat() {
             return what;
+        }
+
+        public Long getTiming(final TimeUnit unit) {
+            return unit.convert(getTiming(), TimeUnit.NANOSECONDS);
         }
 
         public Long getTiming() {
@@ -314,17 +366,22 @@ public class AccessLogPlugin extends BrokerPluginSupport {
             return level;
         }
 
+        public Map<String, String> getData() {
+            return data;
+        }
+
         @Override
         public String toString() {
             return "Breakdown{" +
                    "what='" + getWhat() + '\'' +
-                   ", timing=" + getTiming() +
+                   ", timing=" + getTiming(TimeUnit.MILLISECONDS) +
                    ", level=" + getLevel() +
+                   ", data=" + getData() +
                    '}';
         }
 
         public String prettyPrint() {
-            return String.format("%10d %s %-60s", getTiming(), pad(getLevel()), getWhat());
+            return String.format("%10d %s %-60s", getTiming(TimeUnit.MILLISECONDS), pad(getLevel()), getWhat());
         }
 
         private String pad(final int level) {

@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
@@ -148,11 +149,11 @@ class DataFileAppender implements FileAppender {
         }
     }
 
-    protected void record(final String messageId) {
+    protected void record(final String messageId, final Map<String, String> data) {
         try {
             final AccessLogPlugin accessLog = (AccessLogPlugin) this.journal.getBroker().getBroker().getAdaptor(AccessLogPlugin.class);
             if (accessLog != null) {
-                accessLog.record(messageId);
+                accessLog.record(messageId, data);
             }
         } catch (final BrokerStoppedException e) {
             // ignore this so we aren't dumping errors
@@ -207,7 +208,7 @@ class DataFileAppender implements FileAppender {
         return location;
     }
 
-    private WriteBatch enqueue(Journal.WriteCommand write) throws IOException {
+    private WriteBatch enqueue(final Journal.WriteCommand write) throws IOException {
         synchronized (enqueueMutex) {
             if (shutdown) {
                 throw new IOException("Async Writer Thread Shutdown");
@@ -234,6 +235,7 @@ class DataFileAppender implements FileAppender {
 
             while ( true ) {
                 if (nextWriteBatch == null) {
+                    startRecord(null, DataFileAppender.class, "enqueue.rotateOrNew");
                     DataFile file = journal.getCurrentWriteFile();
                     if( file.getLength() + write.location.getSize() >= journal.getMaxFileLength() ) {
                         file = journal.rotateWriteFile();
@@ -242,15 +244,25 @@ class DataFileAppender implements FileAppender {
 
                     nextWriteBatch = newWriteBatch(write, file);
                     enqueueMutex.notifyAll();
+                    record(null, new HashMap<String, String>() {{
+                        put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
+                        put("writeSize", String.valueOf(write.data.length));
+                    }});
                     break;
                 } else {
                     // Append to current batch if possible..
                     if (nextWriteBatch.canAppend(write)) {
+                        startRecord(null, DataFileAppender.class, "enqueue.append");
                         nextWriteBatch.append(write);
+                        record(null, new HashMap<String, String>() {{
+                            put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
+                            put("writeSize", String.valueOf(write.data.length));
+                        }});
                         break;
                     } else {
                         // Otherwise wait for the queuedCommand to be null
                         try {
+                            startRecord(null, DataFileAppender.class, "enqueue.wait");
                             while (nextWriteBatch != null) {
                                 final long start = System.currentTimeMillis();
                                 enqueueMutex.wait();
@@ -259,6 +271,9 @@ class DataFileAppender implements FileAppender {
                                                 (System.currentTimeMillis() - start));
                                }
                             }
+                            record(null, new HashMap<String, String>() {{
+                                put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
+                            }});
                         } catch (InterruptedException e) {
                             throw new InterruptedIOException();
                         }
@@ -337,7 +352,6 @@ class DataFileAppender implements FileAppender {
                 }
 
                 if (dataFile != wb.dataFile) {
-                    final long rolloverStart = System.nanoTime();
                     startRecord(null, DataFileAppender.class, "rollover");
                     if (file != null) {
                         dataFile.closeRandomAccessFile(file);
@@ -349,7 +363,13 @@ class DataFileAppender implements FileAppender {
                     if (file.length() == 0l) {
                         journal.preallocateEntireJournalDataFile(file);
                     }
-                    record(null);
+
+                    final WriteBatch tempWriteBatch = wb;
+                    record(null, new HashMap<String, String>() {{
+                        put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
+                        put("writeBatchSize", String.valueOf(tempWriteBatch.size));
+                        put("writeBatchWriteSize", String.valueOf(tempWriteBatch.writes.size()));
+                    }});
                 }
 
                 Journal.WriteCommand write = wb.writes.getHead();
@@ -418,7 +438,12 @@ class DataFileAppender implements FileAppender {
 
                 signalDone(wb);
 
-                record(null);
+                final WriteBatch tempWriteBatch = wb;
+                record(null, new HashMap<String, String>() {{
+                    put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
+                    put("writeBatchSize", String.valueOf(tempWriteBatch.size));
+                    put("writeBatchWriteSize", String.valueOf(tempWriteBatch.writes.size()));
+                }});
             }
         } catch (IOException e) {
             logger.info("Journal failed while writing at: " + wb.offset);
