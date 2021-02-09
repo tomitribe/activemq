@@ -256,24 +256,31 @@ class DataFileAppender implements FileAppender {
                         nextWriteBatch.append(write);
                         record(null, new HashMap<String, String>() {{
                             put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
+                            put("nextWriteBatch", String.valueOf(nextWriteBatch.size));
                             put("writeSize", String.valueOf(write.data.length));
                         }});
                         break;
                     } else {
                         // Otherwise wait for the queuedCommand to be null
                         try {
-                            startRecord(null, DataFileAppender.class, "enqueue.wait");
                             while (nextWriteBatch != null) {
-                                final long start = System.currentTimeMillis();
-                                enqueueMutex.wait();
-                                if (maxStat > 0) {
-                                    logger.info("Waiting for write to finish with full batch... millis: " +
-                                                (System.currentTimeMillis() - start));
-                               }
+                                startRecord(null, DataFileAppender.class, "enqueue.wait");
+                                try {
+                                    final long start = System.currentTimeMillis();
+                                    enqueueMutex.wait();
+                                    if (maxStat > 0) {
+                                        logger.info("Waiting for write to finish with full batch... millis: " +
+                                                    (System.currentTimeMillis() - start));
+                                    }
+                                } finally {
+                                    record(null, new HashMap<String, String>() {{
+                                        put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
+                                        put("nextWriteBatch", String.valueOf(nextWriteBatch.size));
+                                        put("writeSize", String.valueOf(write.data.length));
+                                    }});
+
+                                }
                             }
-                            record(null, new HashMap<String, String>() {{
-                                put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
-                            }});
                         } catch (InterruptedException e) {
                             throw new InterruptedIOException();
                         }
@@ -449,7 +456,7 @@ class DataFileAppender implements FileAppender {
                     record(null, new HashMap<String, String>() {{
                         put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
                         put("writeBatchSize", String.valueOf(tempWriteBatch.size));
-                        put("writeBatchWriteSize", String.valueOf(tempWriteBatch.writes.size()));
+                        put("writesSize", String.valueOf(tempWriteBatch.writes.size()));
                     }});
 
                 }
