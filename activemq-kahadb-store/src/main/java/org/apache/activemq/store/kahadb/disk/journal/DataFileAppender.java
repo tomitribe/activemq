@@ -246,6 +246,7 @@ class DataFileAppender implements FileAppender {
                     enqueueMutex.notifyAll();
                     record(null, new HashMap<String, String>() {{
                         put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
+                        put("nextWriteBatch", nextWriteBatch != null ? String.valueOf(nextWriteBatch.size) : "n/a");
                         put("writeSize", write.data != null ? String.valueOf(write.data.length) : "n/a");
                     }});
                     break;
@@ -256,7 +257,7 @@ class DataFileAppender implements FileAppender {
                         nextWriteBatch.append(write);
                         record(null, new HashMap<String, String>() {{
                             put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
-                            put("nextWriteBatch", nextWriteBatch!= null ? String.valueOf(nextWriteBatch.size) : "n/a");
+                            put("nextWriteBatch", nextWriteBatch != null ? String.valueOf(nextWriteBatch.size) : "n/a");
                             put("writeSize", write.data != null ? String.valueOf(write.data.length) : "n/a");
                         }});
                         break;
