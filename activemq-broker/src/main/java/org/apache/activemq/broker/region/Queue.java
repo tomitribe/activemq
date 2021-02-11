@@ -607,35 +607,9 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
         }
     }
 
-    protected void startRecord(final String messageId, final Class cls, final String method) {
-        try {
-            final AccessLogPlugin accessLog = (AccessLogPlugin) brokerService.getBroker().getAdaptor(AccessLogPlugin.class);
-            if (accessLog != null) {
-                accessLog.startRecord(messageId, cls.getSimpleName() + "." + method);
-            }
-        } catch (final BrokerStoppedException e) {
-            // ignore this so we aren't dumping errors
-        } catch (final Exception e) {
-            LOG.error("Unable to record timing for " + cls.getSimpleName() + "." + method + ".", e);
-        }
-    }
-
-    protected void record(final String messageId) {
-        try {
-            final AccessLogPlugin accessLog = (AccessLogPlugin) brokerService.getBroker().getAdaptor(AccessLogPlugin.class);
-            if (accessLog != null) {
-                accessLog.record(messageId);
-            }
-        } catch (final BrokerStoppedException e) {
-            // ignore this so we aren't dumping errors
-        } catch (final Exception e) {
-            LOG.error("Unable to record timing.", e);
-        }
-    }
-
     @Override
     public void send(final ProducerBrokerExchange producerExchange, final Message message) throws Exception {
-        startRecord(message.getMessageId().toString(), Queue.class, "send");
+        AccessLogPlugin.startRecord(message.getMessageId().toString(), Queue.class, "send");
 
         final ConnectionContext context = producerExchange.getConnectionContext();
         // There is delay between the client sending it and it arriving at the
@@ -762,7 +736,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
             context.getConnection().dispatchAsync(ack);
         }
 
-        record(message.getMessageId().toString());
+        AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
     }
 
     private void registerCallbackForNotFullNotification() {
@@ -854,29 +828,29 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
     void doMessageSend(final ProducerBrokerExchange producerExchange, final Message message) throws IOException,
             Exception {
 
-        startRecord(message.getMessageId().toString(), Queue.class, "producerExchange.getConnectionContext()");
+        AccessLogPlugin.startRecord(message.getMessageId().toString(), Queue.class, "producerExchange.getConnectionContext()");
         final ConnectionContext context = producerExchange.getConnectionContext();
-        record(message.getMessageId().toString());
+        AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
         ListenableFuture<Object> result = null;
 
         producerExchange.incrementSend();
         do {
             checkUsage(context, producerExchange, message);
-            startRecord(message.getMessageId().toString(), Queue.class, "doMessageSend.sendLock.lockInterruptibly()");
+            AccessLogPlugin.startRecord(message.getMessageId().toString(), Queue.class, "doMessageSend.sendLock.lockInterruptibly()");
             sendLock.lockInterruptibly();
-            record(message.getMessageId().toString());
+            AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
             try {
                 message.getMessageId().setBrokerSequenceId(getDestinationSequenceId());
 
-                startRecord(message.getMessageId().toString(), Queue.class, "doMessageSend.store()");
+                AccessLogPlugin.startRecord(message.getMessageId().toString(), Queue.class, "doMessageSend.store()");
                 if (store != null && message.isPersistent()) {
                     message.getMessageId().setFutureOrSequenceLong(null);
                     try {
                         if (messages.isCacheEnabled()) {
                             result = store.asyncAddQueueMessage(context, message, isOptimizeStorage());
-                            startRecord(message.getMessageId().toString(), Queue.class, "increaseMemoryUsage");
+                            AccessLogPlugin.startRecord(message.getMessageId().toString(), Queue.class, "increaseMemoryUsage");
                             result.addListener(new PendingMarshalUsageTracker(message));
-                            record(message.getMessageId().toString());
+                            AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
                         } else {
                             store.addMessage(context, message);
                         }
@@ -890,7 +864,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
                         throw e;
                     }
                 }
-                record(message.getMessageId().toString());
+                AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
 
                 if(tryOrderedCursorAdd(message, context)) {
                     break;
@@ -904,7 +878,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
             messageSent(context, message);
         }
 
-        startRecord(message.getMessageId().toString(), Queue.class, "doMessageSend.result.get()");
+        AccessLogPlugin.startRecord(message.getMessageId().toString(), Queue.class, "doMessageSend.result.get()");
         if (result != null && message.isResponseRequired() && !result.isCancelled()) {
             try {
                 result.get();
@@ -913,7 +887,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
                 // has already been deleted
             }
         }
-        record(message.getMessageId().toString());
+        AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
     }
 
     private boolean tryOrderedCursorAdd(Message message, ConnectionContext context) throws Exception {
@@ -932,7 +906,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
     }
 
     private void checkUsage(ConnectionContext context,ProducerBrokerExchange producerBrokerExchange, Message message) throws ResourceAllocationException, IOException, InterruptedException {
-        startRecord(message.getMessageId().toString(), Queue.class, "checkUsage");
+        AccessLogPlugin.startRecord(message.getMessageId().toString(), Queue.class, "checkUsage");
         if (message.isPersistent()) {
             if (store != null && systemUsage.getStoreUsage().isFull(getStoreUsageHighWaterMark())) {
                 final String logMessage = "Persistent store is Full, " + getStoreUsageHighWaterMark() + "% of "
@@ -952,7 +926,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
 
             waitForSpace(context, producerBrokerExchange, messages.getSystemUsage().getTempUsage(), logMessage);
         }
-        record(message.getMessageId().toString());
+        AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
     }
 
     private void expireMessages() {

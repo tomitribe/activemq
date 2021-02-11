@@ -56,7 +56,7 @@ public class RequestPerformanceLoggingTest extends TestCase {
 
     public void testMultiThread() throws Exception {
         final int threads = 13;
-        final int iterations = 13;
+        final int iterations = 13795;
         final int totalNumberOfIterations = threads * iterations;
 
         final String randomString = RandomStringUtils.randomAlphanumeric(1024 * 1024); // 5 MB
@@ -165,6 +165,9 @@ public class RequestPerformanceLoggingTest extends TestCase {
     }
 
     protected BrokerService createBroker(final boolean withAccessLogPlugin) throws Exception {
+        // todo - avoid this
+        System.setProperty("license.home", "/Users/jlmonteiro/devs/jeanouii/apache/activemq/activemq-broker");
+
         BrokerService answer = new BrokerService();
         answer.getManagementContext().start();
         if (withAccessLogPlugin) {

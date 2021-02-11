@@ -17,6 +17,7 @@
 package org.apache.activemq.broker.util;
 
 import org.apache.activemq.broker.BrokerPluginSupport;
+import org.apache.activemq.broker.BrokerStoppedException;
 import org.apache.activemq.broker.ProducerBrokerExchange;
 import org.apache.activemq.broker.jmx.AsyncAnnotatedMBean;
 import org.apache.activemq.command.Message;
@@ -27,7 +28,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.PostConstruct;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
@@ -52,6 +52,8 @@ public class AccessLogPlugin extends BrokerPluginSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger("TIMING");
     private static final ThreadLocal<String> THREAD_MESSAGE_ID = new ThreadLocal<>();
+
+    private static AccessLogPlugin instance;
 
     private final AtomicBoolean enabled = new AtomicBoolean(true);
     private final AtomicInteger threshold = new AtomicInteger(0);
@@ -80,6 +82,8 @@ public class AccessLogPlugin extends BrokerPluginSupport {
     public void start() throws Exception {
         super.start();
 
+        instance = this;
+
         if (getBrokerService().isUseJmx()) {
             AsyncAnnotatedMBean.registerMBean(
                 this.getBrokerService().getManagementContext(),
@@ -98,6 +102,30 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
 
         super.stop();
+    }
+
+    public static void startRecord(final String messageId, final Class<?> cls, final String method) {
+        try {
+            if (instance != null) {
+                instance.startRecord(messageId, cls.getSimpleName() + "." + method);
+            }
+        } catch (final BrokerStoppedException e) {
+            // ignore this so we aren't dumping errors
+        } catch (final Exception e) {
+            LOG.error("Unable to record timing for " + cls.getSimpleName() + "." + method + ".", e);
+        }
+    }
+
+    public static void stopRecord(final String messageId, final Map<String, String> data) {
+        try {
+            if (instance != null) {
+                instance.record(messageId, data);
+            }
+        } catch (final BrokerStoppedException e) {
+            // ignore this so we aren't dumping errors
+        } catch (final Exception e) {
+            LOG.error("Unable to record timing.", e);
+        }
     }
 
     public static ObjectName createJmxName(final String brokerObjectName, final String name)
@@ -150,7 +178,7 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         }
     }
 
-    public void startRecord(final String messageId, final String what) {
+    private void startRecord(final String messageId, final String what) {
         if (!enabled.get()) {
             return;
         }
@@ -167,11 +195,11 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         timings.startRecord(id, what);
     }
 
-    public void record(final String messageId) {
+    private void record(final String messageId) {
         record(messageId, null);
     }
 
-    public void record(final String messageId, final Map<String, String> data) {
+    private void record(final String messageId, final Map<String, String> data) {
         if (!enabled.get()) {
             return;
         }

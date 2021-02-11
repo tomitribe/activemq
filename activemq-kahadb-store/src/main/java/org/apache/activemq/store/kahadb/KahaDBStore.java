@@ -19,6 +19,7 @@ package org.apache.activemq.store.kahadb;
 import org.apache.activemq.broker.ConnectionContext;
 import org.apache.activemq.broker.region.BaseDestination;
 import org.apache.activemq.broker.scheduler.JobSchedulerStore;
+import org.apache.activemq.broker.util.AccessLogPlugin;
 import org.apache.activemq.command.ActiveMQDestination;
 import org.apache.activemq.command.ActiveMQQueue;
 import org.apache.activemq.command.ActiveMQTempQueue;
@@ -65,6 +66,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -383,7 +385,7 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
         @Override
         public ListenableFuture<Object> asyncAddQueueMessage(final ConnectionContext context, final Message message)
                 throws IOException {
-            startRecord(message.getMessageId().toString(), KahaDBMessageStore.class, "asyncAddQueueMessage");
+            AccessLogPlugin.startRecord(message.getMessageId().toString(), KahaDBMessageStore.class, "asyncAddQueueMessage");
             try {
                 if (isConcurrentStoreAndDispatchQueues()) {
                     StoreQueueTask result = new StoreQueueTask(this, context, message);
@@ -401,14 +403,14 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
                 }
 
             } finally {
-                record(message.getMessageId().toString());
+                AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
 
             }
         }
 
         @Override
         public void removeAsyncMessage(ConnectionContext context, MessageAck ack) throws IOException {
-            startRecord(ack.getLastMessageId().toProducerKey(), KahaDBMessageStore.class, "removeAsyncMessage");
+            AccessLogPlugin.startRecord(ack.getLastMessageId().toProducerKey(), KahaDBMessageStore.class, "removeAsyncMessage");
             if (isConcurrentStoreAndDispatchQueues()) {
                 AsyncJobKey key = new AsyncJobKey(ack.getLastMessageId(), getDestination());
                 StoreQueueTask task = null;
@@ -436,21 +438,21 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
             } else {
                 removeMessage(context, ack);
             }
-            record(ack.getLastMessageId().toProducerKey());
+            AccessLogPlugin.stopRecord(ack.getLastMessageId().toProducerKey(), Collections.emptyMap());
         }
 
         @Override
         public void addMessage(final ConnectionContext context, final Message message) throws IOException {
-            startRecord(message.getMessageId().toString(), KahaDBMessageStore.class, "addMessage");
+            AccessLogPlugin.startRecord(message.getMessageId().toString(), KahaDBMessageStore.class, "addMessage");
             final KahaAddMessageCommand command = new KahaAddMessageCommand();
             command.setDestination(dest);
             command.setMessageId(message.getMessageId().toProducerKey());
             command.setTransactionInfo(TransactionIdConversion.convert(transactionIdTransformer.transform(message.getTransactionId())));
             command.setPriority(message.getPriority());
             command.setPrioritySupported(isPrioritizedMessages());
-            startRecord(message.getMessageId().toString(), KahaDBStore.class, "marshalMessage");
+            AccessLogPlugin.startRecord(message.getMessageId().toString(), KahaDBStore.class, "marshalMessage");
             org.apache.activemq.util.ByteSequence packet = wireFormat.marshal(message);
-            record(message.getMessageId().toString());
+            AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
             command.setMessage(new Buffer(packet.getData(), packet.getOffset(), packet.getLength()));
             store(command, isEnableJournalDiskSyncs() && message.isResponseRequired(), new IndexAware() {
                 // sync add? (for async, future present from getFutureOrSequenceLong)
@@ -472,12 +474,12 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
                     }
                 }
             }, null);
-            record(message.getMessageId().toString());
+            AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
         }
 
         @Override
         public void updateMessage(Message message) throws IOException {
-            startRecord(message.getMessageId().toString(), KahaDBMessageStore.class, "updateMessage");
+            AccessLogPlugin.startRecord(message.getMessageId().toString(), KahaDBMessageStore.class, "updateMessage");
             if (LOG.isTraceEnabled()) {
                 LOG.trace("updating: " + message.getMessageId() + " with deliveryCount: " + message.getRedeliveryCounter());
             }
@@ -491,12 +493,12 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
             command.setMessage(new Buffer(packet.getData(), packet.getOffset(), packet.getLength()));
             updateMessageCommand.setMessage(command);
             store(updateMessageCommand, isEnableJournalDiskSyncs(), null, null);
-            record(message.getMessageId().toString());
+            AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
         }
 
         @Override
         public void removeMessage(ConnectionContext context, MessageAck ack) throws IOException {
-            startRecord(ack.getLastMessageId().toProducerKey(), KahaDBMessageStore.class, "removeMessage");
+            AccessLogPlugin.startRecord(ack.getLastMessageId().toProducerKey(), KahaDBMessageStore.class, "removeMessage");
             KahaRemoveMessageCommand command = new KahaRemoveMessageCommand();
             command.setDestination(dest);
             command.setMessageId(ack.getLastMessageId().toProducerKey());
@@ -505,7 +507,7 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
             org.apache.activemq.util.ByteSequence packet = wireFormat.marshal(ack);
             command.setAck(new Buffer(packet.getData(), packet.getOffset(), packet.getLength()));
             store(command, isEnableJournalDiskSyncs() && ack.isResponseRequired(), null, null);
-            record(ack.getLastMessageId().toProducerKey());
+            AccessLogPlugin.stopRecord(ack.getLastMessageId().toProducerKey(), Collections.emptyMap());
         }
 
         @Override
@@ -1335,7 +1337,7 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
 
         @Override
         public void aquireLocks() {
-            startRecord(this.message.getMessageId().toString(), StoreQueueTask.class, "releaseLocks");
+            AccessLogPlugin.startRecord(this.message.getMessageId().toString(), StoreQueueTask.class, "releaseLocks");
 
             try {
                 if (this.locked.compareAndSet(false, true)) {
@@ -1348,13 +1350,13 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
                     }
                 }
             } finally {
-                record(message.getMessageId().toString());
+                AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
             }
         }
 
         @Override
         public void releaseLocks() {
-            startRecord(this.message.getMessageId().toString(), StoreQueueTask.class, "releaseLocks");
+            AccessLogPlugin.startRecord(this.message.getMessageId().toString(), StoreQueueTask.class, "releaseLocks");
 
             try {
                 if (this.locked.compareAndSet(true, false)) {
@@ -1363,7 +1365,7 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
                     message.decrementReferenceCount();
                 }
             } finally {
-                record(message.getMessageId().toString());
+                AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
             }
         }
 
@@ -1371,17 +1373,17 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
         @Override
         public void run() {
             setThreadMessageId(message.getMessageId().toString());
-            startRecord(this.message.getMessageId().toString(), StoreQueueTask.class, "run");
+            AccessLogPlugin.startRecord(this.message.getMessageId().toString(), StoreQueueTask.class, "run");
 
             try {
                 this.store.doneTasks++;
                 try {
                     if (this.done.compareAndSet(false, true)) {
-                        startRecord(this.message.getMessageId().toString(), StoreQueueTask.class, "store.addMessage");
+                        AccessLogPlugin.startRecord(this.message.getMessageId().toString(), StoreQueueTask.class, "store.addMessage");
                         try {
                             this.store.addMessage(context, message);
                         } finally {
-                            record(message.getMessageId().toString());
+                            AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
                         }
 
                         removeQueueTask(this.store, this.message.getMessageId());
@@ -1395,7 +1397,7 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
                     this.future.setException(e);
                 }
             } finally {
-                record(message.getMessageId().toString());
+                AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
                 setThreadMessageId(null);
             }
         }
@@ -1436,12 +1438,12 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
             private void fireListener() {
                 if (listener != null) {
                     try {
-                        startRecord(null, InnerFutureTask.class, "run");
+                        AccessLogPlugin.startRecord(null, InnerFutureTask.class, "run");
                         listener.run();
                     } catch (Exception ignored) {
                         LOG.warn("Unexpected exception from future {} listener callback {}", this, listener, ignored);
                     } finally {
-                        record(null);
+                        AccessLogPlugin.stopRecord(null, Collections.emptyMap());
                     }
                 }
             }
@@ -1489,31 +1491,31 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
          * @return true if all acknowledgements received
          */
         public boolean addSubscriptionKey(String key) {
-            startRecord(this.message.getMessageId().toString(), StoreTopicTask.class, "addSubscriptionKey");
+            AccessLogPlugin.startRecord(this.message.getMessageId().toString(), StoreTopicTask.class, "addSubscriptionKey");
             try {
                 synchronized (this.subscriptionKeys) {
                     this.subscriptionKeys.add(key);
                 }
                 return this.subscriptionKeys.size() >= this.subscriptionCount;
             } finally {
-                record(message.getMessageId().toString());
+                AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
             }
         }
 
         @Override
         public void run() {
             setThreadMessageId(message.getMessageId().toString());
-            startRecord(this.message.getMessageId().toString(), StoreTopicTask.class, "run");
+            AccessLogPlugin.startRecord(this.message.getMessageId().toString(), StoreTopicTask.class, "run");
 
             try {
                 this.store.doneTasks++;
                 try {
                     if (this.done.compareAndSet(false, true)) {
-                        startRecord(this.message.getMessageId().toString(), StoreTopicTask.class, "topicStore.addMessage");
+                        AccessLogPlugin.startRecord(this.message.getMessageId().toString(), StoreTopicTask.class, "topicStore.addMessage");
                         try {
                             this.topicStore.addMessage(context, message);
                         } finally {
-                            record(message.getMessageId().toString());
+                            AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
                         }
                         // apply any acks we have
                         synchronized (this.subscriptionKeys) {
@@ -1533,7 +1535,7 @@ public class KahaDBStore extends MessageDatabase implements PersistenceAdapter {
                     this.future.setException(e);
                 }
             } finally {
-                record(message.getMessageId().toString());
+                AccessLogPlugin.stopRecord(message.getMessageId().toString(), Collections.emptyMap());
                 setThreadMessageId(null);
             }
         }

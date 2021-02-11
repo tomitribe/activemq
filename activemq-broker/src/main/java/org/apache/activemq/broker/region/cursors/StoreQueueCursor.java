@@ -17,7 +17,6 @@
 package org.apache.activemq.broker.region.cursors;
 
 import org.apache.activemq.broker.Broker;
-import org.apache.activemq.broker.BrokerStoppedException;
 import org.apache.activemq.broker.region.MessageReference;
 import org.apache.activemq.broker.region.Queue;
 import org.apache.activemq.broker.util.AccessLogPlugin;
@@ -25,6 +24,8 @@ import org.apache.activemq.command.Message;
 import org.apache.activemq.usage.SystemUsage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Collections;
 
 /**
  * Store based Cursor for Queues
@@ -51,33 +52,6 @@ public class StoreQueueCursor extends AbstractPendingMessageCursor {
         this.queue = queue;
         this.persistent = new QueueStorePrefetch(queue, broker);
         currentCursor = persistent;
-    }
-
-    protected void startRecord(final String messageId, final Class cls, final String method) {
-        try {
-            final AccessLogPlugin
-                accessLog = (AccessLogPlugin) broker.getAdaptor(AccessLogPlugin.class);
-            if (accessLog != null) {
-                accessLog.startRecord(messageId, cls.getSimpleName() + "." + method);
-            }
-        } catch (final BrokerStoppedException e) {
-            // ignore this so we aren't dumping errors
-        } catch (final Exception e) {
-            LOG.error("Unable to record timing for " + cls.getSimpleName() + "." + method + ".", e);
-        }
-    }
-
-    protected void record(final String messageId) {
-        try {
-            final AccessLogPlugin accessLog = (AccessLogPlugin) broker.getAdaptor(AccessLogPlugin.class);
-            if (accessLog != null) {
-                accessLog.record(messageId);
-            }
-        } catch (final BrokerStoppedException e) {
-            // ignore this so we aren't dumping errors
-        } catch (final Exception e) {
-            LOG.error("Unable to record timing.", e);
-        }
     }
 
     @Override
@@ -353,7 +327,7 @@ public class StoreQueueCursor extends AbstractPendingMessageCursor {
 
     @Override
     public boolean isCacheEnabled() {
-        startRecord(null, StoreQueueCursor.class, "isCacheEnabled");
+        AccessLogPlugin.startRecord(null, StoreQueueCursor.class, "isCacheEnabled");
         boolean cacheEnabled = isUseCache();
         if (cacheEnabled) {
             if (persistent != null) {
@@ -364,7 +338,7 @@ public class StoreQueueCursor extends AbstractPendingMessageCursor {
             }
             setCacheEnabled(cacheEnabled);
         }
-        record(null);
+        AccessLogPlugin.stopRecord(null, Collections.emptyMap());
         return cacheEnabled;
     }
 

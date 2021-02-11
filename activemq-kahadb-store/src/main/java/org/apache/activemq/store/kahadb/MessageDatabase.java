@@ -134,32 +134,6 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
         }
     }
 
-    protected void startRecord(final String messageId, final Class cls, final String method) {
-        try {
-            final AccessLogPlugin accessLog = (AccessLogPlugin) brokerService.getBroker().getAdaptor(AccessLogPlugin.class);
-            if (accessLog != null) {
-                accessLog.startRecord(messageId, cls.getSimpleName() + "." + method);
-            }
-        } catch (final BrokerStoppedException e) {
-            // ignore this so we aren't dumping errors
-        } catch (final Exception e) {
-            LOG.error("Unable to record timing for " + cls.getSimpleName() + "." + method + ".", e);
-        }
-    }
-
-    protected void record(final String messageId) {
-        try {
-            final AccessLogPlugin accessLog = (AccessLogPlugin) brokerService.getBroker().getAdaptor(AccessLogPlugin.class);
-            if (accessLog != null) {
-                accessLog.record(messageId);
-            }
-        } catch (final BrokerStoppedException e) {
-            // ignore this so we aren't dumping errors
-        } catch (final Exception e) {
-            LOG.error("Unable to record timing.", e);
-        }
-    }
-
     protected class Metadata {
         protected Page<Metadata> page;
         protected int state;
@@ -1006,7 +980,7 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
     }
 
     protected void checkpointCleanup(final boolean cleanup) throws IOException {
-        startRecord(null, getClass(), "checkpointCleanup");
+        AccessLogPlugin.startRecord(null, getClass(), "checkpointCleanup");
         try {
 
             long start;
@@ -1027,12 +1001,12 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
                 }
             }
         } finally {
-            record(null);
+            AccessLogPlugin.stopRecord(null, Collections.emptyMap());
         }
     }
 
     public ByteSequence toByteSequence(JournalCommand<?> data) throws IOException {
-        startRecord(null, getClass(), "toByteSequence");
+        AccessLogPlugin.startRecord(null, getClass(), "toByteSequence");
         try {
             int size = data.serializedSizeFramed();
             DataByteArrayOutputStream os = new DataByteArrayOutputStream(size + 1);
@@ -1040,7 +1014,7 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
             data.writeFramed(os);
             return os.toByteSequence();
         } finally {
-            record(null);
+            AccessLogPlugin.stopRecord(null, Collections.emptyMap());
         }
     }
 
@@ -1070,22 +1044,22 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
             ByteSequence sequence = toByteSequence(data);
 
             Location location;
-            startRecord(null, MessageDatabase.class, "store:checkpointLock.readLock().lock()");
+            AccessLogPlugin.startRecord(null, MessageDatabase.class, "store:checkpointLock.readLock().lock()");
             try {
                 checkpointLock.readLock().lock();
             } finally {
-                record(null);
+                AccessLogPlugin.stopRecord(null, Collections.emptyMap());
             }
             try {
 
                 long start = System.currentTimeMillis();
-                startRecord(null, MessageDatabase.class, "journal_write");
+                AccessLogPlugin.startRecord(null, MessageDatabase.class, "journal_write");
                 location = onJournalStoreComplete == null ? journal.write(sequence, sync) :  journal.write(sequence, onJournalStoreComplete) ;
-                record(null);
+                AccessLogPlugin.stopRecord(null, Collections.emptyMap());
                 long start2 = System.currentTimeMillis();
-                startRecord(null, MessageDatabase.class, "index_write");
+                AccessLogPlugin.startRecord(null, MessageDatabase.class, "index_write");
                 process(data, location, before);
-                record(null);
+                AccessLogPlugin.stopRecord(null, Collections.emptyMap());
                 long end = System.currentTimeMillis();
                 if( LOG_SLOW_ACCESS_TIME>0 && end-start > LOG_SLOW_ACCESS_TIME) {
                     if (LOG.isInfoEnabled()) {

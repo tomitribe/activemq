@@ -16,13 +16,15 @@
  */
 package org.apache.activemq.store.kahadb.disk.journal;
 
-import java.io.IOException;
-import java.util.zip.Adler32;
-import java.util.zip.Checksum;
-
+import org.apache.activemq.broker.util.AccessLogPlugin;
 import org.apache.activemq.store.kahadb.disk.util.DataByteArrayOutputStream;
 import org.apache.activemq.util.ByteSequence;
 import org.apache.activemq.util.RecoverableRandomAccessFile;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.zip.Adler32;
+import java.util.zip.Checksum;
 
 /**
  * An optimized writer to do batch appends to a data file. This object is thread
@@ -108,56 +110,67 @@ class CallerBufferingDataFileAppender extends DataFileAppender {
                     enqueueMutex.notifyAll();
                 }
 
-                wb = (WriteBatch)o;
-                if (dataFile != wb.dataFile) {
-                    if (file != null) {
-                        dataFile.closeRandomAccessFile(file);
-                    }
-                    dataFile = wb.dataFile;
-                    file = dataFile.openRandomAccessFile();
-                }
-
-                final DataByteArrayOutputStream buff = wb.buff;
-                final boolean forceToDisk = wb.forceToDisk;
-
-                ByteSequence sequence = buff.toByteSequence();
-
-                // Now we can fill in the batch control record properly.
-                buff.reset();
-                buff.skip(5+Journal.BATCH_CONTROL_RECORD_MAGIC.length);
-                buff.writeInt(sequence.getLength()-Journal.BATCH_CONTROL_RECORD_SIZE);
-                if( journal.isChecksum() ) {
-                    Checksum checksum = new Adler32();
-                    checksum.update(sequence.getData(), sequence.getOffset()+Journal.BATCH_CONTROL_RECORD_SIZE, sequence.getLength()-Journal.BATCH_CONTROL_RECORD_SIZE);
-                    buff.writeLong(checksum.getValue());
-                }
-
-                // Now do the 1 big write.
-                file.seek(wb.offset);
-                if (maxStat > 0) {
-                    if (statIdx < maxStat) {
-                        stats[statIdx++] = sequence.getLength();
-                    } else {
-                        long all = 0;
-                        for (;statIdx > 0;) {
-                            all+= stats[--statIdx];
+                AccessLogPlugin.startRecord(null, CallerBufferingDataFileAppender.class, "processQueue");
+                try {
+                    wb = (WriteBatch) o;
+                    if (dataFile != wb.dataFile) {
+                        if (file != null) {
+                            dataFile.closeRandomAccessFile(file);
                         }
-                        System.err.println("Ave writeSize: " + all/maxStat);
+                        dataFile = wb.dataFile;
+                        file = dataFile.openRandomAccessFile();
                     }
-                }
-                file.write(sequence.getData(), sequence.getOffset(), sequence.getLength());
-                ReplicationTarget replicationTarget = journal.getReplicationTarget();
-                if( replicationTarget!=null ) {
-                    replicationTarget.replicate(wb.writes.getHead().location, sequence, forceToDisk);
-                }
 
-                if (forceToDisk) {
-                    file.sync();
-                }
+                    final DataByteArrayOutputStream buff = wb.buff;
+                    final boolean forceToDisk = wb.forceToDisk;
 
-                Journal.WriteCommand lastWrite = wb.writes.getTail();
-                journal.setLastAppendLocation(lastWrite.location);
-                signalDone(wb);
+                    ByteSequence sequence = buff.toByteSequence();
+
+                    // Now we can fill in the batch control record properly.
+                    buff.reset();
+                    buff.skip(5+Journal.BATCH_CONTROL_RECORD_MAGIC.length);
+                    buff.writeInt(sequence.getLength()-Journal.BATCH_CONTROL_RECORD_SIZE);
+                    if( journal.isChecksum() ) {
+                        Checksum checksum = new Adler32();
+                        checksum.update(sequence.getData(), sequence.getOffset()+Journal.BATCH_CONTROL_RECORD_SIZE, sequence.getLength()-Journal.BATCH_CONTROL_RECORD_SIZE);
+                        buff.writeLong(checksum.getValue());
+                    }
+
+                    // Now do the 1 big write.
+                    file.seek(wb.offset);
+                    if (maxStat > 0) {
+                        if (statIdx < maxStat) {
+                            stats[statIdx++] = sequence.getLength();
+                        } else {
+                            long all = 0;
+                            for (;statIdx > 0;) {
+                                all+= stats[--statIdx];
+                            }
+                            System.err.println("Ave writeSize: " + all/maxStat);
+                        }
+                    }
+                    file.write(sequence.getData(), sequence.getOffset(), sequence.getLength());
+                    ReplicationTarget replicationTarget = journal.getReplicationTarget();
+                    if( replicationTarget!=null ) {
+                        replicationTarget.replicate(wb.writes.getHead().location, sequence, forceToDisk);
+                    }
+
+                    if (forceToDisk) {
+                        file.sync();
+                    }
+
+                    Journal.WriteCommand lastWrite = wb.writes.getTail();
+                    journal.setLastAppendLocation(lastWrite.location);
+                    signalDone(wb);
+
+                } finally {
+                    final DataFileAppender.WriteBatch tempWriteBatch = wb;
+                    AccessLogPlugin.stopRecord(null, new HashMap<String, String>() {{
+                        put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
+                        put("writeBatchSize", String.valueOf(tempWriteBatch.size));
+                        put("writeBatchWriteSize", String.valueOf(tempWriteBatch.writes.size()));
+                    }});
+                }
 
 
             }

@@ -16,7 +16,6 @@
  */
 package org.apache.activemq.store.kahadb.disk.journal;
 
-import org.apache.activemq.broker.BrokerStoppedException;
 import org.apache.activemq.broker.util.AccessLogPlugin;
 import org.apache.activemq.store.kahadb.disk.util.DataByteArrayOutputStream;
 import org.apache.activemq.store.kahadb.disk.util.LinkedNodeList;
@@ -136,32 +135,6 @@ class DataFileAppender implements FileAppender {
         this.syncOnComplete = this.journal.isEnableAsyncDiskSync();
     }
 
-    protected void startRecord(final String messageId, final Class cls, final String method) {
-        try {
-            final AccessLogPlugin accessLog = (AccessLogPlugin) this.journal.getBroker().getBroker().getAdaptor(AccessLogPlugin.class);
-            if (accessLog != null) {
-                accessLog.startRecord(messageId, cls.getSimpleName() + "." + method);
-            }
-        } catch (final BrokerStoppedException e) {
-            // ignore this so we aren't dumping errors
-        } catch (final Exception e) {
-            logger.error("Unable to record timing for " + cls.getSimpleName() + "." + method + ".", e);
-        }
-    }
-
-    protected void record(final String messageId, final Map<String, String> data) {
-        try {
-            final AccessLogPlugin accessLog = (AccessLogPlugin) this.journal.getBroker().getBroker().getAdaptor(AccessLogPlugin.class);
-            if (accessLog != null) {
-                accessLog.record(messageId, data);
-            }
-        } catch (final BrokerStoppedException e) {
-            // ignore this so we aren't dumping errors
-        } catch (final Exception e) {
-            logger.error("Unable to record timing.", e);
-        }
-    }
-
     @Override
     public Location storeItem(ByteSequence data, byte type, boolean sync) throws IOException {
 
@@ -235,7 +208,7 @@ class DataFileAppender implements FileAppender {
 
             while ( true ) {
                 if (nextWriteBatch == null) {
-                    startRecord(null, DataFileAppender.class, "enqueue.rotateOrNew");
+                    AccessLogPlugin.startRecord(null, DataFileAppender.class, "enqueue.rotateOrNew");
                     DataFile file = journal.getCurrentWriteFile();
                     if( file.getLength() + write.location.getSize() >= journal.getMaxFileLength() ) {
                         file = journal.rotateWriteFile();
@@ -244,7 +217,7 @@ class DataFileAppender implements FileAppender {
 
                     nextWriteBatch = newWriteBatch(write, file);
                     enqueueMutex.notifyAll();
-                    record(null, new HashMap<String, String>() {{
+                    AccessLogPlugin.stopRecord(null, new HashMap<String, String>() {{
                         put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
                         put("nextWriteBatch", nextWriteBatch != null ? String.valueOf(nextWriteBatch.size) : "n/a");
                         put("writeSize", write.data != null ? String.valueOf(write.data.length) : "n/a");
@@ -253,9 +226,9 @@ class DataFileAppender implements FileAppender {
                 } else {
                     // Append to current batch if possible..
                     if (nextWriteBatch.canAppend(write)) {
-                        startRecord(null, DataFileAppender.class, "enqueue.append");
+                        AccessLogPlugin.startRecord(null, DataFileAppender.class, "enqueue.append");
                         nextWriteBatch.append(write);
-                        record(null, new HashMap<String, String>() {{
+                        AccessLogPlugin.stopRecord(null, new HashMap<String, String>() {{
                             put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
                             put("nextWriteBatch", nextWriteBatch != null ? String.valueOf(nextWriteBatch.size) : "n/a");
                             put("writeSize", write.data != null ? String.valueOf(write.data.length) : "n/a");
@@ -265,7 +238,7 @@ class DataFileAppender implements FileAppender {
                         // Otherwise wait for the queuedCommand to be null
                         try {
                             while (nextWriteBatch != null) {
-                                startRecord(null, DataFileAppender.class, "enqueue.waitAndWrite");
+                                AccessLogPlugin.startRecord(null, DataFileAppender.class, "enqueue.waitAndWrite");
                                 try {
                                     final long start = System.currentTimeMillis();
                                     enqueueMutex.wait();
@@ -274,7 +247,7 @@ class DataFileAppender implements FileAppender {
                                                     (System.currentTimeMillis() - start));
                                     }
                                 } finally {
-                                    record(null, new HashMap<String, String>() {{
+                                    AccessLogPlugin.stopRecord(null, new HashMap<String, String>() {{
                                         put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
                                         put("nextWriteBatch", nextWriteBatch!= null ? String.valueOf(nextWriteBatch.size) : "n/a");
                                         put("writeSize", write.data != null ? String.valueOf(write.data.length) : "n/a");
@@ -360,7 +333,7 @@ class DataFileAppender implements FileAppender {
                 }
 
                 if (dataFile != wb.dataFile) {
-                    startRecord(null, DataFileAppender.class, "rollover");
+                    AccessLogPlugin.startRecord(null, DataFileAppender.class, "rollover");
                     try {
                         if (file != null) {
                             dataFile.closeRandomAccessFile(file);
@@ -375,7 +348,7 @@ class DataFileAppender implements FileAppender {
 
                     } finally {
                         final WriteBatch tempWriteBatch = wb;
-                        record(null, new HashMap<String, String>() {{
+                        AccessLogPlugin.stopRecord(null, new HashMap<String, String>() {{
                             put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
                             put("writeBatchSize", String.valueOf(tempWriteBatch.size));
                             put("writeBatchWriteSize", String.valueOf(tempWriteBatch.writes.size()));
@@ -386,7 +359,7 @@ class DataFileAppender implements FileAppender {
 
                 Journal.WriteCommand write = wb.writes.getHead();
 
-                startRecord(null, DataFileAppender.class, "writeBatch");
+                AccessLogPlugin.startRecord(null, DataFileAppender.class, "writeBatch");
                 try {
 
                     // Write an empty batch control record.
@@ -454,7 +427,7 @@ class DataFileAppender implements FileAppender {
 
                 } finally {
                     final WriteBatch tempWriteBatch = wb;
-                    record(null, new HashMap<String, String>() {{
+                    AccessLogPlugin.stopRecord(null, new HashMap<String, String>() {{
                         put("maxWriteBatchSize", String.valueOf(maxWriteBatchSize));
                         put("writeBatchSize", String.valueOf(tempWriteBatch.size));
                         put("writesSize", String.valueOf(tempWriteBatch.writes.size()));
