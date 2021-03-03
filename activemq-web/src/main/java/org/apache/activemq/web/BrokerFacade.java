@@ -251,4 +251,5 @@ public interface BrokerFacade {
 
     boolean isJobSchedulerStarted();
 
+	SubscriptionViewMBean findConsumerId(String consumerID) throws Exception;
 }

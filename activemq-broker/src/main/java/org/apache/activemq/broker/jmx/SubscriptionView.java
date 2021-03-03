@@ -24,11 +24,13 @@ import javax.management.ObjectName;
 
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.ConnectionContext;
+import org.apache.activemq.broker.region.PrefetchSubscription;
 import org.apache.activemq.broker.region.Subscription;
 import org.apache.activemq.command.ActiveMQDestination;
 import org.apache.activemq.command.ActiveMQQueue;
 import org.apache.activemq.command.ActiveMQTopic;
 import org.apache.activemq.command.ConsumerInfo;
+import org.apache.activemq.filter.BooleanExpression;
 import org.apache.activemq.filter.DestinationFilter;
 import org.apache.activemq.util.IOExceptionSupport;
 
@@ -153,6 +155,20 @@ public class SubscriptionView implements SubscriptionViewMBean {
             return subscription.getSelector();
         }
         return null;
+    }
+
+    @Override
+    public String getAdditionalPredicate() {
+        if (subscription == null || subscription.getConsumerInfo() == null) {
+            return null;
+        }
+
+        final BooleanExpression additionalPredicate = subscription.getConsumerInfo().getAdditionalPredicate();
+        if (additionalPredicate == null) {
+            return null;
+        }
+
+        return additionalPredicate.toString();
     }
 
     @Override

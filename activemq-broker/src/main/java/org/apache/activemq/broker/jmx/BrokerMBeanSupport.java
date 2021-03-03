@@ -293,6 +293,15 @@ public class BrokerMBeanSupport {
                               + "consumerId=*");
     }
 
+    public static ObjectName createConsumerQueuryByConsumerId(String jmxDomainName, String brokerName, String consumerId) throws MalformedObjectNameException {
+        return new ObjectName(jmxDomainName + ":type=Broker,brokerName="
+                + (brokerName != null ? brokerName : "*") + ","
+                + "destinationType=*,destinationName=*,"
+                + "endpoint=Consumer,"
+                + "clientId=*,"
+                + "consumerId=" + JMXSupport.encodeObjectNamePart(consumerId));
+    }
+
     public static ObjectName createProducerQueury(String jmxDomainName, String clientId) throws MalformedObjectNameException {
         return createProducerQueury(jmxDomainName, null, clientId);
     }

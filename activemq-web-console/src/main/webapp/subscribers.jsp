@@ -83,6 +83,7 @@
 <thead>
 <tr>
 <th>Client ID</th>
+<th>Subscription ID</th>
 <th>Subscription Name</th>
 <th>Connection ID</th>
 <th>Destination</th>
@@ -101,6 +102,11 @@
 <td>
 <a href="<c:out value="connection.jsp?connectionID=${row.clientId}"/>">
 <form:tooltip text="${row.clientId}" length="10"/>
+</a>
+</td>
+<td>
+<a href="<c:out value="subscriber.jsp?consumerID=${row.subscriptionID}"/>">
+<form:tooltip text="${row.subscriptionID}" length="10"/>
 </a>
 </td>
 <td><form:tooltip text="${row.subscriptionName}" length="10"/></td>

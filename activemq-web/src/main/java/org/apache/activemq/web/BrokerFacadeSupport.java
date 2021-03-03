@@ -25,23 +25,13 @@ import java.util.Set;
 
 import javax.management.InstanceNotFoundException;
 import javax.management.ObjectName;
+import javax.management.Query;
 import javax.management.QueryExp;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularData;
 
-import org.apache.activemq.broker.jmx.BrokerViewMBean;
-import org.apache.activemq.broker.jmx.ConnectionViewMBean;
-import org.apache.activemq.broker.jmx.ConnectorViewMBean;
-import org.apache.activemq.broker.jmx.DestinationViewMBean;
-import org.apache.activemq.broker.jmx.DurableSubscriptionViewMBean;
-import org.apache.activemq.broker.jmx.JobSchedulerViewMBean;
-import org.apache.activemq.broker.jmx.ManagementContext;
-import org.apache.activemq.broker.jmx.NetworkBridgeViewMBean;
-import org.apache.activemq.broker.jmx.NetworkConnectorViewMBean;
-import org.apache.activemq.broker.jmx.ProducerViewMBean;
-import org.apache.activemq.broker.jmx.QueueViewMBean;
-import org.apache.activemq.broker.jmx.SubscriptionViewMBean;
-import org.apache.activemq.broker.jmx.TopicViewMBean;
+import org.apache.activemq.broker.BrokerService;
+import org.apache.activemq.broker.jmx.*;
 import org.apache.activemq.web.util.ExceptionUtils;
 import org.springframework.util.StringUtils;
 
@@ -307,5 +297,34 @@ public abstract class BrokerFacadeSupport implements BrokerFacade {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    @Override
+    public SubscriptionViewMBean findConsumerId(String consumerID) throws Exception {
+        //        ObjectName query1 = new ObjectName("org.apache.activemq:type=Broker,brokerName=" + brokerName
+//                + ",*,endpoint=Consumer");
+//        ObjectName query2 = new ObjectName("org.apache.activemq:type=Broker,brokerName=" + brokerName
+//                + ",*,consumerId=" + consumerID);
+//
+//        final QueryExp query = Query.and(query1, query2);
+//        Set<ObjectName> queryResult = queryNames(null, query);
+//
+//        if (queryResult.size() != 1) {
+//            return null;
+//        }
+
+        if (getManagementContext() != null) {
+            try {
+                final ObjectName query = BrokerMBeanSupport.createConsumerQueuryByConsumerId(getManagementContext().getJmxDomainName(), getBrokerName(), consumerID);
+                Set<ObjectName> result = getManagementContext().queryNames(query, null);
+                if (result.size() == 1) {
+                    ObjectName objectName = result.iterator().next();
+                    return (SubscriptionViewMBean) newProxyInstance(objectName, SubscriptionViewMBean.class, true);
+                }
+            } catch (Exception e) {
+            }
+        }
+
+        return null;
     }
 }

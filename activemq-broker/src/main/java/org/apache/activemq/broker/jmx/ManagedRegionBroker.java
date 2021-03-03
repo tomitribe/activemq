@@ -847,4 +847,15 @@ public class ManagedRegionBroker extends RegionBroker {
     public Set<ObjectName> getRegisteredMbeans() {
         return registeredMBeans;
     }
+
+    public ObjectName findSubscriberObjectName(final String consumerID) {
+        ObjectName on = null;
+        for (Entry<Subscription, ObjectName> entry: subscriptionMap.entrySet()) {
+            if (entry.getKey().getConsumerInfo().getConsumerId().toString().equals(consumerID)) {
+                on = entry.getValue();
+                break;
+            }
+        }
+        return on;
+    }
 }

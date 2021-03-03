@@ -1,4 +1,4 @@
-<%--
+<%@ page import="org.apache.activemq.util.JMXSupport" %><%--
     Licensed to the Apache Software Foundation (ASF) under one or more
     contributor license agreements.  See the NOTICE file distributed with
     this work for additional information regarding copyright ownership.
@@ -38,8 +38,10 @@
 		<br/>
 		<span>Connection ID</span>
 	</th>
+	<th>Consumer ID</th>
 	<th>SessionId</th>
 	<th>Selector</th>
+	<th>Additional Predicate</th>
 	<th>Enqueues</th>
 	<th>Dequeues</th>
 	<th>Dispatched</th>
@@ -70,8 +72,14 @@
         </c:choose>
             <c:out value="${row.connectionId}" />
     </td>
+
+	<!-- TODO: should write a tag lib here -->
+	<td><a href="<c:out value="subscriber.jsp?consumerID=<%= JMXSupport.encodeObjectNamePart(pageContext.findAttribute("row.clientId") + ":" + pageContext.findAttribute("row.sessionId") + ":" + pageContext.findAttribute("row.subscriptionId")) %>"/>">
+		<form:tooltip text="<%= JMXSupport.encodeObjectNamePart(pageContext.findAttribute("row.clientId") + ":" + pageContext.findAttribute("row.sessionId") + ":" + pageContext.findAttribute("row.subscriptionId")) %>" length="10"/>
+	</a></td>
 	<td><c:out value="${row.sessionId}" /></td>
 	<td><c:out value="${row.selector}" /></td>
+	<td><c:out value="${row.additionalPredicate}" /></td>
 	<td><c:out value="${row.enqueueCounter}" /></td>
 	<td><c:out value="${row.dequeueCounter}" /></td>
 	<td><c:out value="${row.dispatchedCounter}" /></td>

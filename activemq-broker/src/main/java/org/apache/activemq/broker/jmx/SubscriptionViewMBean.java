@@ -61,6 +61,12 @@ public interface SubscriptionViewMBean {
     String getSelector();
 
     /**
+     * @return the JMS selector on the current subscription
+     */
+    @MBeanInfo("The additional predicate of the subscription.")
+    String getAdditionalPredicate();
+
+    /**
      * Attempts to change the current active selector on the subscription. This
      * operation is not supported for persistent topics.
      */

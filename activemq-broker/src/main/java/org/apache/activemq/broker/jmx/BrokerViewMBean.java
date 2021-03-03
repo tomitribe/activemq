@@ -326,5 +326,4 @@ public interface BrokerViewMBean extends Service {
 
     @MBeanInfo("JMSJobScheduler")
     ObjectName getJMSJobScheduler();
-
 }
