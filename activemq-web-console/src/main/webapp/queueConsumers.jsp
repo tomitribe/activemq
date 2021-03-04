@@ -73,9 +73,9 @@
             <c:out value="${row.connectionId}" />
     </td>
 
-	<!-- TODO: should write a tag lib here -->
-	<td><a href="<c:out value="subscriber.jsp?consumerID=<%= JMXSupport.encodeObjectNamePart(pageContext.findAttribute("row.clientId") + ":" + pageContext.findAttribute("row.sessionId") + ":" + pageContext.findAttribute("row.subscriptionId")) %>"/>">
-		<form:tooltip text="<%= JMXSupport.encodeObjectNamePart(pageContext.findAttribute("row.clientId") + ":" + pageContext.findAttribute("row.sessionId") + ":" + pageContext.findAttribute("row.subscriptionId")) %>" length="10"/>
+    <c:set scope="page" var="consumerID"><jms:jmxConsumerId subscription="${row}"/></c:set>
+	<td><a href="<c:out value="subscriber.jsp?consumerID=${consumerID}"/>">
+		<form:tooltip text="${consumerID}" length="10"/>
 	</a></td>
 	<td><c:out value="${row.sessionId}" /></td>
 	<td><c:out value="${row.selector}" /></td>
