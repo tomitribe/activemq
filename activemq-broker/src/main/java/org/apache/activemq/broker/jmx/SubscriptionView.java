@@ -30,6 +30,7 @@ import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.ConnectionContext;
 import org.apache.activemq.broker.region.MessageReference;
 import org.apache.activemq.broker.region.PrefetchSubscription;
+import org.apache.activemq.broker.region.QueueMessageReference;
 import org.apache.activemq.broker.region.Subscription;
 import org.apache.activemq.broker.scheduler.Job;
 import org.apache.activemq.command.*;
@@ -482,6 +483,8 @@ public class SubscriptionView implements SubscriptionViewMBean {
             addItem("expired", "expired", SimpleType.BOOLEAN);
             addItem("dropped", "dropped", SimpleType.BOOLEAN);
             addItem("advisory", "advisory", SimpleType.BOOLEAN);
+            addItem("delivered", "delivered", SimpleType.BOOLEAN);
+            addItem("acknowledged", "acknowledged", SimpleType.BOOLEAN);
         }
 
         @Override
@@ -494,6 +497,16 @@ public class SubscriptionView implements SubscriptionViewMBean {
             rc.put("expired", mr.isExpired());
             rc.put("dropped", mr.isDropped());
             rc.put("advisory", mr.isAdvisory());
+
+            if (mr instanceof QueueMessageReference) {
+                rc.put("delivered", ((QueueMessageReference) mr).isDelivered());
+                rc.put("acknowledged", ((QueueMessageReference) mr).isAcked());
+
+            } else {
+                rc.put("delivered", null);
+                rc.put("acknowledged", null);
+            }
+
             return rc;
         }
     }

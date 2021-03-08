@@ -269,7 +269,29 @@ public abstract class PrefetchSubscription extends AbstractSubscription {
                 }
             } else if (ack.isDeliveredAck()) {
                 // Message was delivered but not acknowledged: update pre-fetch
-                // counters. TODO: JRG - should we record the message as "delivered" here?
+                // counters.
+
+                boolean inAckRange = false;
+                for (final MessageReference node : dispatched) {
+                    MessageId messageId = node.getMessageId();
+                    if (ack.getFirstMessageId() == null
+                            || ack.getFirstMessageId().equals(messageId)) {
+                        inAckRange = true;
+                    }
+                    if (inAckRange) {
+                        if (node instanceof QueueMessageReference) {
+                            ((QueueMessageReference) node).setDelivered(true);
+                        }
+
+                        if (ack.getLastMessageId().equals(messageId)) {
+                            destination = (Destination) node.getRegionDestination();
+                            callDispatchMatched = true;
+                            break;
+                        }
+                    }
+                }
+
+
                 int index = 0;
                 for (Iterator<MessageReference> iter = dispatched.iterator(); iter.hasNext(); index++) {
                     final MessageReference node = iter.next();

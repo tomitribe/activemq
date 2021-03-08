@@ -192,6 +192,7 @@
                         <th>Expired</th>
                         <th>Dropped</th>
                         <th>Advisory</th>
+                        <th>Delivered</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -207,6 +208,7 @@
                     <td>${item['expired']}</td>
                     <td>${item['dropped']}</td>
                     <td>${item['advisory']}</td>
+                    <td>${item['delivered']}</td>
                 </tr>
                 </form:forEachTablularData>
                 </tbody>
