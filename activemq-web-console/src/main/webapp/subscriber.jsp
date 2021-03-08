@@ -193,6 +193,7 @@
                         <th>Dropped</th>
                         <th>Advisory</th>
                         <th>Delivered</th>
+                        <th>Acknowledged</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -209,6 +210,7 @@
                     <td>${item['dropped']}</td>
                     <td>${item['advisory']}</td>
                     <td>${item['delivered']}</td>
+                    <td>${item['acknowledged']}</td>
                 </tr>
                 </form:forEachTablularData>
                 </tbody>
