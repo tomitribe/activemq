@@ -17,19 +17,22 @@
 package org.apache.activemq.broker.jmx;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.jms.InvalidSelectorException;
 import javax.management.ObjectName;
+import javax.management.openmbean.*;
 
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.ConnectionContext;
+import org.apache.activemq.broker.region.MessageReference;
 import org.apache.activemq.broker.region.PrefetchSubscription;
 import org.apache.activemq.broker.region.Subscription;
-import org.apache.activemq.command.ActiveMQDestination;
-import org.apache.activemq.command.ActiveMQQueue;
-import org.apache.activemq.command.ActiveMQTopic;
-import org.apache.activemq.command.ConsumerInfo;
+import org.apache.activemq.broker.scheduler.Job;
+import org.apache.activemq.command.*;
 import org.apache.activemq.filter.BooleanExpression;
 import org.apache.activemq.filter.DestinationFilter;
 import org.apache.activemq.util.IOExceptionSupport;
@@ -434,5 +437,64 @@ public class SubscriptionView implements SubscriptionViewMBean {
     @Override
     public long getConsumedCount() {
         return subscription != null ? subscription.getConsumedCount() : 0;
+    }
+
+    @Override
+    public TabularData getDispatchedMessageReferences() {
+        try {
+            if (subscription != null && subscription instanceof PrefetchSubscription) {
+                OpenTypeSupport.OpenTypeFactory factory = new MessageReferenceFactory();
+                CompositeType ct = factory.getCompositeType();
+                TabularType tt = new TabularType("MessageList", "MessageList", ct, new String[] {"messageId"});
+                TabularDataSupport rc = new TabularDataSupport(tt);
+
+                final Field dispatchedField = PrefetchSubscription.class.getDeclaredField("dispatched");
+                dispatchedField.setAccessible(true);
+                final List<MessageReference> messageReferences = (List<MessageReference>) dispatchedField.get(subscription);
+
+                for (final MessageReference messageReference : messageReferences) {
+                    rc.put(new CompositeDataSupport(ct, factory.getFields(messageReference)));
+                }
+
+                return rc;
+            }
+        } catch (Exception e) {
+            // ignore
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+
+    static class MessageReferenceFactory extends OpenTypeSupport.AbstractOpenTypeFactory {
+
+        @Override
+        protected String getTypeName() {
+            return MessageReference.class.getName();
+        }
+
+        @Override
+        protected void init() throws OpenDataException {
+            super.init();
+            addItem("messageId", "messageId", SimpleType.STRING);
+            addItem("persistent", "persistent", SimpleType.BOOLEAN);
+            addItem("expired", "expired", SimpleType.BOOLEAN);
+            addItem("dropped", "dropped", SimpleType.BOOLEAN);
+            addItem("advisory", "advisory", SimpleType.BOOLEAN);
+        }
+
+        @Override
+        public Map<String, Object> getFields(Object o) throws OpenDataException {
+            final MessageReference mr = (MessageReference) o;
+            final Map<String, Object> rc = super.getFields(o);
+
+            rc.put("messageId", mr.getMessageId().toString());
+            rc.put("persistent", mr.isPersistent());
+            rc.put("expired", mr.isExpired());
+            rc.put("dropped", mr.isDropped());
+            rc.put("advisory", mr.isAdvisory());
+            return rc;
+        }
     }
 }

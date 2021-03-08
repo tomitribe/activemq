@@ -18,6 +18,7 @@ package org.apache.activemq.broker.jmx;
 
 import javax.jms.InvalidSelectorException;
 import javax.management.ObjectName;
+import javax.management.openmbean.TabularData;
 
 /**
  *
@@ -243,5 +244,8 @@ public interface SubscriptionViewMBean {
 
     @MBeanInfo("Messages consumed")
     long getConsumedCount();
+
+    @MBeanInfo("Message references dispatched awaiting acknowledgement")
+    TabularData getDispatchedMessageReferences();
 
 }

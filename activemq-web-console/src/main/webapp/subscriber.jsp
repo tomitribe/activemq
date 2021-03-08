@@ -139,8 +139,8 @@
                 <td><c:out value="${requestContext.consumerQuery.subscription.pendingQueueSize}"/></td>
             </tr>
             <tr>
-                <td class="label" title="Number of messages pending delivery">Pending Queue Size</td>
-                <td><c:out value="${requestContext.consumerQuery.subscription.pendingQueueSize}"/></td>
+                <td class="label" title="The maximum number of pending messages allowed (in addition to the prefetch size)">Max Pending</td>
+                <td><c:out value="${requestContext.consumerQuery.subscription.maximumPendingMessageLimit}"/></td>
             </tr>
             <tr>
                 <td class="label" title="Number of messages dispatched awaiting acknowledgement">Dispatched Queue Size</td>
@@ -178,20 +178,37 @@
         </table>
         </td>
     </tr>
+</table>
+<h2>Dispatched Messages</h2>
+
+<table class="layout">
     <tr>
-        <td class="layout" colspan="2">
-            <table id="body" width="100%">
+        <td class="layout"  valign="top">
+            <table id="msg-header" class="autostripe" width="100%">
                 <thead>
                 <tr>
-                    <th>
-                        Message Details
-                    </th>
+                        <th>Message ID</th>
+                        <th>Persistent</th>
+                        <th>Expired</th>
+                        <th>Dropped</th>
+                        <th>Advisory</th>
                 </tr>
                 </thead>
                 <tbody>
+
+                <form:forEachTablularData var="item" items="${requestContext.consumerQuery.subscription.dispatchedMessageReferences}">
                 <tr>
-                    <td>Table will appear here</td>
+                    <td><a href="<c:url value="message.jsp">
+                            <c:param name="id" value="${item['messageId']}" />
+                            <c:param name="JMSDestination" value="${requestContext.consumerQuery.subscription.destinationName}"/></c:url>"
+                           title="<c:out value="${item['messageId']}"/>">${item['messageId']}
+                    </a></td>
+                    <td>${item['persistent']}</td>
+                    <td>${item['expired']}</td>
+                    <td>${item['dropped']}</td>
+                    <td>${item['advisory']}</td>
                 </tr>
+                </form:forEachTablularData>
                 </tbody>
             </table>
         </td>
