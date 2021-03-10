@@ -197,7 +197,7 @@
                 </tr>
                 </thead>
                 <tbody>
-
+<%-- TODO: redelivery count etc --%>
                 <form:forEachTablularData var="item" items="${requestContext.consumerQuery.subscription.dispatchedMessageReferences}">
                 <tr>
                     <td><a href="<c:url value="message.jsp">

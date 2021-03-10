@@ -32,6 +32,8 @@ import org.apache.activemq.util.DataByteArrayInputStream;
 import org.apache.activemq.util.DataByteArrayOutputStream;
 import org.apache.activemq.util.IOExceptionSupport;
 import org.apache.activemq.wireformat.WireFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -66,6 +68,8 @@ public final class OpenWireFormat implements WireFormat {
     private DataByteArrayOutputStream bytesOut = new DataByteArrayOutputStream();
     private DataByteArrayInputStream bytesIn = new DataByteArrayInputStream();
     private WireFormatInfo preferedWireFormatInfo;
+
+    private static final Logger LOG = LoggerFactory.getLogger(OpenWireFormat.class);
 
     public OpenWireFormat() {
         this(DEFAULT_STORE_VERSION);
@@ -494,8 +498,11 @@ public final class OpenWireFormat implements WireFormat {
 
     public void runMarshallCacheEvictionSweep() {
         // Do we need to start evicting??
+        LOG.trace("Starting marshall cache eviction");
+
         while (marshallCacheMap.size() > marshallCache.length - MARSHAL_CACHE_FREE_SPACE) {
 
+            LOG.trace("Evicting entry: " + nextMarshallCacheEvictionIndex);
             marshallCacheMap.remove(marshallCache[nextMarshallCacheEvictionIndex]);
             marshallCache[nextMarshallCacheEvictionIndex] = null;
 
@@ -503,8 +510,9 @@ public final class OpenWireFormat implements WireFormat {
             if (nextMarshallCacheEvictionIndex >= marshallCache.length) {
                 nextMarshallCacheEvictionIndex = 0;
             }
-
         }
+
+        LOG.trace("Complete marshall cache eviction");
     }
 
     public Short getMarshallCacheIndex(DataStructure o) {
@@ -512,6 +520,7 @@ public final class OpenWireFormat implements WireFormat {
     }
 
     public Short addToMarshallCache(DataStructure o) {
+        LOG.trace("Adding " + (o == null ? "null" : o.getClass()) + " to cache");
         short i = nextMarshallCacheIndex++;
         if (nextMarshallCacheIndex >= marshallCache.length) {
             nextMarshallCacheIndex = 0;
@@ -522,6 +531,7 @@ public final class OpenWireFormat implements WireFormat {
             marshallCache[i] = o;
             Short index = new Short(i);
             marshallCacheMap.put(o, index);
+            LOG.trace("Added " + (o == null ? "null" : o.getClass()) + " to cache at index " + i);
             return index;
         } else {
             // Use -1 to indicate that the value was not cached due to cache
@@ -532,16 +542,21 @@ public final class OpenWireFormat implements WireFormat {
 
     public void setInUnmarshallCache(short index, DataStructure o) {
 
+        LOG.trace("Adding " + (o == null ? "null" : o.getClass()) + " to unmarshal cache");
+
         // There was no space left in the cache, so we can't
         // put this in the cache.
         if (index == -1) {
+            LOG.trace("Unable to add " + (o == null ? "null" : o.getClass()) + " to cache, cache is full");
             return;
         }
 
         unmarshallCache[index] = o;
+        LOG.trace("Added " + (o == null ? "null" : o.getClass()) + " to unmarshal cache at index " + index);
     }
 
     public DataStructure getFromUnmarshallCache(short index) {
+        LOG.trace("Reading from unmarhsal cache, index " + index);
         return unmarshallCache[index];
     }
 
