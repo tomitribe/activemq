@@ -304,6 +304,9 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         private final List<Breakdown> timingBreakdowns = Collections.synchronizedList(new ArrayList<>());
         private final Deque<Breakdown> records = new ConcurrentLinkedDeque<>();
 
+        // no concurrency so no need for an atomic reference
+        private Long wholeRequest = 0L;
+
         private Timing(final String messageId, final String destination, final int messageSize) {
             this.messageId = messageId;
             this.destination = destination;
@@ -330,6 +333,11 @@ public class AccessLogPlugin extends BrokerPluginSupport {
                 lastRecord = records.pop();
                 if (lastRecord != null) {
                     timingBreakdowns.add(new Breakdown(lastRecord.getWhat(), System.nanoTime() - lastRecord.getTiming(), lastRecord.getLevel(), data));
+
+                    // store the whole request breakdown
+                    if ("whole_request".equals(lastRecord.getWhat())) {
+                        this.wholeRequest = (System.nanoTime() - lastRecord.getTiming()) / 1_000_000;
+                    }
                 }
             } catch (final NoSuchElementException e) {
                 // ignore - for async another thread may have already picked it up
@@ -350,12 +358,17 @@ public class AccessLogPlugin extends BrokerPluginSupport {
         @Override
         public String toString() {
             checkMissingStop();
+            return doToString(false);
+        }
+
+        public String doToString(final boolean withBreakdowns) {
             return "Timing{" +
-                   "messageId='" + messageId + '\'' +
-                   ", destination='" + destination + '\'' +
-                   ", messageSize='" + messageSize + '\'' +
-                   ", timingBreakdowns=" + timingBreakdowns +
-                   '}';
+                    "messageId='" + messageId + '\'' +
+                    ", destination='" + destination + '\'' +
+                    ", messageSize='" + messageSize + '\'' +
+                    ", whole_request='" + wholeRequest + '\'' +
+                    (withBreakdowns ? (", timingBreakdowns=" + timingBreakdowns) : "") +
+                    '}';
         }
 
         public List<Breakdown> getBreakdowns() {
