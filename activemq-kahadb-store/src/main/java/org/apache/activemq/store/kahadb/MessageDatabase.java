@@ -1140,6 +1140,10 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
      * the JournalMessage is used to update the index just like it would be done
      * during a recovery process.
      */
+
+
+    // TODO: lets add some better stats around this.
+
     public Location store(JournalCommand<?> data, boolean sync, IndexAware before, Runnable after, Runnable onJournalStoreComplete) throws IOException {
         try {
             ByteSequence sequence = toByteSequence(data);
@@ -1155,7 +1159,10 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
                 if (!sync && journal.isJournalDiskSyncPeriodic()) {
                     lastAsyncJournalUpdate.set(location);
                 }
+
+                LOG.info("Starting to append " + data.getClass().getName() + " command to journal");
                 process(data, location, before);
+                LOG.info("Finished appending " + data.getClass().getName() + " command to journal");
 
                 long end = System.currentTimeMillis();
                 long totalTimeMillis = end - start;

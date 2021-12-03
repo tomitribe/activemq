@@ -49,6 +49,12 @@
       <artifactId>activemq-protobuf</artifactId>
       <optional>false</optional>
     </dependency>
+    <dependency>
+      <groupId>org.tomitribe</groupId>
+      <artifactId>stats-shaded</artifactId>
+      <version>1.0-SNAPSHOT</version>
+      <optional>false</optional>
+    </dependency>
 
     <!-- =============================== -->
     <!-- Optional Dependencies           -->
