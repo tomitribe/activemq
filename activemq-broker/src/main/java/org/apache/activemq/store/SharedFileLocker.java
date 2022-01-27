@@ -64,7 +64,7 @@ public class SharedFileLocker extends AbstractLocker {
                         }
                         locked = keepAlive();
                         break;
-                    } catch (IOException e) {
+                    } catch (Throwable e) {
                         if (!warned)
                         {
                             LOG.info("Database "
