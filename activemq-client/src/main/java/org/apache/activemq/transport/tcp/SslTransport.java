@@ -128,9 +128,12 @@ public class SslTransport extends TcpTransport {
         }
 
         if (verifyHostName) {
-            SSLParameters sslParams = new SSLParameters();
             sslParams.setEndpointIdentificationAlgorithm("HTTPS");
-            ((SSLSocket)this.socket).setSSLParameters(sslParams);
+        }
+
+        if (remoteLocation != null || verifyHostName) {
+            // AMQ-8445 only set SSLParameters if it has been populated before
+            ((SSLSocket) this.socket).setSSLParameters(sslParams);
         }
 
         super.initialiseSocket(sock);
