@@ -60,7 +60,7 @@
   <dependencies>
     <dependency>
       <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
+      <artifactId>slf4j-reload4j</artifactId>
     </dependency>
 
     <!-- web container -->
@@ -91,17 +91,6 @@
     <dependency>
       <groupId>org.eclipse.jetty.aggregate</groupId>
       <artifactId>jetty-all-server</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-      <optional>true</optional>
       <scope>test</scope>
     </dependency>
   </dependencies>

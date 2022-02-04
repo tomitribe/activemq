@@ -336,12 +336,8 @@
       <artifactId>geronimo-j2ee-management_1.1_spec</artifactId>
     </dependency>
     <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
+      <artifactId>slf4j-reload4j</artifactId>
       <scope>runtime</scope>
     </dependency>
     <dependency>
