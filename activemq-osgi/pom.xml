@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>5.16.4-SNAPSHOT</version>
+    <version>5.16.5-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-osgi</artifactId>
@@ -69,6 +69,7 @@
       org.springframework*;version="[4,6)";resolution:=optional,
       org.xmlpull*;resolution:=optional,
       scala*;resolution:=optional,
+      !javax.annotation.meta,
       javax.annotation*;version="[1,4)",
       !com.thoughtworks.qdox*,
       org.apache.commons.logging;version="[1.2,2)";resolution:=optional,
