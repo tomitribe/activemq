@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>5.16.1-SNAPSHOT</version>
+    <version>5.16.5-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-client</artifactId>
@@ -80,6 +80,12 @@
       <optional>true</optional>
     </dependency>
 
+    <dependency>
+      <groupId>com.thoughtworks.xstream</groupId>
+      <artifactId>xstream</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
     <!-- =============================== -->
     <!-- Testing Dependencies -->
     <!-- =============================== -->
@@ -90,7 +96,7 @@
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
+      <artifactId>slf4j-reload4j</artifactId>
       <scope>test</scope>
     </dependency>
 

@@ -69,7 +69,7 @@ public class SubQueueSelectorCacheBroker extends BrokerFilter implements Runnabl
      * The subscription's selector cache. We cache compiled expressions keyed
      * by the target destination.
      */
-    private ConcurrentMap<String, Set<String>> subSelectorCache = new ConcurrentHashMap<String, Set<String>>();
+    private ConcurrentMap<String, Set<String>> subSelectorCache = new ConcurrentHashMap<>();
 
     private final File persistFile;
     private boolean singleSelectorPerDestination = false;
@@ -249,13 +249,6 @@ public class SubQueueSelectorCacheBroker extends BrokerFilter implements Runnabl
     }
 
     /**
-     * @return The JMS selector for the specified {@code destination}
-     */
-    public Set<String> getSelector(final String destination) {
-        return subSelectorCache.get(destination);
-    }
-
-    /**
      * Persist the selector cache every {@code MAX_PERSIST_INTERVAL}ms.
      *
      * @see java.lang.Runnable#run()
@@ -282,8 +275,11 @@ public class SubQueueSelectorCacheBroker extends BrokerFilter implements Runnabl
 
     @SuppressWarnings("unchecked")
     public Set<String> getSelectorsForDestination(String destinationName) {
-        if (subSelectorCache.containsKey(destinationName)) {
-            return new HashSet<String>(subSelectorCache.get(destinationName));
+        final Set<String> cachedSelectors = subSelectorCache.get(destinationName);
+        if (cachedSelectors != null) {
+            synchronized(cachedSelectors) {
+                return new HashSet<>(cachedSelectors);
+            }
         }
 
         return Collections.EMPTY_SET;
@@ -298,17 +294,13 @@ public class SubQueueSelectorCacheBroker extends BrokerFilter implements Runnabl
     }
 
     public boolean deleteSelectorForDestination(String destinationName, String selector) {
-        if (subSelectorCache.containsKey(destinationName)) {
-            Set<String> cachedSelectors = subSelectorCache.get(destinationName);
-            return cachedSelectors.remove(selector);
-        }
-
-        return false;
+        final Set<String> cachedSelectors = subSelectorCache.get(destinationName);
+        return cachedSelectors != null ? cachedSelectors.remove(selector) : false;
     }
 
     public boolean deleteAllSelectorsForDestination(String destinationName) {
-        if (subSelectorCache.containsKey(destinationName)) {
-            Set<String> cachedSelectors = subSelectorCache.get(destinationName);
+        final Set<String> cachedSelectors = subSelectorCache.get(destinationName);
+        if (cachedSelectors != null) {
             cachedSelectors.clear();
         }
         return true;
@@ -377,7 +369,11 @@ public class SubQueueSelectorCacheBroker extends BrokerFilter implements Runnabl
 
         @Override
         protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
-            if (!(desc.getName().equals("java.lang.String") || desc.getName().startsWith("java.util."))) {
+            if (!(desc.getName().startsWith("java.lang.")
+                    || desc.getName().startsWith("com.thoughtworks.xstream")
+                    || desc.getName().startsWith("java.util.")
+                    || desc.getName().length() > 2 && desc.getName().substring(2).startsWith("java.util.") // Allow arrays
+                    || desc.getName().startsWith("org.apache.activemq."))) {
                 throw new InvalidClassException("Unauthorized deserialization attempt", desc.getName());
             }
             return super.resolveClass(desc);

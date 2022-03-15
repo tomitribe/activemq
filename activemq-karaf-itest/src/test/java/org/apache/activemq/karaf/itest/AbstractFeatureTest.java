@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
 @ExamReactorStrategy(PerClass.class)
 public abstract class AbstractFeatureTest {
 
-    private static final String KARAF_MAJOR_VERSION = "4.2.8";
+    private static final String KARAF_MAJOR_VERSION = "4.2.10";
     public static final Logger LOG = LoggerFactory.getLogger(AbstractFeatureTest.class);
     public static final long ASSERTION_TIMEOUT = 30000L;
     public static final String RESOURCE_BASE = "src/test/resources/org/apache/activemq/karaf/itest/";
@@ -120,6 +120,7 @@ public abstract class AbstractFeatureTest {
 	}
 
 	protected void assertBrokerStarted() throws Exception {
+        Thread.sleep(4000);
 		withinReason(new Runnable() {
 	        public void run() {
 	            assertEquals("brokerName = amq-broker", executeCommand("activemq:list").trim());
@@ -155,8 +156,6 @@ public abstract class AbstractFeatureTest {
          logLevel(LogLevelOption.LogLevel.INFO), //
          editConfigurationFilePut("etc/org.ops4j.pax.url.mvn.cfg", "org.ops4j.pax.url.mvn.repositories", "https://repo1.maven.org/maven2@id=central"),
          editConfigurationFilePut("etc/config.properties", "karaf.startlevel.bundle", "50"),
-         editConfigurationFileExtend("etc/org.apache.karaf.features.cfg", "featuresRepositories",
-                 "mvn:org.apache.karaf.features/spring-legacy/" + karafVersion + "/xml/features"),
          // debugConfiguration("5005", true),
          features(activeMQUrl, features), //
          features(camelUrl)

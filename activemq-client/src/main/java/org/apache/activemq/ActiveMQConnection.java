@@ -35,6 +35,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionConsumer;
@@ -192,6 +193,7 @@ public class ActiveMQConnection implements Connection, TopicConnection, QueueCon
     // Assume that protocol is the latest. Change to the actual protocol
     // version when a WireFormatInfo is received.
     private final AtomicInteger protocolVersion = new AtomicInteger(CommandTypes.PROTOCOL_VERSION);
+    private final AtomicLong maxFrameSize = new AtomicLong(Long.MAX_VALUE);
     private final long timeCreated;
     private final ConnectionAudit connectionAudit = new ConnectionAudit();
     private DestinationSource destinationSource;
@@ -200,6 +202,7 @@ public class ActiveMQConnection implements Connection, TopicConnection, QueueCon
     protected AtomicInteger transportInterruptionProcessingComplete = new AtomicInteger(0);
     private long consumerFailoverRedeliveryWaitPeriod;
     private volatile Scheduler scheduler;
+    private final Object schedulerLock = new Object();
     private boolean messagePrioritySupported = false;
     private boolean transactedIndividualAck = false;
     private boolean nonBlockingRedelivery = false;
@@ -1385,7 +1388,6 @@ public class ActiveMQConnection implements Connection, TopicConnection, QueueCon
         if (isClosed()) {
             throw new ConnectionClosedException();
         } else {
-
             try {
                 Response response = (Response)(timeout > 0
                         ? this.transport.request(command, timeout)
@@ -1919,6 +1921,17 @@ public class ActiveMQConnection implements Connection, TopicConnection, QueueCon
 
     protected void onWireFormatInfo(WireFormatInfo info) {
         protocolVersion.set(info.getVersion());
+
+        long tmpMaxFrameSize = 0;
+        try {
+            tmpMaxFrameSize = info.getMaxFrameSize();
+        } catch (IOException e) {
+            // unmarshal error on property map
+        }
+
+        if(tmpMaxFrameSize > 0) {
+            maxFrameSize.set(tmpMaxFrameSize);
+        }
     }
 
     /**
@@ -2383,7 +2396,7 @@ public class ActiveMQConnection implements Connection, TopicConnection, QueueCon
                 // without lock contention report the closing state
                 throw new ConnectionClosedException();
             }
-            synchronized (this) {
+            synchronized (schedulerLock) {
                 result = scheduler;
                 if (result == null) {
                     checkClosed();

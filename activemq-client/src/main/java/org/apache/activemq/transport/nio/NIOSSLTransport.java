@@ -40,6 +40,7 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 
+import org.apache.activemq.MaxFrameSizeExceededException;
 import org.apache.activemq.command.ConnectionInfo;
 import org.apache.activemq.openwire.OpenWireFormat;
 import org.apache.activemq.thread.TaskRunnerFactory;
@@ -256,6 +257,11 @@ public class NIOSSLTransport extends NIOTransport {
             plain.position(plain.limit());
 
             while (true) {
+                //If the transport was already stopped then break
+                if (this.isStopped()) {
+                    return;
+                }
+
                 if (!plain.hasRemaining()) {
 
                     int readCount = secureRead(plain);
@@ -330,9 +336,11 @@ public class NIOSSLTransport extends NIOTransport {
             }
 
             if (wireFormat instanceof OpenWireFormat) {
-                long maxFrameSize = ((OpenWireFormat) wireFormat).getMaxFrameSize();
-                if (nextFrameSize > maxFrameSize) {
-                    throw new IOException("Frame size of " + (nextFrameSize / (1024 * 1024)) +
+                OpenWireFormat openWireFormat = (OpenWireFormat) wireFormat;
+                long maxFrameSize = openWireFormat.getMaxFrameSize();
+
+                if (openWireFormat.isMaxFrameSizeEnabled() && nextFrameSize > maxFrameSize) {
+                    throw new MaxFrameSizeExceededException("Frame size of " + (nextFrameSize / (1024 * 1024)) +
                                           " MB larger than max allowed " + (maxFrameSize / (1024 * 1024)) + " MB");
                 }
             }
@@ -368,7 +376,8 @@ public class NIOSSLTransport extends NIOTransport {
         }
     }
 
-    protected int secureRead(ByteBuffer plain) throws Exception {
+    //Prevent concurrent access while reading from the channel
+    protected synchronized int secureRead(ByteBuffer plain) throws Exception {
 
         if (!(inputBuffer.position() != 0 && inputBuffer.hasRemaining()) || status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
             int bytesRead = channel.read(inputBuffer);

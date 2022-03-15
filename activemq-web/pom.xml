@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>5.16.1-SNAPSHOT</version>
+    <version>5.16.5-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-web</artifactId>
@@ -55,6 +55,10 @@
       <artifactId>activemq-pool</artifactId>
     </dependency>
     <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>activemq-unit-tests</artifactId>
       <scope>test</scope>
@@ -74,9 +78,8 @@
       	<scope>provided</scope>
       </dependency>
     <dependency>
-      <groupId>org.eclipse.jetty.aggregate</groupId>
-      <artifactId>jetty-all</artifactId>
-      <classifier>uber</classifier>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-server</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -126,7 +129,7 @@
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
+      <artifactId>slf4j-reload4j</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

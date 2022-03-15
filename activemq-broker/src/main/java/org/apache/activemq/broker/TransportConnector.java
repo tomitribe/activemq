@@ -76,7 +76,9 @@ public class TransportConnector implements Connector, BrokerServiceAware {
     private int maximumProducersAllowedPerConnection = Integer.MAX_VALUE;
     private int maximumConsumersAllowedPerConnection  = Integer.MAX_VALUE;
     private PublishedAddressPolicy publishedAddressPolicy = new PublishedAddressPolicy();
+    private boolean allowLinkStealing = false;
     private boolean warnOnRemoteClose = false;
+    private boolean displayStackTrace = false;
 
     LinkedList<String> peerBrokers = new LinkedList<String>();
 
@@ -125,6 +127,7 @@ public class TransportConnector implements Connector, BrokerServiceAware {
         rc.setMaximumConsumersAllowedPerConnection(getMaximumConsumersAllowedPerConnection());
         rc.setMaximumProducersAllowedPerConnection(getMaximumProducersAllowedPerConnection());
         rc.setPublishedAddressPolicy(getPublishedAddressPolicy());
+        rc.setAllowLinkStealing(allowLinkStealing);
         rc.setWarnOnRemoteClose(isWarnOnRemoteClose());
         return rc;
     }
@@ -264,7 +267,7 @@ public class TransportConnector implements Connector, BrokerServiceAware {
         LOG.info("Connector {} started", getName());
     }
 
-    static Throwable getRootCause(final Throwable throwable) {
+    public static Throwable getRootCause(final Throwable throwable) {
         final List<Throwable> list = getThrowableList(throwable);
         return list.isEmpty() ? null : list.get(list.size() - 1);
     }
@@ -602,6 +605,10 @@ public class TransportConnector implements Connector, BrokerServiceAware {
         return server.isAllowLinkStealing();
     }
 
+    public void setAllowLinkStealing(boolean allowLinkStealing) {
+        this.allowLinkStealing = allowLinkStealing;
+    }
+
     public boolean isAuditNetworkProducers() {
         return auditNetworkProducers;
     }
@@ -657,5 +664,13 @@ public class TransportConnector implements Connector, BrokerServiceAware {
 
     public void setWarnOnRemoteClose(boolean warnOnRemoteClose) {
         this.warnOnRemoteClose = warnOnRemoteClose;
+    }
+
+    public boolean isDisplayStackTrace() {
+        return displayStackTrace;
+    }
+
+    public void setDisplayStackTrace(boolean displayStackTrace) {
+        this.displayStackTrace = displayStackTrace;
     }
 }

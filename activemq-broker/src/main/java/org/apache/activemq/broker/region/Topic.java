@@ -540,7 +540,7 @@ public class Topic extends BaseDestination implements Task {
 
         message.incrementReferenceCount();
 
-        if (context.isInTransaction()) {
+        if (context.isInTransaction() && (context.getTransaction() != null)) {
             context.getTransaction().addSynchronization(new Synchronization() {
                 @Override
                 public void afterCommit() throws Exception {
@@ -654,7 +654,7 @@ public class Topic extends BaseDestination implements Task {
         return result.toArray(new Message[result.size()]);
     }
 
-    private void doBrowse(final List<Message> browseList, final int max) {
+    public void doBrowse(final List<Message> browseList, final int max) {
         try {
             if (topicStore != null) {
                 final List<Message> toExpire = new ArrayList<Message>();
@@ -686,7 +686,7 @@ public class Topic extends BaseDestination implements Task {
                 final ConnectionContext connectionContext = createConnectionContext();
                 for (Message message : toExpire) {
                     for (DurableTopicSubscription sub : durableSubscribers.values()) {
-                        if (!sub.isActive()) {
+                        if (!sub.isActive() || sub.isEnableMessageExpirationOnActiveDurableSubs()) {
                             message.setRegionDestination(this);
                             messageExpired(connectionContext, sub, message);
                         }
@@ -894,10 +894,11 @@ public class Topic extends BaseDestination implements Task {
             try {
                 durableTopicSubscription.dispatchPending();
             } catch (IOException exception) {
-                LOG.warn("After clear of pending, failed to dispatch to: {}, for: {}, pending: {}, exception: {}", new Object[]{
+                LOG.warn("After clear of pending, failed to dispatch to: {}, for: {}, pending: {}, exception: {}",
                         durableTopicSubscription,
                         destination,
-                        durableTopicSubscription.pending, exception });
+                        durableTopicSubscription.pending,
+                        exception);
             }
         }
     }

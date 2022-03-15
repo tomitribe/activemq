@@ -57,6 +57,7 @@ public final class OpenWireFormat implements WireFormat {
     private boolean cacheEnabled;
     private boolean tightEncodingEnabled;
     private boolean sizePrefixDisabled;
+    private boolean maxFrameSizeEnabled = true;
     private long maxFrameSize = DEFAULT_MAX_FRAME_SIZE;
 
     // The following fields are used for value caching
@@ -84,7 +85,8 @@ public final class OpenWireFormat implements WireFormat {
         return version ^ (cacheEnabled ? 0x10000000 : 0x20000000)
                ^ (stackTraceEnabled ? 0x01000000 : 0x02000000)
                ^ (tightEncodingEnabled ? 0x00100000 : 0x00200000)
-               ^ (sizePrefixDisabled ? 0x00010000 : 0x00020000);
+               ^ (sizePrefixDisabled ? 0x00010000 : 0x00020000)
+               ^ (maxFrameSizeEnabled ? 0x00010000 : 0x00020000);
     }
 
     public OpenWireFormat copy() {
@@ -95,6 +97,7 @@ public final class OpenWireFormat implements WireFormat {
         answer.tightEncodingEnabled = tightEncodingEnabled;
         answer.sizePrefixDisabled = sizePrefixDisabled;
         answer.preferedWireFormatInfo = preferedWireFormatInfo;
+        answer.maxFrameSizeEnabled = maxFrameSizeEnabled;
         return answer;
     }
 
@@ -106,14 +109,15 @@ public final class OpenWireFormat implements WireFormat {
         OpenWireFormat o = (OpenWireFormat)object;
         return o.stackTraceEnabled == stackTraceEnabled && o.cacheEnabled == cacheEnabled
                && o.version == version && o.tightEncodingEnabled == tightEncodingEnabled
-               && o.sizePrefixDisabled == sizePrefixDisabled;
+               && o.sizePrefixDisabled == sizePrefixDisabled
+               && o.maxFrameSizeEnabled == maxFrameSizeEnabled;
     }
 
 
     @Override
     public String toString() {
         return "OpenWireFormat{version=" + version + ", cacheEnabled=" + cacheEnabled + ", stackTraceEnabled=" + stackTraceEnabled + ", tightEncodingEnabled="
-               + tightEncodingEnabled + ", sizePrefixDisabled=" + sizePrefixDisabled +  ", maxFrameSize=" + maxFrameSize + "}";
+               + tightEncodingEnabled + ", sizePrefixDisabled=" + sizePrefixDisabled +  ", maxFrameSize=" + maxFrameSize + ", maxFrameSizeEnabled=" + maxFrameSizeEnabled + "}";
         // return "OpenWireFormat{id="+id+",
         // tightEncodingEnabled="+tightEncodingEnabled+"}";
     }
@@ -145,6 +149,10 @@ public final class OpenWireFormat implements WireFormat {
                 BooleanStream bs = new BooleanStream();
                 size += dsm.tightMarshal1(this, c, bs);
                 size += bs.marshalledSize();
+
+                if(maxFrameSizeEnabled && size > maxFrameSize) {
+                    throw IOExceptionSupport.createFrameSizeException(size, maxFrameSize);
+                }
 
                 bytesOut.restart(size);
                 if (!sizePrefixDisabled) {
@@ -197,7 +205,7 @@ public final class OpenWireFormat implements WireFormat {
                 // size");
             }
 
-            if (size > maxFrameSize) {
+            if (maxFrameSizeEnabled && size > maxFrameSize) {
                 throw IOExceptionSupport.createFrameSizeException(size, maxFrameSize);
             }
         }
@@ -229,6 +237,10 @@ public final class OpenWireFormat implements WireFormat {
                 BooleanStream bs = new BooleanStream();
                 size += dsm.tightMarshal1(this, c, bs);
                 size += bs.marshalledSize();
+
+                if(maxFrameSizeEnabled && size > maxFrameSize) {
+                    throw IOExceptionSupport.createFrameSizeException(size, maxFrameSize);
+                }
 
                 if (!sizePrefixDisabled) {
                     dataOut.writeInt(size);
@@ -270,7 +282,7 @@ public final class OpenWireFormat implements WireFormat {
         DataInput dataIn = dis;
         if (!sizePrefixDisabled) {
             int size = dis.readInt();
-            if (size > maxFrameSize) {
+            if (maxFrameSizeEnabled && size > maxFrameSize) {
                 throw IOExceptionSupport.createFrameSizeException(size, maxFrameSize);
             }
             // int size = dis.readInt();
@@ -620,6 +632,20 @@ public final class OpenWireFormat implements WireFormat {
         this.maxFrameSize = maxFrameSize;
     }
 
+    public boolean isMaxFrameSizeEnabled() {
+        return maxFrameSizeEnabled;
+    }
+
+    /**
+     * Set whether the maxFrameSize check will be enabled. Note this is only applied to this format
+     * and will NOT be negotiated
+     *
+     * @param maxFrameSizeEnabled
+     */
+    public void setMaxFrameSizeEnabled(boolean maxFrameSizeEnabled) {
+        this.maxFrameSizeEnabled = maxFrameSizeEnabled;
+    }
+
     public void renegotiateWireFormat(WireFormatInfo info) throws IOException {
 
         if (preferedWireFormatInfo == null) {
@@ -631,6 +657,7 @@ public final class OpenWireFormat implements WireFormat {
 
         this.setMaxFrameSize(min(preferedWireFormatInfo.getMaxFrameSize(), info.getMaxFrameSize()));
         info.setMaxFrameSize(this.getMaxFrameSize());
+        //Note: Don't negotiate maxFrameSizeEnabled so the client and server can set independently
 
         this.stackTraceEnabled = info.isStackTraceEnabled() && preferedWireFormatInfo.isStackTraceEnabled();
         info.setStackTraceEnabled(this.stackTraceEnabled);

@@ -1102,11 +1102,12 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
             this.indexLock.writeLock().unlock();
         }
         checkpointUpdate(cleanup);
-        long end = System.currentTimeMillis();
-        if (LOG_SLOW_ACCESS_TIME > 0 && end - start > LOG_SLOW_ACCESS_TIME) {
+        long totalTimeMillis = System.currentTimeMillis() - start;
+        if (LOG_SLOW_ACCESS_TIME > 0 && totalTimeMillis > LOG_SLOW_ACCESS_TIME) {
             if (LOG.isInfoEnabled()) {
-                LOG.info("Slow KahaDB access: cleanup took " + (end - start));
+                LOG.info("Slow KahaDB access: cleanup took " + totalTimeMillis);
             }
+            persistenceAdapterStatistics.addSlowCleanupTime(totalTimeMillis);
         }
     }
 
@@ -1157,13 +1158,15 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
                 process(data, location, before);
 
                 long end = System.currentTimeMillis();
-                if (LOG_SLOW_ACCESS_TIME > 0 && end - start > LOG_SLOW_ACCESS_TIME) {
+                long totalTimeMillis = end - start;
+                if (LOG_SLOW_ACCESS_TIME > 0 && totalTimeMillis > LOG_SLOW_ACCESS_TIME) {
                     if (LOG.isInfoEnabled()) {
                         LOG.info("Slow KahaDB access: Journal append took: "+(start2-start)+" ms, Index update took "+(end-start2)+" ms");
                     }
+                    persistenceAdapterStatistics.addSlowWriteTime(totalTimeMillis);
                 }
 
-                persistenceAdapterStatistics.addWriteTime(end - start);
+                persistenceAdapterStatistics.addWriteTime(totalTimeMillis);
 
             } finally {
                 checkpointLock.readLock().unlock();
@@ -1191,14 +1194,15 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
     public JournalCommand<?> load(Location location) throws IOException {
         long start = System.currentTimeMillis();
         ByteSequence data = journal.read(location);
-        long end = System.currentTimeMillis();
-        if( LOG_SLOW_ACCESS_TIME>0 && end-start > LOG_SLOW_ACCESS_TIME) {
+        long totalTimeMillis = System.currentTimeMillis() - start;
+        if( LOG_SLOW_ACCESS_TIME>0 && totalTimeMillis > LOG_SLOW_ACCESS_TIME) {
             if (LOG.isInfoEnabled()) {
-                LOG.info("Slow KahaDB access: Journal read took: "+(end-start)+" ms");
+                LOG.info("Slow KahaDB access: Journal read took: "+ totalTimeMillis +" ms");
             }
+            persistenceAdapterStatistics.addSlowReadTime(totalTimeMillis);
         }
 
-        persistenceAdapterStatistics.addReadTime(end - start);
+        persistenceAdapterStatistics.addReadTime(totalTimeMillis);
 
         DataByteArrayInputStream is = new DataByteArrayInputStream(data);
         byte readByte = is.readByte();
@@ -2230,18 +2234,11 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
     }
 
     private boolean shouldForward(JournalCommand<?> command) {
-        boolean result = false;
-        if (command != null) {
-            if (command instanceof KahaRemoveMessageCommand) {
-                result = true;
-            } else if (command instanceof KahaCommitCommand) {
-                KahaCommitCommand kahaCommitCommand = (KahaCommitCommand) command;
-                if (kahaCommitCommand.hasTransactionInfo() && kahaCommitCommand.getTransactionInfo().hasXaTransactionId()) {
-                    result = true;
-                }
-            }
+        if (command == null) {
+            return false;
         }
-        return result;
+
+        return (command instanceof KahaRemoveMessageCommand || command instanceof KahaCommitCommand);
     }
 
     private Location getNextLocationForAckForward(final Location nextLocation, final Location limit) {
@@ -4254,8 +4251,11 @@ public abstract class MessageDatabase extends ServiceSupport implements BrokerSe
 
         @Override
         protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
-            if (!(desc.getName().startsWith("java.lang.") || desc.getName().startsWith("java.util.")
-                || desc.getName().startsWith("org.apache.activemq."))) {
+            if (!(desc.getName().startsWith("java.lang.")
+                    || desc.getName().startsWith("com.thoughtworks.xstream")
+                    || desc.getName().startsWith("java.util.")
+                    || desc.getName().length() > 2 && desc.getName().substring(2).startsWith("java.util.") // Allow arrays
+                    || desc.getName().startsWith("org.apache.activemq."))) {
                 throw new InvalidClassException("Unauthorized deserialization attempt", desc.getName());
             }
             return super.resolveClass(desc);
