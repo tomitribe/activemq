@@ -22,11 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-<<<<<<< HEAD
-    <version>5.16.1-SNAPSHOT</version>
-=======
     <version>5.16.5-SNAPSHOT</version>
->>>>>>> upstream/activemq-5.16.x
   </parent>
 
   <artifactId>activemq-runtime-config</artifactId>
