@@ -194,14 +194,14 @@
         <include>org.apache.httpcomponents:httpclient</include>
         <include>org.apache.httpcomponents:httpcore</include>
         <include>org.apache.xbean:xbean-spring</include>
-        <include>org.springframework:spring-aop</include>
-        <include>org.springframework:spring-beans</include>
-        <include>org.springframework:spring-context</include>
-        <include>org.springframework:spring-core</include>
-        <include>org.springframework:spring-expression</include>
-        <include>org.springframework:spring-jms</include>
-        <include>org.springframework:spring-oxm</include>
-        <include>org.springframework:spring-tx</include>
+        <include>org.tomitribe.springframework:spring-aop</include>
+        <include>org.tomitribe.springframework:spring-beans</include>
+        <include>org.tomitribe.springframework:spring-context</include>
+        <include>org.tomitribe.springframework:spring-core</include>
+        <include>org.tomitribe.springframework:spring-expression</include>
+        <include>org.tomitribe.springframework:spring-jms</include>
+        <include>org.tomitribe.springframework:spring-oxm</include>
+        <include>org.tomitribe.springframework:spring-tx</include>
         <include>com.thoughtworks.xstream:xstream</include>
         <include>xpp3:xpp3</include>
         <include>org.codehaus.jettison:jettison</include>
@@ -261,8 +261,8 @@
       <unpack>false</unpack>
       <scope>runtime</scope>
       <includes>
-        <include>org.springframework:spring-web</include>
-        <include>org.springframework:spring-webmvc</include>
+        <include>org.tomitribe.springframework:spring-web</include>
+        <include>org.tomitribe.springframework:spring-webmvc</include>
         <include>org.eclipse.jetty.aggregate:jetty-all</include>
         <include>org.eclipse.jetty.orbit:javax.security.auth.message</include>
         <include>org.apache.tomcat:tomcat-servlet-api</include>

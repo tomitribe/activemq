@@ -105,12 +105,12 @@
       <artifactId>xbean-spring</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
+      <groupId>org.tomitribe.springframework</groupId>
       <artifactId>spring-webmvc</artifactId>
       <optional>false</optional>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
+      <groupId>org.tomitribe.springframework</groupId>
       <artifactId>spring-web</artifactId>
       <optional>false</optional>
     </dependency>
