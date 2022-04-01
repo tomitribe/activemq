@@ -30,11 +30,6 @@
   <name>ActiveMQ :: Integration Test :: Spring 3.1</name>
   <description>ActiveMQ integration test with Spring 3.1</description>
 
-  <properties>
-      <!-- force using spring 3.1.x -->
-    <spring-version>3.1.3.RELEASE</spring-version>
-  </properties>
-
   <dependencies>
 
     <!-- =============================== -->
@@ -70,6 +65,7 @@
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-test</artifactId>
+      <version>3.1.3.RELEASE</version>
       <scope>test</scope>
     </dependency>
     <dependency>
