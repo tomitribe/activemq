@@ -205,18 +205,15 @@
   </mailingLists>
 
   <distributionManagement>
-    <site>
-      <!-- this needs to match a server in your settings.xml with upload settings -->
-      <id>activemq-website</id>
-      <!-- set the staging.siteURL in your ~/.m2/settings.xml in a release or other profile -->
-      <url>${staging.siteURL}/maven/${project.version}</url>
-      <!--<url>${site-repo-url}</url>-->
-    </site>
+    <repository>
+      <id>tomitribe.releases.https</id>
+      <name>Tomitribe Release Distribution Repository</name>
+      <url>https://repository.tomitribe.com/service/local/staging/deploy/maven2</url>
+    </repository>
     <snapshotRepository>
-      <id>apache.snapshots.https</id>
-      <name>Apache Development Snapshot Repository</name>
-      <url>https://repository.apache.org/content/repositories/snapshots</url>
-      <uniqueVersion>false</uniqueVersion>
+      <id>tomitribe.snapshots.https</id>
+      <name>Tomitribe Development Snapshot Repository</name>
+      <url>https://repository.tomitribe.com/content/repositories/snapshots-tomitribe</url>
     </snapshotRepository>
   </distributionManagement>
 
@@ -261,9 +258,9 @@
   </modules>
 
   <scm>
-    <connection>scm:git:http://gitbox.apache.org/repos/asf/activemq.git</connection>
-    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/activemq.git</developerConnection>
-    <url>https://gitbox.apache.org/repos/asf?p=activemq.git;a=summary</url>
+    <connection>scm:git:git@github.com:tomitribe/activemq.git</connection>
+    <developerConnection>scm:git:git@github.com:tomitribe/activemq.git</developerConnection>
+    <url>git@github.com:tomitribe/activemq-git</url>
     <tag>HEAD</tag>
   </scm>
 
