@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>5.15.16-SNAPSHOT</version>
+    <version>5.15.15-TT.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-amqp</artifactId>
@@ -110,7 +110,7 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
+      <groupId>org.tomitribe.springframework</groupId>
       <artifactId>spring-context</artifactId>
       <scope>test</scope>
     </dependency>
