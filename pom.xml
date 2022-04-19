@@ -31,7 +31,7 @@
   <inceptionYear>2005</inceptionYear>
 
   <properties>
-    <!-- for reproducible builds -->	
+    <!-- for reproducible builds -->
     <project.build.outputTimestamp>2022-01-31T01:02:00Z</project.build.outputTimestamp>
 
     <activeio-version>3.1.4</activeio-version>
@@ -50,7 +50,7 @@
     <camel-version-range>[2.20,4)</camel-version-range>
     <commons-beanutils-version>1.9.4</commons-beanutils-version>
     <commons-collections-version>3.2.2</commons-collections-version>
-    <commons-daemon-version>1.2.4</commons-daemon-version>
+    <commons-daemon-version>1.3.0</commons-daemon-version>
     <commons-dbcp2-version>2.9.0</commons-dbcp2-version>
     <commons-io-version>2.11.0</commons-io-version>
     <commons-lang-version>3.12.0</commons-lang-version>
@@ -71,7 +71,7 @@
     <jackson-databind-version>2.13.2.2</jackson-databind-version>
     <jasypt-version>1.9.3</jasypt-version>
     <jaxb-bundle-version>2.2.11_1</jaxb-bundle-version>
-    <jetty9-version>9.4.45.v20220203</jetty9-version>
+    <jetty9-version>9.4.46.v20220331</jetty9-version>
     <jetty-version>${jetty9-version}</jetty-version>
     <jmdns-version>3.4.1</jmdns-version>
     <tomcat-api-version>9.0.48</tomcat-api-version>
@@ -84,7 +84,7 @@
     <junit-version>4.13.2</junit-version>
     <hamcrest-version>1.3</hamcrest-version>
     <karaf-version>4.2.11</karaf-version>
-    <log4j-version>2.17.1</log4j-version>
+    <log4j-version>2.17.2</log4j-version>
     <mockito-version>3.8.0</mockito-version>
     <owasp-dependency-check-version>5.2.4</owasp-dependency-check-version>
     <mqtt-client-version>1.16</mqtt-client-version>
@@ -92,23 +92,21 @@
     <osgi-version>6.0.0</osgi-version>
     <linkedin-zookeeper-version>1.4.0</linkedin-zookeeper-version>
     <zookeeper-version>3.4.14</zookeeper-version>
-    <qpid-proton-version>0.33.8</qpid-proton-version>
-    <qpid-jms-version>0.58.0</qpid-jms-version>
-    <qpid-jms-netty-version>4.1.63.Final</qpid-jms-netty-version>
-    <qpid-jms-proton-version>0.33.8</qpid-jms-proton-version>
-    <netty-all-version>4.1.63.Final</netty-all-version>
+    <qpid-proton-version>0.33.10</qpid-proton-version>
+    <qpid-jms-version>1.6.0</qpid-jms-version>
+    <netty-version>4.1.75.Final</netty-version>
     <regexp-version>1.3</regexp-version>
     <rome-version>1.18.0</rome-version>
-    <shiro-version>1.8.0</shiro-version>
+    <shiro-version>1.9.0</shiro-version>
     <slf4j-version>1.7.36</slf4j-version>
     <snappy-version>1.1.2</snappy-version>
-    <spring-version>5.3.18</spring-version>
+    <spring-version>5.3.19</spring-version>
     <taglibs-version>1.2.5</taglibs-version>
     <velocity-version>2.3</velocity-version>
     <xalan-version>2.7.2</xalan-version>
     <xpp3-version>1.1.4c</xpp3-version>
     <xstream-version>1.4.19</xstream-version>
-    <xbean-version>4.20</xbean-version>
+    <xbean-version>4.21</xbean-version>
     <xerces-version>2.12.2</xerces-version>
     <jaxb-basics-version>0.12.0</jaxb-basics-version>
     <stompjms-version>1.19</stompjms-version>
@@ -477,7 +475,7 @@
      <dependency>
        <groupId>org.ow2.asm</groupId>
        <artifactId>asm</artifactId>
-       <version>9.2</version>
+       <version>9.3</version>
      </dependency>
 
       <!-- Servlet 3.1 and JSP -->
@@ -1063,7 +1061,7 @@
       <dependency>
         <groupId>org.apache.geronimo.components</groupId>
         <artifactId>geronimo-transaction</artifactId>
-        <version>3.1.4</version>
+        <version>3.1.5</version>
       </dependency>
 
       <dependency>
