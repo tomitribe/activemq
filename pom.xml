@@ -1125,6 +1125,16 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-gpg-plugin</artifactId>
+          <version>3.0.1</version>
+          <configuration>
+            <gpgArguments>
+              <arg>--digest-algo=SHA512</arg>
+            </gpgArguments>
+          </configuration>
+        </plugin>
+        <plugin>
           <groupId>org.apache.activemq.protobuf</groupId>
           <artifactId>activemq-protobuf</artifactId>
           <version>${activemq-protobuf-version}</version>
