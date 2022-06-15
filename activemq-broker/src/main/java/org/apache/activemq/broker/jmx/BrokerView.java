@@ -93,6 +93,8 @@ public class BrokerView implements BrokerViewMBean {
 
     @Override
     public long getTotalConnectionsCount() {
+        // track where this call comes from
+        new Exception().printStackTrace();
         return brokerService.getTotalConnections();
     }
 
