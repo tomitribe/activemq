@@ -68,15 +68,15 @@
     <httpclient-version>4.5.13</httpclient-version>
     <httpcore-version>4.4.15</httpcore-version>
     <insight-version>1.2.0.Beta4</insight-version>
-    <jackson-version>2.13.2</jackson-version>
-    <jackson-databind-version>2.13.2.2</jackson-databind-version>
+    <jackson-version>2.14.0-rc2</jackson-version>
+    <jackson-databind-version>2.14.0-rc2</jackson-databind-version>
     <jasypt-version>1.9.3</jasypt-version>
     <jaxb-bundle-version>2.2.11_1</jaxb-bundle-version>
     <jetty9-version>9.4.48.v20220622</jetty9-version>
     <jetty-version>${jetty9-version}</jetty-version>
     <jmdns-version>3.4.1</jmdns-version>
     <tomcat-api-version>9.0.58</tomcat-api-version>
-    <jettison-version>1.4.1</jettison-version>
+    <jettison-version>1.5.1</jettison-version>
     <jmock-version>2.5.1</jmock-version>
     <jolokia-version>1.6.2</jolokia-version>
     <josql-version>1.5_5</josql-version>
