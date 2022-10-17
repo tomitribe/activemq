@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>5.17.1-TT.4-SNAPSHOT</version>
+    <version>5.17.2-TT.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-web-console</artifactId>
@@ -132,7 +132,7 @@
             <Import-Package>
               org.xml.sax,
               org.xml.sax.helpers,
-              javax.xml.bind,
+              javax.xml.bind;version="[2,3)",
               javax.xml.parsers,
               javax.xml.stream,
               javax.xml.transform,

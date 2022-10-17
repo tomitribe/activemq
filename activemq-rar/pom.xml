@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>5.17.1-TT.4-SNAPSHOT</version>
+    <version>5.17.2-TT.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-rar</artifactId>
@@ -116,10 +116,6 @@
         <exclusion>
           <groupId>javax.jmdns</groupId>
           <artifactId>jmdns</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>xalan</groupId>
-          <artifactId>xalan</artifactId>
         </exclusion>
         <exclusion>
           <groupId>xmlbeans</groupId>
@@ -250,10 +246,6 @@
         <exclusion>
           <groupId>javax.jmdns</groupId>
           <artifactId>jmdns</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>xalan</groupId>
-          <artifactId>xalan</artifactId>
         </exclusion>
         <exclusion>
           <groupId>xmlbeans</groupId>

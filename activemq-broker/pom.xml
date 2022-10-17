@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>5.17.1-TT.4-SNAPSHOT</version>
+    <version>5.17.2-TT.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-broker</artifactId>
@@ -67,13 +67,6 @@
       <optional>true</optional>
     </dependency>
 
-    <!-- to support XPath based Selectors -->
-    <dependency>
-      <groupId>xalan</groupId>
-      <artifactId>xalan</artifactId>
-      <optional>true</optional>
-    </dependency>
-
     <!-- =============================== -->
     <!-- Testing Dependencies -->
     <!-- =============================== -->
@@ -113,9 +106,9 @@
             <link>http://junit.sourceforge.net/javadoc/</link>
           </links>
           <stylesheetfile>${basedir}/../etc/css/stylesheet.css</stylesheetfile>
-          <linksource>true</linksource>
           <maxmemory>256m</maxmemory>
           <source>${source-version}</source>
+          <noindex>true</noindex>
           <groups>
             <group>
               <title>JMS Client</title>

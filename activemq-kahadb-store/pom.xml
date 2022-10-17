@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>5.17.1-TT.4-SNAPSHOT</version>
+    <version>5.17.2-TT.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-kahadb-store</artifactId>
@@ -104,11 +104,6 @@
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-context</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>xalan</groupId>
-      <artifactId>xalan</artifactId>
       <optional>true</optional>
     </dependency>
 
