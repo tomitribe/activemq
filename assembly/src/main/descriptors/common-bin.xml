@@ -261,8 +261,8 @@
       <unpack>false</unpack>
       <scope>runtime</scope>
       <includes>
-        <include>org.springframework:spring-web</include>
-        <include>org.springframework:spring-webmvc</include>
+        <include>org.tomitribe.springframework:spring-web</include>
+        <include>org.tomitribe.springframework:spring-webmvc</include>
         <include>org.eclipse.jetty:jetty-annotations</include>
         <include>org.eclipse.jetty:jetty-server</include>
         <include>org.eclipse.jetty:jetty-xml</include>
