@@ -18,6 +18,8 @@
 package org.apache.activemq.bugs;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.net.URI;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -121,6 +123,9 @@ public class AMQ4952Test {
 
     private EmbeddedDataSource localDataSource;
 
+    private static int port_1;
+    private static int port_2;
+
     @Parameterized.Parameter(0)
     public boolean enableCursorAudit;
 
@@ -132,6 +137,22 @@ public class AMQ4952Test {
     @BeforeClass
     public static void dbHomeSysProp() throws Exception {
         System.setProperty("derby.system.home", new File(IOHelper.getDefaultDataDirectory()).getCanonicalPath());
+        ServerSocket serverSocket_1 = null;
+        ServerSocket serverSocket_2 = null;
+        try {
+            serverSocket_1 = new ServerSocket(0);
+            assertTrue(serverSocket_1!=null);
+            assertTrue(serverSocket_1.getLocalPort() > 0);
+            port_1 = serverSocket_1.getLocalPort();
+
+            serverSocket_2 = new ServerSocket(0);
+            assertTrue(serverSocket_2!=null);
+            assertTrue(serverSocket_2.getLocalPort() > 0);
+            port_2 = serverSocket_2.getLocalPort();
+        } catch (IOException e) {
+            fail("Port is not available");
+        }
+
     }
 
     public void repeat() throws Exception {
@@ -152,7 +173,7 @@ public class AMQ4952Test {
 
                 int receivedMessageCount = 0;
 
-                ActiveMQConnectionFactory consumerFactory = new ActiveMQConnectionFactory("failover:(tcp://localhost:2006)?randomize=false&backup=false");
+                ActiveMQConnectionFactory consumerFactory = new ActiveMQConnectionFactory("failover:(tcp://localhost:"+port_2+")?randomize=false&backup=false");
                 Connection consumerConnection = consumerFactory.createConnection();
 
                 try {
@@ -181,7 +202,7 @@ public class AMQ4952Test {
                         // ack when it is resent from the producer broker
                         if (textMsg.getJMSMessageID().endsWith("1") && receivedMessageCount == 1) {
                             LOG.info("Waiting for restart...");
-                            consumerRestartedAndMessageForwarded.await(90, TimeUnit.SECONDS);
+                            consumerRestartedAndMessageForwarded.await(180, TimeUnit.SECONDS);
                         }
 
                         textMsg.acknowledge();
@@ -252,7 +273,9 @@ public class AMQ4952Test {
 
     private void produceMessages() throws JMSException {
 
-        ActiveMQConnectionFactory producerFactory = new ActiveMQConnectionFactory("failover:(tcp://localhost:2003)?randomize=false&backup=false");
+        ActiveMQConnectionFactory producerFactory =
+                new ActiveMQConnectionFactory("failover:(tcp://localhost:"+port_1+")" +
+                "?randomize=false&backup=false");
         Connection producerConnection = producerFactory.createConnection();
 
         try {
@@ -315,15 +338,15 @@ public class AMQ4952Test {
     }
 
     /**
-     * Producer broker listens on localhost:2003 networks to consumerBroker -
-     * localhost:2006
+     * Producer broker listens on localhost:port_1 networks to consumerBroker -
+     * localhost:port_2
      *
      * @return
      * @throws Exception
      */
     protected BrokerService createProducerBroker() throws Exception {
 
-        String networkToPorts[] = new String[] { "2006" };
+        String networkToPorts[] = new String[] { String.valueOf(port_2) };
         HashMap<String, String> networkProps = new HashMap<String, String>();
 
         networkProps.put("networkTTL", "10");
@@ -339,7 +362,7 @@ public class AMQ4952Test {
 
         // lazy init listener on broker start
         TransportConnector transportConnector = new TransportConnector();
-        transportConnector.setUri(new URI("tcp://localhost:2003"));
+        transportConnector.setUri(new URI("tcp://localhost:"+port_1));
         List<TransportConnector> transportConnectors = new ArrayList<TransportConnector>();
         transportConnectors.add(transportConnector);
         broker.setTransportConnectors(transportConnectors);
@@ -347,7 +370,7 @@ public class AMQ4952Test {
         // network to consumerBroker
 
         if (networkToPorts != null && networkToPorts.length > 0) {
-            StringBuilder builder = new StringBuilder("static:(failover:(tcp://localhost:2006)?maxReconnectAttempts=0)?useExponentialBackOff=false");
+            StringBuilder builder = new StringBuilder("static:(failover:(tcp://localhost:"+port_2+")?maxReconnectAttempts=0)?useExponentialBackOff=false");
             NetworkConnector nc = broker.addNetworkConnector(builder.toString());
             if (networkProps != null) {
                 IntrospectionSupport.setProperties(nc, networkProps);
@@ -388,7 +411,7 @@ public class AMQ4952Test {
     }
 
     /**
-     * consumerBroker - listens on localhost:2006
+     * consumerBroker - listens on localhost:port_2
      *
      * @param deleteMessages
      *            - drop messages when broker instance is created
@@ -398,7 +421,7 @@ public class AMQ4952Test {
     protected BrokerService createConsumerBroker(boolean deleteMessages) throws Exception {
 
         String scheme = "tcp";
-        String listenPort = "2006";
+        String listenPort = String.valueOf(port_2);
 
         BrokerService broker = new BrokerService();
         broker.getManagementContext().setCreateConnector(false);
