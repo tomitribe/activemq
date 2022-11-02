@@ -192,8 +192,9 @@
 
     <!-- web container -->
     <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-server</artifactId>
+      <groupId>org.eclipse.jetty.aggregate</groupId>
+      <artifactId>jetty-all</artifactId>
+      <classifier>uber</classifier>
       <scope>test</scope>
     </dependency>
 
