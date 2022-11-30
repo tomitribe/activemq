@@ -55,6 +55,7 @@ public class LeaseDatabaseLocker extends AbstractJDBCLocker {
         LOG.info(getLeaseHolderId() + " attempting to acquire exclusive lease to become the master");
         String sql = getStatements().getLeaseObtainStatement();
         LOG.debug(getLeaseHolderId() + " locking Query is "+sql);
+        long start = System.currentTimeMillis();
 
         long now = 0l;
         while (!isStopping()) {
@@ -96,6 +97,8 @@ public class LeaseDatabaseLocker extends AbstractJDBCLocker {
             } finally {
                 close(statement);
                 close(connection);
+                long end = System.currentTimeMillis();
+                LOG.debug("Lease acquire statement completed in " + (end - start) + " ms");
             }
 
             LOG.debug(getLeaseHolderId() + " failed to acquire lease.  Sleeping for " + lockAcquireSleepInterval + " milli(s) before trying again...");
@@ -182,6 +185,7 @@ public class LeaseDatabaseLocker extends AbstractJDBCLocker {
         boolean result = false;
         final String sql = getStatements().getLeaseUpdateStatement();
         LOG.debug(getLeaseHolderId() + ", lease keepAlive Query is " + sql);
+        long start = System.currentTimeMillis();
 
         Connection connection = null;
         PreparedStatement statement = null;
@@ -210,6 +214,8 @@ public class LeaseDatabaseLocker extends AbstractJDBCLocker {
         } finally {
             close(statement);
             close(connection);
+            long now = System.currentTimeMillis();
+            LOG.debug("Lease update statement completed in " + (now - start) + " ms");
         }
         return result;
     }
