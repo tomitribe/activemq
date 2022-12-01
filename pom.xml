@@ -25,7 +25,7 @@
 
   <groupId>org.apache.activemq</groupId>
   <artifactId>activemq-parent</artifactId>
-  <version>5.17.5</version>
+  <version>5.17.5-SP.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>ActiveMQ</name>
   <inceptionYear>2005</inceptionYear>
@@ -191,11 +191,15 @@
       <url>${staging.siteURL}/maven/${project.version}</url>
       <!--<url>${site-repo-url}</url>-->
     </site>
+    <repository>
+      <id>tomitribe.releases.https</id>
+      <name>Tomitribe Release Distribution Repository</name>
+      <url>https://repository.tomitribe.com/service/local/staging/deploy/maven2</url>
+    </repository>
     <snapshotRepository>
-      <id>apache.snapshots.https</id>
-      <name>Apache Development Snapshot Repository</name>
-      <url>https://repository.apache.org/content/repositories/snapshots</url>
-      <uniqueVersion>false</uniqueVersion>
+      <id>tomitribe.snapshots.https</id>
+      <name>Tomitribe Development Snapshot Repository</name>
+      <url>https://repository.tomitribe.com/content/repositories/snapshots-tomitribe</url>
     </snapshotRepository>
   </distributionManagement>
 
@@ -237,9 +241,9 @@
   </modules>
 
   <scm>
-    <connection>scm:git:http://gitbox.apache.org/repos/asf/activemq.git</connection>
-    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/activemq.git</developerConnection>
-    <url>https://github.com/apache/activemq</url>
+    <connection>scm:git:git@github.com:tomitribe/activemq.git</connection>
+    <developerConnection>scm:git:git@github.com:tomitribe/activemq.git</developerConnection>
+    <url>https://github.com/tomitribe/activemq-git</url>
     <tag>activemq-5.17.5</tag>
   </scm>
 
