@@ -58,7 +58,7 @@
     <commons-logging-version>1.2</commons-logging-version>
     <commons-pool2-version>2.9.0</commons-pool2-version>
     <commons-primitives-version>1.0</commons-primitives-version>
-    <commons-net-version>3.8.0</commons-net-version>
+    <commons-net-version>3.9.0</commons-net-version>
     <directory-version>2.0.0.AM25</directory-version>
     <ecj.version>3.17.0</ecj.version>
     <ftpserver-version>1.1.1</ftpserver-version>
@@ -80,7 +80,7 @@
     <jetty-version>${jetty9-version}</jetty-version>
     <jmdns-version>3.4.1</jmdns-version>
     <tomcat-api-version>9.0.41</tomcat-api-version>
-    <jettison-version>1.5.1</jettison-version>
+    <jettison-version>1.5.2</jettison-version>
     <jmock-version>2.5.1</jmock-version>
     <jolokia-version>1.6.2</jolokia-version>
     <josql-version>1.5_5</josql-version>
