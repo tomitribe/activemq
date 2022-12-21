@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>5.17.2-TT.3-SNAPSHOT</version>
+    <version>5.17.3-TT.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-web-demo</artifactId>
@@ -96,7 +96,7 @@
           </supportedProjectTypes>
           <instructions>
             <Webapp-Context>activemqdemo</Webapp-Context>
-            <Web-ContextPath>activemqdemo</Web-ContextPath>
+            <Web-ContextPath>/activemqdemo</Web-ContextPath>
             <Bundle-ClassPath>.,WEB-INF/classes</Bundle-ClassPath>
             <Embed-Directory>WEB-INF/lib</Embed-Directory>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
