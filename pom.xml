@@ -93,7 +93,7 @@
     <leveldb-api-version>0.9</leveldb-api-version>
     <leveldb-version>0.9</leveldb-version>
     <leveldbjni-version>1.8</leveldbjni-version>
-    <reload4j-version>1.2.19</reload4j-version>
+    <reload4j-version>1.2.25</reload4j-version>
     <mockito-version>3.8.0</mockito-version>
     <owasp-dependency-check-version>5.2.4</owasp-dependency-check-version>
     <pax-logging-version>1.11.14</pax-logging-version>
