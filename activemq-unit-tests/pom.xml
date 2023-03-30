@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>5.17.3-TT.2-SNAPSHOT</version>
+    <version>5.17.4-TT.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-unit-tests</artifactId>
@@ -240,8 +240,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>regexp</groupId>
-      <artifactId>regexp</artifactId>
+      <groupId>jakarta-regexp</groupId>
+      <artifactId>jakarta-regexp</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
