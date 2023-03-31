@@ -80,7 +80,7 @@
     <jetty-version>${jetty9-version}</jetty-version>
     <jmdns-version>3.4.1</jmdns-version>
     <tomcat-api-version>9.0.41</tomcat-api-version>
-    <jettison-version>1.5.2</jettison-version>
+    <jettison-version>1.5.4</jettison-version>
     <jmock-version>2.5.1</jmock-version>
     <jolokia-version>1.6.2</jolokia-version>
     <josql-version>1.5_5</josql-version>
@@ -93,9 +93,10 @@
     <leveldb-api-version>0.9</leveldb-api-version>
     <leveldb-version>0.9</leveldb-version>
     <leveldbjni-version>1.8</leveldbjni-version>
-    <log4j-version>1.2.17</log4j-version>
+    <reload4j-version>1.2.25</reload4j-version>
     <mockito-version>3.8.0</mockito-version>
     <owasp-dependency-check-version>5.2.4</owasp-dependency-check-version>
+    <pax-logging-version>1.11.14</pax-logging-version>
     <mqtt-client-version>1.16</mqtt-client-version>
     <openjpa-version>1.2.0</openjpa-version>
     <org-apache-derby-version>10.14.2.0</org-apache-derby-version>
@@ -116,7 +117,7 @@
     <scala-version>2.11.11</scala-version>
     <shiro-version>1.10.0</shiro-version>
     <scalatest-version>3.0.8</scalatest-version>
-    <slf4j-version>1.7.32</slf4j-version>
+    <slf4j-version>1.7.36</slf4j-version>
     <snappy-version>1.1.2</snappy-version>
     <spring-version>4.3.30.RELEASE-TT.3</spring-version>
     <taglibs-version>1.2.5</taglibs-version>
@@ -497,6 +498,28 @@
       </dependency>
 
       <dependency>
+        <groupId>org.ops4j.pax.logging</groupId>
+        <artifactId>pax-logging-api</artifactId>
+        <version>${pax-logging-version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.ops4j.pax.logging</groupId>
+        <artifactId>pax-logging-service</artifactId>
+        <version>${pax-logging-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>log4j</groupId>
+            <artifactId>apache-log4j-extras</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.ops4j.pax.logging</groupId>
+        <artifactId>pax-logging-log4j2</artifactId>
+        <version>${pax-logging-version}</version>
+      </dependency>
+
+      <dependency>
         <groupId>org.apache.geronimo.specs</groupId>
         <artifactId>geronimo-jms_1.1_spec</artifactId>
         <version>1.1.1</version>
@@ -606,6 +629,40 @@
         <artifactId>zookeeper</artifactId>
         <version>${zookeeper-version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.apache.zookeeper</groupId>
+        <artifactId>zookeeper</artifactId>
+        <version>${zookeeper-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>io.netty</groupId>
+            <artifactId>netty</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.linkedin</groupId>
+        <artifactId>org.linkedin.zookeeper-impl</artifactId>
+        <version>${linkedin-zookeeper-version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
 
       <!-- zeroconf transport -->
       <dependency>
@@ -669,9 +726,9 @@
 
       <!-- Used to configure the activemq logs -->
       <dependency>
-        <groupId>log4j</groupId>
-        <artifactId>log4j</artifactId>
-        <version>${log4j-version}</version>
+        <groupId>ch.qos.reload4j</groupId>
+        <artifactId>reload4j</artifactId>
+        <version>${reload4j-version}</version>
         <scope>runtime</scope>
       </dependency>
 
@@ -1060,7 +1117,7 @@
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-log4j12</artifactId>
+        <artifactId>slf4j-reload4j</artifactId>
         <version>${slf4j-version}</version>
       </dependency>
       <dependency>
