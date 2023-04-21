@@ -71,7 +71,7 @@
     <jackson-version>2.14.2</jackson-version>
     <jasypt-version>1.9.3</jasypt-version>
     <jaxb-bundle-version>2.2.11_1</jaxb-bundle-version>
-    <jetty9-version>9.4.50.v20221201</jetty9-version>
+    <jetty9-version>9.4.51.v20230217</jetty9-version>
     <jetty-version>${jetty9-version}</jetty-version>
     <jmdns-version>3.4.1</jmdns-version>
     <tomcat-api-version>9.0.58</tomcat-api-version>
@@ -107,7 +107,7 @@
     <scalatest-version>3.0.8</scalatest-version>
     <slf4j-version>1.7.36</slf4j-version>
     <snappy-version>1.1.2</snappy-version>
-    <spring-version>4.3.30.RELEASE-TT.4</spring-version>
+    <spring-version>4.3.30.RELEASE-TT.5</spring-version>
     <taglibs-version>1.2.5</taglibs-version>
     <velocity-version>2.3</velocity-version>
     <xalan-version>2.7.2</xalan-version>
