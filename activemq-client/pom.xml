@@ -33,6 +33,7 @@
   <properties>
     <maven.source.skip>false</maven.source.skip>
     <surefire.argLine>-Xmx512M</surefire.argLine>
+    <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
   </properties>
 
   <dependencies>
@@ -215,6 +216,7 @@
           <reuseForks>false</reuseForks>
           <argLine>${surefire.argLine}</argLine>
           <runOrder>alphabetical</runOrder>
+          <failIfNoTests>false</failIfNoTests>
           <systemProperties>
             <property>
               <name>org.apache.activemq.default.directory.prefix</name>
