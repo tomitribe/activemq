@@ -164,6 +164,8 @@
     <activemq.osgi.symbolic.name>${project.groupId}.${project.artifactId}</activemq.osgi.symbolic.name>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.source.skip>true</maven.source.skip>
+    <!-- Need it for releases-->
+    <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
   </properties>
 
   <url>http://activemq.apache.org</url>
