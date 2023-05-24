@@ -247,7 +247,7 @@ public class TransportConnector implements Connector, BrokerServiceAware {
                     LOG.info("Could not accept connection during shutdown {} : {} ({})", (remoteHost == null ? "" : "from " + remoteHost), error.getLocalizedMessage(), getRootCause(error).getMessage());
                 } else {
                     LOG.warn("Could not accept connection {}: {} ({})", (remoteHost == null ? "" : "from " + remoteHost), error.getMessage(), getRootCause(error).getMessage());
-                    LOG.debug("Reason: " + error.getMessage(), error);
+                    LOG.warn("Reason: " + error.getMessage(), error);
                 }
             }
         });
