@@ -283,6 +283,7 @@ public class AutoTcpTransportServer extends TcpTransportServer {
                         readBytes.incrementAndGet();
                     } while (readBytes.get() < 8 && !Thread.interrupted());
                 } catch (Exception e) {
+                    LOG.info("Error connecting from {}", socket.getInetAddress().getHostAddress());
                     throw new IllegalStateException(e);
                 }
             }
