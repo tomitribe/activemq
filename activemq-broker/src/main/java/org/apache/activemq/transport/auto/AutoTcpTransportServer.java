@@ -286,9 +286,9 @@ public class AutoTcpTransportServer extends TcpTransportServer {
                     try {
                         LOG.info("Error connecting from {}", socket.getInetAddress().getHostAddress());
                     } catch (Throwable t) {
-                        LOG.info("Error logging socket IP address");
+                        LOG.info("Error logging socket IP address", t);
                     }
-                    throw new IllegalStateException(e);
+//                    throw new IllegalStateException(e);
                 }
             }
         });
