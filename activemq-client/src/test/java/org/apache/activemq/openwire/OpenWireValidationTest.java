@@ -44,7 +44,7 @@ public class OpenWireValidationTest {
 
     @Parameters(name = "version={0}")
     public static Collection<Object[]> data() {
-        List<Integer> versions = Arrays.asList(1, 9, 10, 11, 12);
+        List<Integer> versions = Arrays.asList(1, 9, 10, 11);
         List<Object[]> versionObjs = new ArrayList<>();
         for (int i : versions) {
             versionObjs.add(new Object[]{i});
@@ -109,16 +109,6 @@ public class OpenWireValidationTest {
     // instead of the exception type for testing purposes
     protected DataStreamMarshaller getExceptionMarshaller() {
         switch (version) {
-            case 12:
-                return new org.apache.activemq.openwire.v12.ExceptionResponseMarshaller() {
-                    @Override
-                    protected void looseMarshalThrowable(OpenWireFormat wireFormat, Throwable o,
-                        DataOutput dataOut) throws IOException {
-                        dataOut.writeBoolean(o != null);
-                        looseMarshalString(NotAThrowable.class.getName(), dataOut);
-                        looseMarshalString(o.getMessage(), dataOut);
-                    }
-                };
             case 11:
                 return new org.apache.activemq.openwire.v11.ExceptionResponseMarshaller() {
                     @Override
