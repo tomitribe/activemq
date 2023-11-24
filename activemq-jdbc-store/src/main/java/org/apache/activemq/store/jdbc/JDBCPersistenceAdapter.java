@@ -28,6 +28,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.sql.DataSource;
 
@@ -381,9 +382,12 @@ public class JDBCPersistenceAdapter extends DataSourceServiceSupport implements 
     public ScheduledThreadPoolExecutor getScheduledThreadPoolExecutor() {
         if (clockDaemon == null) {
             clockDaemon = new ScheduledThreadPoolExecutor(5, new ThreadFactory() {
+
+                private AtomicLong counter = new AtomicLong(0);
+
                 @Override
                 public Thread newThread(Runnable runnable) {
-                    Thread thread = new Thread(runnable, "ActiveMQ JDBC PA Scheduled Task");
+                    Thread thread = new Thread(runnable, "ActiveMQ JDBC PA Scheduled Task " + counter.incrementAndGet());
                     thread.setDaemon(true);
                     return thread;
                 }
