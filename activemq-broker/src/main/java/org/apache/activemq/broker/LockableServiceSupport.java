@@ -28,6 +28,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Helper class for working with services that requires locking
@@ -170,8 +171,10 @@ public abstract class LockableServiceSupport extends ServiceSupport implements L
     public ScheduledThreadPoolExecutor getScheduledThreadPoolExecutor() {
         if (clockDaemon == null) {
             clockDaemon = new ScheduledThreadPoolExecutor(5, new ThreadFactory() {
+                private AtomicLong counter = new AtomicLong(0);
+
                 public Thread newThread(Runnable runnable) {
-                    Thread thread = new Thread(runnable, "ActiveMQ Lock KeepAlive Timer");
+                    Thread thread = new Thread(runnable, "ActiveMQ Lock KeepAlive Timer " + counter.incrementAndGet());
                     thread.setDaemon(true);
                     return thread;
                 }
