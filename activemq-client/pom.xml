@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>6.0.2-SNAPSHOT</version>
+    <version>6.0.2-TT.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-client</artifactId>
@@ -215,6 +215,7 @@
           <reuseForks>false</reuseForks>
           <argLine>${surefire.argLine}</argLine>
           <runOrder>alphabetical</runOrder>
+          <failIfNoTests>false</failIfNoTests>
           <systemProperties>
             <property>
               <name>org.apache.activemq.default.directory.prefix</name>
