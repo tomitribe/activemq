@@ -168,6 +168,7 @@
     <activemq.osgi.dynamic.import />
     <activemq.osgi.symbolic.name>${project.groupId}.${project.artifactId}</activemq.osgi.symbolic.name>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <xml-apis-version>1.4.01</xml-apis-version>
   </properties>
 
   <url>http://activemq.apache.org</url>
@@ -264,6 +265,11 @@
       <!-- =============================== -->
       <!-- Internal ActiveMQ Dependencies -->
       <!-- =============================== -->
+      <dependency>
+        <groupId>xml-apis</groupId>
+        <artifactId>xml-apis</artifactId>
+        <version>${xml-apis-version}</version>
+      </dependency>
       <dependency>
         <groupId>org.apache.activemq</groupId>
         <artifactId>activemq-amqp</artifactId>
