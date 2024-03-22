@@ -107,7 +107,7 @@
     <scalatest-version>3.0.8</scalatest-version>
     <slf4j-version>1.7.36</slf4j-version>
     <snappy-version>1.1.10.5</snappy-version>
-    <spring-version>4.3.30.RELEASE-TT.6</spring-version>
+    <spring-version>4.3.30.RELEASE-TT.7</spring-version>
     <taglibs-version>1.2.5</taglibs-version>
     <velocity-version>2.3</velocity-version>
     <xalan-version>2.7.2</xalan-version>
@@ -168,7 +168,6 @@
     <activemq.osgi.dynamic.import />
     <activemq.osgi.symbolic.name>${project.groupId}.${project.artifactId}</activemq.osgi.symbolic.name>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <xml-apis-version>1.4.01</xml-apis-version>
   </properties>
 
   <url>http://activemq.apache.org</url>
@@ -265,11 +264,6 @@
       <!-- =============================== -->
       <!-- Internal ActiveMQ Dependencies -->
       <!-- =============================== -->
-      <dependency>
-        <groupId>xml-apis</groupId>
-        <artifactId>xml-apis</artifactId>
-        <version>${xml-apis-version}</version>
-      </dependency>
       <dependency>
         <groupId>org.apache.activemq</groupId>
         <artifactId>activemq-amqp</artifactId>
