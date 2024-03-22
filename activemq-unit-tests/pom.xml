@@ -159,19 +159,6 @@
     <!-- =============================== -->
     <!-- Testing Dependencies            -->
     <!-- =============================== -->
-<!--    <dependency>-->
-<!--      <groupId>xml-apis</groupId>-->
-<!--      <artifactId>xml-apis</artifactId>-->
-<!--      <scope>test</scope>-->
-<!--    </dependency>-->
-
-
-<!--    <dependency>-->
-<!--      <groupId>velocity-tools</groupId>-->
-<!--      <artifactId>velocity-tools-view</artifactId>-->
-<!--      <version>1.4</version>-->
-<!--    </dependency>-->
-
     <dependency>
       <groupId>org.apache.qpid</groupId>
       <artifactId>qpid-jms-client</artifactId>
@@ -212,18 +199,6 @@
     <dependency>
       <groupId>org.tomitribe.springframework</groupId>
       <artifactId>spring-test</artifactId>
-<!--      <scope>test</scope>-->
-<!--      <exclusions>-->
-<!--        <exclusion>-->
-<!--          <groupId>com.lowagie</groupId>-->
-<!--          <artifactId>itext</artifactId>-->
-<!--        </exclusion>-->
-<!--      </exclusions>-->
-<!--    </dependency>-->
-<!--    <dependency>-->
-<!--      <groupId>com.lowagie</groupId>-->
-<!--      <artifactId>itext</artifactId>-->
-<!--      <version>2.1.7</version>-->
       <scope>test</scope>
     </dependency>
     <dependency>
