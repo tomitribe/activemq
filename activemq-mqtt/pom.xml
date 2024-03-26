@@ -313,16 +313,22 @@
 
   <repositories>
       <!-- for the paho dependency -->
-      <repository>
-          <id>spring.io</id>
-          <url>https://repo.spring.io/plugins-release</url>
-          <releases><enabled>true</enabled></releases>
-          <snapshots><enabled>false</enabled></snapshots>
-      </repository>
-      <repository>
-          <id>Eclipse Paho Repo</id>
-          <url>https://repo.eclipse.org/content/repositories/paho-releases/</url>
-      </repository>
+<!--      <repository>-->
+<!--          <id>spring.io</id>-->
+<!--          <url>https://repo.spring.io/plugins-release</url>-->
+<!--          <releases><enabled>true</enabled></releases>-->
+<!--          <snapshots><enabled>false</enabled></snapshots>-->
+<!--      </repository>-->
+<!--      <repository>-->
+<!--          <id>Eclipse Paho Repo</id>-->
+<!--          <url>https://repo.eclipse.org/content/repositories/paho-releases/</url>-->
+<!--      </repository>-->
+
+    <repository>
+      <id>tomitribe-all</id>
+      <name>Tomitribe Repository</name>
+      <url>https://repository.tomitribe.com/content/groups/tomitribe/</url>
+    </repository>
   </repositories>
 
 </project>
