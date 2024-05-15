@@ -135,7 +135,8 @@ public class BrokerService implements Service {
     public static final int DEFAULT_MAX_FILE_LENGTH = 1024 * 1024 * 32;
     public static final long DEFAULT_START_TIMEOUT = 600000L;
     public static final int MAX_SCHEDULER_REPEAT_ALLOWED = 1000;
-
+    public static final int DEFAULT_MAX_UNCOMMITTED_COUNT = 0;
+    
     private static final Logger LOG = LoggerFactory.getLogger(BrokerService.class);
 
     @SuppressWarnings("unused")
@@ -265,20 +266,25 @@ public class BrokerService implements Service {
     private int storeOpenWireVersion = OpenWireFormat.DEFAULT_STORE_VERSION;
     private final List<Runnable> preShutdownHooks = new CopyOnWriteArrayList<>();
 
+    private int maxUncommittedCount = DEFAULT_MAX_UNCOMMITTED_COUNT;
+
     static {
 
         try {
-            ClassLoader loader = BrokerService.class.getClassLoader();
-            Class<?> clazz = loader.loadClass("org.bouncycastle.jce.provider.BouncyCastleProvider");
-            Provider bouncycastle = (Provider) clazz.getDeclaredConstructor().newInstance();
-            Integer bouncyCastlePosition = Integer.getInteger("org.apache.activemq.broker.BouncyCastlePosition");
-            int ret;
-            if (bouncyCastlePosition != null) {
-                ret = Security.insertProviderAt(bouncycastle, bouncyCastlePosition);
-            } else {
-                ret = Security.addProvider(bouncycastle);
+            Boolean bouncyCastleNotAdded = Boolean.getBoolean("org.apache.activemq.broker.BouncyCastleNotAdded");
+            if (bouncyCastleNotAdded == null || bouncyCastleNotAdded == false) {
+                ClassLoader loader = BrokerService.class.getClassLoader();
+                Class<?> clazz = loader.loadClass("org.bouncycastle.jce.provider.BouncyCastleProvider");
+                Provider bouncycastle = (Provider) clazz.getDeclaredConstructor().newInstance();
+                Integer bouncyCastlePosition = Integer.getInteger("org.apache.activemq.broker.BouncyCastlePosition");
+                int ret;
+                if (bouncyCastlePosition != null) {
+                    ret = Security.insertProviderAt(bouncycastle, bouncyCastlePosition);
+                } else {
+                    ret = Security.addProvider(bouncycastle);
+                }
+                LOG.info("Loaded the Bouncy Castle security provider at position: {}", ret);
             }
-            LOG.info("Loaded the Bouncy Castle security provider at position: {}", ret);
         } catch(Throwable e) {
             // No BouncyCastle found so we use the default Java Security Provider
         }
@@ -3298,4 +3304,13 @@ public class BrokerService implements Service {
     public void setMaxSchedulerRepeatAllowed(int maxSchedulerRepeatAllowed) {
         this.maxSchedulerRepeatAllowed = maxSchedulerRepeatAllowed;
     }
+
+    public int getMaxUncommittedCount() {
+        return maxUncommittedCount;
+    }
+
+    public void setMaxUncommittedCount(int maxUncommittedCount) {
+        this.maxUncommittedCount = maxUncommittedCount;
+    }
+
 }
