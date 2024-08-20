@@ -27,6 +27,8 @@ import javax.servlet.AsyncListener;
 import javax.servlet.DispatcherType;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletRequestWrapper;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,6 +112,17 @@ public class AsyncServletRequest implements AsyncListener  {
         this.expired.set(true);
         if (LOG.isDebugEnabled()) {
             LOG.debug("ActiveMQAsyncRequest " + event + " timeout.");
+        }
+
+        final AsyncContext context = event.getAsyncContext();
+        if (context != null && event.getSuppliedRequest().isAsyncStarted()) {
+            // We must call dispatch to finish the request on timeout.
+            // then set the status code to prevent a 500 error.
+            context.dispatch();
+            final ServletResponse response = context.getResponse();
+            if (response instanceof HttpServletResponse) {
+                ((HttpServletResponse) response).setStatus(HttpServletResponse.SC_NO_CONTENT);
+            }
         }
     }
 

@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>5.18.4-TT.2-SNAPSHOT</version>
+    <version>5.18.5-TT.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>apache-activemq</artifactId>
@@ -395,11 +395,6 @@
     </dependency>
 
     <!-- dependencies specific to this module -->
-    <dependency>
-      <groupId>jrms</groupId>
-      <artifactId>jrms</artifactId>
-      <version>1.1</version>
-    </dependency>
     <dependency>
       <groupId>xerces</groupId>
       <artifactId>xercesImpl</artifactId>
