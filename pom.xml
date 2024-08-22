@@ -25,7 +25,7 @@
 
   <groupId>org.apache.activemq</groupId>
   <artifactId>activemq-parent</artifactId>
-  <version>6.1.2-TT.2-SNAPSHOT</version>
+  <version>6.1.3-TT.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>ActiveMQ</name>
   <inceptionYear>2005</inceptionYear>
@@ -46,14 +46,14 @@
     <ant-version>1.10.14</ant-version>
     <aries-version>1.1.0</aries-version>
     <axion-version>1.0-M3-dev</axion-version>
-    <camel-version>4.4.1</camel-version>
+    <camel-version>4.4.3</camel-version>
     <commons-beanutils-version>1.9.4</commons-beanutils-version>
     <commons-collections-version>3.2.2</commons-collections-version>
-    <commons-daemon-version>1.3.4</commons-daemon-version>
+    <commons-daemon-version>1.4.0</commons-daemon-version>
     <commons-dbcp2-version>2.12.0</commons-dbcp2-version>
-    <commons-io-version>2.15.1</commons-io-version>
+    <commons-io-version>2.16.1</commons-io-version>
     <commons-lang-version>3.14.0</commons-lang-version>
-    <commons-logging-version>1.3.0</commons-logging-version>
+    <commons-logging-version>1.3.3</commons-logging-version>
     <commons-pool2-version>2.12.0</commons-pool2-version>
     <commons-primitives-version>1.0</commons-primitives-version>
     <directory-version>2.0.0.AM25</directory-version>
@@ -65,17 +65,18 @@
     <httpclient-version>4.5.14</httpclient-version>
     <httpcore-version>4.4.16</httpcore-version>
     <insight-version>1.2.0.Beta4</insight-version>
-    <jackson-version>2.16.2</jackson-version>
+    <jackson-version>2.17.2</jackson-version>
     <jakarta-jms-api-version>3.1.0</jakarta-jms-api-version>
     <jasypt-version>1.9.3</jasypt-version>
-    <jaxb-version>4.0.2</jaxb-version>
+    <jaxb-version>4.0.5</jaxb-version>
     <jaxb-bundle-version>2.3.2_1</jaxb-bundle-version>
-    <jetty-version>11.0.20</jetty-version>
+    <jetty-version>11.0.22</jetty-version>
+    <jetty-version-range>[11,13)</jetty-version-range>
     <jmdns-version>3.5.9</jmdns-version>
     <tomcat-api-version>9.0.65</tomcat-api-version>
     <jettison-version>1.5.4</jettison-version>
     <jmock-version>2.12.0</jmock-version>
-    <jolokia-version>2.0.0-M4</jolokia-version>
+    <jolokia-version>2.0.3</jolokia-version>
     <josql-version>1.5_5</josql-version>
     <!-- for json-simple use same version as jolokia uses -->
     <json-simple-version>1.1.1</json-simple-version>
@@ -94,17 +95,17 @@
     <regexp-version>1.4</regexp-version>
     <rome-version>2.1.0</rome-version>
     <shiro-version>1.13.0</shiro-version>
-    <slf4j-version>2.0.12</slf4j-version>
+    <slf4j-version>2.0.13</slf4j-version>
     <snappy-version>1.1.2</snappy-version>
-    <spring-version>6.1.5</spring-version>
+    <spring-version>6.1.12</spring-version>
     <spring-version-range>[6,7)</spring-version-range>
     <taglibs-version>1.2.5</taglibs-version>
     <velocity-version>2.3</velocity-version>
     <xpp3-version>1.1.4c</xpp3-version>
     <xstream-version>1.4.20</xstream-version>
-    <xbean-version>4.24</xbean-version>
+    <xbean-version>4.25</xbean-version>
     <xerces-version>2.12.2</xerces-version>
-    <jaxb-tools-version>4.0.0</jaxb-tools-version>
+    <jaxb-tools-version>4.0.8</jaxb-tools-version>
     <stompjms-version>3.1.0</stompjms-version>
 
     <pax-logging-version>2.1.3</pax-logging-version>
@@ -137,6 +138,7 @@
     <maven-shade-plugin-version>3.5.1</maven-shade-plugin-version>
     <exec-maven-plugin-version>3.1.0</exec-maven-plugin-version>
     <findbugs-maven-plugin-version>3.0.5</findbugs-maven-plugin-version>
+    <flatten-maven-plugin-version>1.6.0</flatten-maven-plugin-version>
     <javacc-maven-plugin-version>3.0.1</javacc-maven-plugin-version>
     <cobertura-maven-plugin-version>2.7</cobertura-maven-plugin-version>
     <taglist-maven-plugin-version>3.0.0</taglist-maven-plugin-version>
@@ -202,6 +204,7 @@
   </distributionManagement>
 
   <modules>
+    <module>bom</module>
     <module>activemq-openwire-generator</module>
     <module>activemq-client</module>
     <module>activemq-openwire-legacy</module>
@@ -1080,6 +1083,11 @@
           <groupId>org.apache.geronimo.genesis.plugins</groupId>
           <artifactId>tools-maven-plugin</artifactId>
           <version>${tools-maven-plugin-version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>flatten-maven-plugin</artifactId>
+          <version>${flatten-maven-plugin-version}</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
