@@ -99,7 +99,7 @@
 
     <!-- needed for TestPurgeCommand, but not for compile. -->
     <dependency>
-      <groupId>org.springframework</groupId>
+      <groupId>org.tomitribe.springframework</groupId>
       <artifactId>spring-context</artifactId>
       <scope>test</scope>
     </dependency>
