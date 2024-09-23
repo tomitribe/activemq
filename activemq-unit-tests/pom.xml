@@ -121,7 +121,7 @@
 
     <!-- for XML parsing -->
     <dependency>
-      <groupId>org.springframework</groupId>
+      <groupId>org.tomitribe.springframework</groupId>
       <artifactId>spring-context</artifactId>
     </dependency>
     <dependency>
@@ -181,12 +181,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
+      <groupId>org.tomitribe.springframework</groupId>
       <artifactId>spring-jms</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
+      <groupId>org.tomitribe.springframework</groupId>
       <artifactId>spring-test</artifactId>
       <scope>test</scope>
     </dependency>
