@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>6.0.2-SNAPSHOT</version>
+    <version>6.0.1-TT.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-web</artifactId>
@@ -103,12 +103,12 @@
       <artifactId>xbean-spring</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
+      <groupId>org.tomitribe.springframework</groupId>
       <artifactId>spring-webmvc</artifactId>
       <optional>false</optional>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
+      <groupId>org.tomitribe.springframework</groupId>
       <artifactId>spring-web</artifactId>
       <optional>false</optional>
     </dependency>

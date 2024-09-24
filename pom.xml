@@ -25,7 +25,7 @@
 
   <groupId>org.apache.activemq</groupId>
   <artifactId>activemq-parent</artifactId>
-  <version>6.0.2-SNAPSHOT</version>
+  <version>6.0.1-TT.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>ActiveMQ</name>
   <inceptionYear>2005</inceptionYear>
@@ -96,7 +96,7 @@
     <shiro-version>1.13.0</shiro-version>
     <slf4j-version>2.0.9</slf4j-version>
     <snappy-version>1.1.2</snappy-version>
-    <spring-version>6.0.14</spring-version>
+    <spring-version>6.0.23.RELEASE-TT.1</spring-version>
     <taglibs-version>1.2.5</taglibs-version>
     <velocity-version>2.3</velocity-version>
     <xpp3-version>1.1.4c</xpp3-version>
@@ -678,43 +678,43 @@
 
       <!-- Optional Spring Support -->
       <dependency>
-        <groupId>org.springframework</groupId>
+        <groupId>org.tomitribe.springframework</groupId>
         <artifactId>spring-aop</artifactId>
         <version>${spring-version}</version>
       </dependency>
       <dependency>
-        <groupId>org.springframework</groupId>
+        <groupId>org.tomitribe.springframework</groupId>
         <artifactId>spring-beans</artifactId>
         <version>${spring-version}</version>
       </dependency>
       <dependency>
-        <groupId>org.springframework</groupId>
+        <groupId>org.tomitribe.springframework</groupId>
         <artifactId>spring-context</artifactId>
         <version>${spring-version}</version>
       </dependency>
       <dependency>
-        <groupId>org.springframework</groupId>
+        <groupId>org.tomitribe.springframework</groupId>
         <artifactId>spring-core</artifactId>
         <version>${spring-version}</version>
       </dependency>
       <dependency>
-        <groupId>org.springframework</groupId>
+        <groupId>org.tomitribe.springframework</groupId>
         <artifactId>spring-expression</artifactId>
         <version>${spring-version}</version>
       </dependency>
       <dependency>
-        <groupId>org.springframework</groupId>
+        <groupId>org.tomitribe.springframework</groupId>
         <artifactId>spring-jms</artifactId>
         <version>${spring-version}</version>
       </dependency>
       <dependency>
-        <groupId>org.springframework</groupId>
+        <groupId>org.tomitribe.springframework</groupId>
         <artifactId>spring-tx</artifactId>
         <version>${spring-version}</version>
       </dependency>
       <!--
       <dependency>
-        <groupId>org.springframework</groupId>
+        <groupId>org.tomitribe.springframework</groupId>
         <artifactId>spring</artifactId>
         <version>${spring-version}</version>
         <exclusions>
@@ -731,45 +731,45 @@
             <artifactId>jta</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.springframework</groupId>
+            <groupId>org.tomitribe.springframework</groupId>
             <artifactId>spring-support</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.springframework</groupId>
+            <groupId>org.tomitribe.springframework</groupId>
             <artifactId>spring-orm</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.springframework</groupId>
+            <groupId>org.tomitribe.springframework</groupId>
             <artifactId>spring-hibernate</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.springframework</groupId>
+            <groupId>org.tomitribe.springframework</groupId>
             <artifactId>spring-remoting</artifactId>
           </exclusion>
           <exclusion>
-            <groupId>org.springframework</groupId>
+            <groupId>org.tomitribe.springframework</groupId>
             <artifactId>spring-core</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
       -->
       <dependency>
-        <groupId>org.springframework</groupId>
+        <groupId>org.tomitribe.springframework</groupId>
         <artifactId>spring-webmvc</artifactId>
         <version>${spring-version}</version>
       </dependency>
       <dependency>
-        <groupId>org.springframework</groupId>
+        <groupId>org.tomitribe.springframework</groupId>
         <artifactId>spring-web</artifactId>
         <version>${spring-version}</version>
       </dependency>
       <dependency>
-        <groupId>org.springframework</groupId>
+        <groupId>org.tomitribe.springframework</groupId>
         <artifactId>spring-test</artifactId>
         <version>${spring-version}</version>
       </dependency>
       <dependency>
-        <groupId>org.springframework</groupId>
+        <groupId>org.tomitribe.springframework</groupId>
         <artifactId>spring-oxm</artifactId>
         <version>${spring-version}</version>
       </dependency>

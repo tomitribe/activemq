@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>6.0.2-SNAPSHOT</version>
+    <version>6.0.1-TT.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-unit-tests</artifactId>
@@ -121,7 +121,7 @@
 
     <!-- for XML parsing -->
     <dependency>
-      <groupId>org.springframework</groupId>
+      <groupId>org.tomitribe.springframework</groupId>
       <artifactId>spring-context</artifactId>
     </dependency>
     <dependency>
@@ -181,12 +181,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
+      <groupId>org.tomitribe.springframework</groupId>
       <artifactId>spring-jms</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
+      <groupId>org.tomitribe.springframework</groupId>
       <artifactId>spring-test</artifactId>
       <scope>test</scope>
     </dependency>
