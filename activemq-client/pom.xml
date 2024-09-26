@@ -215,6 +215,7 @@
           <reuseForks>false</reuseForks>
           <argLine>${surefire.argLine}</argLine>
           <runOrder>alphabetical</runOrder>
+          <failIfNoTests>false</failIfNoTests>
           <systemProperties>
             <property>
               <name>org.apache.activemq.default.directory.prefix</name>
