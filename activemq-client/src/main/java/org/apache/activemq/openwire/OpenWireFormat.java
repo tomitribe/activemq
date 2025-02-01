@@ -48,13 +48,14 @@ public final class OpenWireFormat implements WireFormat {
     private static final int MARSHAL_CACHE_SIZE = Short.MAX_VALUE / 2;
     private static final int MARSHAL_CACHE_FREE_SPACE = 100;
 
-    private DataStreamMarshaller dataMarshallers[];
+    private DataStreamMarshaller[] dataMarshallers;
     private int version;
     private boolean stackTraceEnabled;
     private boolean tcpNoDelayEnabled;
     private boolean cacheEnabled;
     private boolean tightEncodingEnabled;
     private boolean sizePrefixDisabled;
+    private boolean maxFrameSizeEnabled = true;
     private long maxFrameSize = DEFAULT_MAX_FRAME_SIZE;
 
     // The following fields are used for value caching
@@ -63,9 +64,18 @@ public final class OpenWireFormat implements WireFormat {
     private Map<DataStructure, Short> marshallCacheMap = new HashMap<DataStructure, Short>();
     private DataStructure marshallCache[] = null;
     private DataStructure unmarshallCache[] = null;
-    private DataByteArrayOutputStream bytesOut = new DataByteArrayOutputStream();
-    private DataByteArrayInputStream bytesIn = new DataByteArrayInputStream();
+    private final DataByteArrayOutputStream bytesOut = new DataByteArrayOutputStream();
+    private final DataByteArrayInputStream bytesIn = new DataByteArrayInputStream();
     private WireFormatInfo preferedWireFormatInfo;
+
+    // Used to track the currentFrameSize for validation during unmarshalling
+    // Ideally we would pass the MarshallingContext directly to the marshalling methods,
+    // however this would require modifying the DataStreamMarshaller interface which would result
+    // in hundreds of existing methods having to be updated so this allows avoiding that and
+    // tracking the state without breaking the existing API.
+    // Note that while this is currently only used during unmarshalling, but if necessary could
+    // be extended in the future to be used during marshalling as well.
+    private final ThreadLocal<MarshallingContext> marshallingContext = new ThreadLocal<>();
 
     public OpenWireFormat() {
         this(DEFAULT_STORE_VERSION);
@@ -80,7 +90,8 @@ public final class OpenWireFormat implements WireFormat {
         return version ^ (cacheEnabled ? 0x10000000 : 0x20000000)
                ^ (stackTraceEnabled ? 0x01000000 : 0x02000000)
                ^ (tightEncodingEnabled ? 0x00100000 : 0x00200000)
-               ^ (sizePrefixDisabled ? 0x00010000 : 0x00020000);
+               ^ (sizePrefixDisabled ? 0x00010000 : 0x00020000)
+               ^ (maxFrameSizeEnabled ? 0x00010000 : 0x00020000);
     }
 
     public OpenWireFormat copy() {
@@ -91,6 +102,7 @@ public final class OpenWireFormat implements WireFormat {
         answer.tightEncodingEnabled = tightEncodingEnabled;
         answer.sizePrefixDisabled = sizePrefixDisabled;
         answer.preferedWireFormatInfo = preferedWireFormatInfo;
+        answer.maxFrameSizeEnabled = maxFrameSizeEnabled;
         return answer;
     }
 
@@ -102,14 +114,15 @@ public final class OpenWireFormat implements WireFormat {
         OpenWireFormat o = (OpenWireFormat)object;
         return o.stackTraceEnabled == stackTraceEnabled && o.cacheEnabled == cacheEnabled
                && o.version == version && o.tightEncodingEnabled == tightEncodingEnabled
-               && o.sizePrefixDisabled == sizePrefixDisabled;
+               && o.sizePrefixDisabled == sizePrefixDisabled
+               && o.maxFrameSizeEnabled == maxFrameSizeEnabled;
     }
 
 
     @Override
     public String toString() {
         return "OpenWireFormat{version=" + version + ", cacheEnabled=" + cacheEnabled + ", stackTraceEnabled=" + stackTraceEnabled + ", tightEncodingEnabled="
-               + tightEncodingEnabled + ", sizePrefixDisabled=" + sizePrefixDisabled +  ", maxFrameSize=" + maxFrameSize + "}";
+               + tightEncodingEnabled + ", sizePrefixDisabled=" + sizePrefixDisabled +  ", maxFrameSize=" + maxFrameSize + ", maxFrameSizeEnabled=" + maxFrameSizeEnabled + "}";
         // return "OpenWireFormat{id="+id+",
         // tightEncodingEnabled="+tightEncodingEnabled+"}";
     }
@@ -141,6 +154,10 @@ public final class OpenWireFormat implements WireFormat {
                 BooleanStream bs = new BooleanStream();
                 size += dsm.tightMarshal1(this, c, bs);
                 size += bs.marshalledSize();
+
+                if(maxFrameSizeEnabled && size > maxFrameSize) {
+                    throw IOExceptionSupport.createFrameSizeException(size, maxFrameSize);
+                }
 
                 bytesOut.restart(size);
                 if (!sizePrefixDisabled) {
@@ -183,26 +200,23 @@ public final class OpenWireFormat implements WireFormat {
     @Override
     public synchronized Object unmarshal(ByteSequence sequence) throws IOException {
         bytesIn.restart(sequence);
-        // DataInputStream dis = new DataInputStream(new
-        // ByteArrayInputStream(sequence));
 
-        if (!sizePrefixDisabled) {
-            int size = bytesIn.readInt();
-            if (sequence.getLength() - 4 != size) {
-                // throw new IOException("Packet size does not match marshaled
-                // size");
-            }
+        try {
+            final MarshallingContext context = new MarshallingContext();
+            marshallingContext.set(context);
 
-            if (size > maxFrameSize) {
-                throw IOExceptionSupport.createFrameSizeException(size, maxFrameSize);
+            if (!sizePrefixDisabled) {
+                int size = bytesIn.readInt();
+                if (maxFrameSizeEnabled && size > maxFrameSize) {
+                    throw IOExceptionSupport.createFrameSizeException(size, maxFrameSize);
+                }
+                context.setFrameSize(size);
             }
+            return doUnmarshal(bytesIn);
+        } finally {
+            // After we unmarshal we can clear the context
+            marshallingContext.remove();
         }
-
-        Object command = doUnmarshal(bytesIn);
-        // if( !cacheEnabled && ((DataStructure)command).isMarshallAware() ) {
-        // ((MarshallAware) command).setCachedMarshalledForm(this, sequence);
-        // }
-        return command;
     }
 
     @Override
@@ -225,6 +239,10 @@ public final class OpenWireFormat implements WireFormat {
                 BooleanStream bs = new BooleanStream();
                 size += dsm.tightMarshal1(this, c, bs);
                 size += bs.marshalledSize();
+
+                if(maxFrameSizeEnabled && size > maxFrameSize) {
+                    throw IOExceptionSupport.createFrameSizeException(size, maxFrameSize);
+                }
 
                 if (!sizePrefixDisabled) {
                     dataOut.writeInt(size);
@@ -263,19 +281,22 @@ public final class OpenWireFormat implements WireFormat {
 
     @Override
     public Object unmarshal(DataInput dis) throws IOException {
-        DataInput dataIn = dis;
-        if (!sizePrefixDisabled) {
-            int size = dis.readInt();
-            if (size > maxFrameSize) {
-                throw IOExceptionSupport.createFrameSizeException(size, maxFrameSize);
+        try {
+            final MarshallingContext context = new MarshallingContext();
+            marshallingContext.set(context);
+
+          if (!sizePrefixDisabled) {
+                int size = dis.readInt();
+            if (maxFrameSizeEnabled && size > maxFrameSize) {
+                    throw IOExceptionSupport.createFrameSizeException(size, maxFrameSize);
+                }
+                context.setFrameSize(size);
             }
-            // int size = dis.readInt();
-            // byte[] data = new byte[size];
-            // dis.readFully(data);
-            // bytesIn.restart(data);
-            // dataIn = bytesIn;
+            return doUnmarshal(dis);
+        } finally {
+            // After we unmarshal we can clear
+            marshallingContext.remove();
         }
-        return doUnmarshal(dataIn);
     }
 
     /**
@@ -351,7 +372,7 @@ public final class OpenWireFormat implements WireFormat {
         this.version = version;
     }
 
-    public Object doUnmarshal(DataInput dis) throws IOException {
+    private Object doUnmarshal(DataInput dis) throws IOException {
         byte dataType = dis.readByte();
         if (dataType != NULL_TYPE) {
             DataStreamMarshaller dsm = dataMarshallers[dataType & 0xFF];
@@ -605,6 +626,20 @@ public final class OpenWireFormat implements WireFormat {
         this.maxFrameSize = maxFrameSize;
     }
 
+    public boolean isMaxFrameSizeEnabled() {
+        return maxFrameSizeEnabled;
+    }
+
+    /**
+     * Set whether the maxFrameSize check will be enabled. Note this is only applied to this format
+     * and will NOT be negotiated
+     *
+     * @param maxFrameSizeEnabled
+     */
+    public void setMaxFrameSizeEnabled(boolean maxFrameSizeEnabled) {
+        this.maxFrameSizeEnabled = maxFrameSizeEnabled;
+    }
+
     public void renegotiateWireFormat(WireFormatInfo info) throws IOException {
 
         if (preferedWireFormatInfo == null) {
@@ -616,6 +651,7 @@ public final class OpenWireFormat implements WireFormat {
 
         this.setMaxFrameSize(min(preferedWireFormatInfo.getMaxFrameSize(), info.getMaxFrameSize()));
         info.setMaxFrameSize(this.getMaxFrameSize());
+        //Note: Don't negotiate maxFrameSizeEnabled so the client and server can set independently
 
         this.stackTraceEnabled = info.isStackTraceEnabled() && preferedWireFormatInfo.isStackTraceEnabled();
         info.setStackTraceEnabled(this.stackTraceEnabled);
@@ -671,4 +707,47 @@ public final class OpenWireFormat implements WireFormat {
         }
         return version2;
     }
+
+    MarshallingContext getMarshallingContext() {
+        return marshallingContext.get();
+    }
+
+    // Used to track the estimated allocated buffer sizes to validate
+    // against the current frame being processed
+    static class MarshallingContext {
+        // Use primitives to minimize memory footprint
+        private int frameSize = -1;
+        private int estimatedAllocated = 0;
+
+        void setFrameSize(int frameSize) throws IOException {
+            this.frameSize = frameSize;
+            if (frameSize < 0) {
+                throw error("Frame size " + frameSize + " can't be negative.");
+            }
+        }
+
+        void increment(int size) throws IOException {
+            if (size < 0) {
+                throw error("Size " + size + " can't be negative.");
+            }
+            try {
+                estimatedAllocated = Math.addExact(estimatedAllocated, size);
+            } catch (ArithmeticException e) {
+                throw error("Buffer overflow when incrementing size value: " + size);
+            }
+        }
+
+        public int getFrameSize() {
+            return frameSize;
+        }
+
+        public int getEstimatedAllocated() {
+            return estimatedAllocated;
+        }
+
+        private static IOException error(String errorMessage) {
+            return new IOException(new IllegalArgumentException(errorMessage));
+        }
+    }
+
 }
