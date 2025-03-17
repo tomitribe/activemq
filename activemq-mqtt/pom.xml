@@ -112,7 +112,7 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
+      <groupId>org.tomitribe.springframework</groupId>
       <artifactId>spring-context</artifactId>
       <optional>true</optional>
     </dependency>
