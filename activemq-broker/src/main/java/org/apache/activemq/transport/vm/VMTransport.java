@@ -18,6 +18,8 @@ package org.apache.activemq.transport.vm;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.URI;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.BlockingQueue;
@@ -27,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.activemq.command.ShutdownInfo;
+import org.apache.activemq.network.DemandForwardingBridgeSupport;
 import org.apache.activemq.thread.Task;
 import org.apache.activemq.thread.TaskRunner;
 import org.apache.activemq.thread.TaskRunnerFactory;
@@ -45,6 +48,7 @@ import org.slf4j.LoggerFactory;
  */
 public class VMTransport implements Transport, Task {
     protected static final Logger LOG = LoggerFactory.getLogger(VMTransport.class);
+    private static final Logger BRIDGE_LOG = LoggerFactory.getLogger(DemandForwardingBridgeSupport.class);
 
     private static final AtomicLong NEXT_ID = new AtomicLong(0);
 
@@ -135,6 +139,15 @@ public class VMTransport implements Transport, Task {
     }
 
     public void dispatch(VMTransport transport, BlockingQueue<Object> pending, Object command) {
+        if (command instanceof ShutdownInfo) {
+            final Exception at = new Exception();
+            final StringWriter sw = new StringWriter();
+            final PrintWriter pw = new PrintWriter(sw);
+            at.printStackTrace(pw);
+            pw.flush();
+            BRIDGE_LOG.warn("ShutdownInfo send on VMTransport at {}", sw.toString(), at);
+        }
+
         TransportListener transportListener = transport.getTransportListener();
         if (transportListener != null) {
             // Lock here on the target transport's started since we want to wait for its start()

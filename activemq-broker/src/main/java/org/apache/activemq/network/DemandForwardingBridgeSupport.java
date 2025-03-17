@@ -17,6 +17,8 @@
 package org.apache.activemq.network;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.security.GeneralSecurityException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -272,6 +274,13 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
 
     @Override
     public void stop() throws Exception {
+        final Exception at = new Exception();
+        final StringWriter sw = new StringWriter();
+        final PrintWriter pw = new PrintWriter(sw);
+        at.printStackTrace(pw);
+        pw.flush();
+        LOG.warn("Stopping network connector at: {}", sw.toString(), at);
+
         if (started.compareAndSet(true, false)) {
             if (disposed.compareAndSet(false, true)) {
                 LOG.debug(" stopping {} bridge to {}", configuration.getBrokerName(), remoteBrokerName);
@@ -1304,7 +1313,10 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                 } else if (command.isBrokerInfo()) {
                     futureLocalBrokerInfo.set((BrokerInfo) command);
                 } else if (command.isShutdownInfo()) {
+                    final ShutdownInfo shutdownInfo = (ShutdownInfo) command;
                     LOG.info("{} Shutting down {}", configuration.getBrokerName(), configuration.getName());
+                    final Exception exception = new Exception();
+                    LOG.info("{} Shutdown source {}", shutdownInfo.getFrom(), exception);
                     stop();
                 } else if (command.getClass() == ConnectionError.class) {
                     ConnectionError ce = (ConnectionError) command;
@@ -1792,7 +1804,7 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
     }
 
     private void fireBridgeFailed(Throwable reason) {
-        LOG.trace("fire bridge failed, listener: {}", this.networkBridgeListener, reason);
+        LOG.info("fire bridge failed, listener: {}", this.networkBridgeListener, reason);
         NetworkBridgeListener l = this.networkBridgeListener;
         if (l != null && this.bridgeFailed.compareAndSet(false, true)) {
             l.bridgeFailed();

@@ -36,6 +36,11 @@ public class DatagramEndpoint extends BaseEndpoint {
     public SocketAddress getAddress() {
         return address;
     }
-    
-    
+
+    @Override
+    public String toString() {
+        return super.toString() + ", DatagramEndpoint{" +
+                "address=" + address +
+                '}';
+    }
 }
