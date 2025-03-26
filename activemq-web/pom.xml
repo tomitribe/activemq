@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>activemq-5.18.8-TT.1-SNAPSHOT</version>
+    <version>5.18.8-TT.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-web</artifactId>
@@ -53,10 +53,6 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>activemq-pool</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
     </dependency>
     <dependency>
       <groupId>javax.xml.bind</groupId>
