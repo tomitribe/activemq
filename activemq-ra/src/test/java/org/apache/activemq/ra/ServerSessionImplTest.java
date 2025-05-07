@@ -31,10 +31,10 @@ import org.jmock.Mockery;
 import org.jmock.api.Action;
 import org.jmock.api.Invocation;
 import org.jmock.integration.junit4.JMock;
-import org.jmock.lib.legacy.ClassImposteriser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -57,12 +57,20 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 @Ignore
 @RunWith(JMock.class)
 public class ServerSessionImplTest {
+
+    @Rule
+    public JUnitRuleMockery context = new JUnitRuleMockery() {
+        {
+            setImposteriser(ByteBuddyClassImposteriser.INSTANCE);
+        }
+    };
 
     private static final Logger LOG = LoggerFactory.getLogger(ServerSessionImplTest.class);
     private static final String BROKER_URL = "vm://localhost?broker.persistent=false";
@@ -74,16 +82,10 @@ public class ServerSessionImplTest {
     private ActiveMQConnection con;
     private ActiveMQSession session;
     private ActiveMQEndpointWorker endpointWorker;
-    private Mockery context;
 
     @Before
     public void setUp() throws Exception {
-        context = new Mockery() {
-            {
-                setImposteriser(ClassImposteriser.INSTANCE);
-            }
-        };
-
+                setImposteriser(ByteBuddyClassImposteriser.INSTANCE);
         org.apache.activemq.ActiveMQConnectionFactory factory = new org.apache.activemq.ActiveMQConnectionFactory(BROKER_URL);
         con = (ActiveMQConnection) factory.createConnection();
         con.start();
@@ -154,7 +156,7 @@ public class ServerSessionImplTest {
                 will(returnValue(Boolean.FALSE));
                 allowing(messageActivationSpec).isUseRAManagedTransactionEnabled();
                 will(returnValue(Boolean.TRUE));
-                allowing(messageEndpointFactory).createEndpoint(with(any(XAResource.class)));
+                allowing(messageEndpointFactory).createEndpoint(with(nullValue(XAResource.class)));
                 will(returnValue(messageEndpoint));
 
                 allowing(workManager).scheduleWork((Work) with(any(Work.class)), with(any(long.class)), with(any(ExecutionContext.class)),
@@ -189,6 +191,12 @@ public class ServerSessionImplTest {
                 });
                 allowing(messageEndpoint).afterDelivery();
                 allowing(messageEndpoint).release();
+
+                allowing(workManager).scheduleWork(
+                    with(any(Work.class)),
+                    with(any(Long.TYPE)),
+                    with(nullValue(ExecutionContext.class)),
+                    with(nullValue(WorkListener.class)));
 
             }
         });
@@ -282,7 +290,7 @@ public class ServerSessionImplTest {
                 will(returnValue(Boolean.FALSE));
                 allowing(messageActivationSpec).isUseRAManagedTransactionEnabled();
                 will(returnValue(Boolean.TRUE));
-                allowing(messageEndpointFactory).createEndpoint(with(any(XAResource.class)));
+                allowing(messageEndpointFactory).createEndpoint(with(nullValue(XAResource.class)));
                 will(returnValue(messageEndpoint));
 
                 allowing(workManager).scheduleWork((Work) with(any(Work.class)), with(any(long.class)), with(any(ExecutionContext.class)),
@@ -344,6 +352,12 @@ public class ServerSessionImplTest {
                     }
                 });
                 allowing(messageEndpoint).release();
+
+                allowing(workManager).scheduleWork(
+                    with(any(Work.class)),
+                    with(any(Long.TYPE)),
+                    with(nullValue(ExecutionContext.class)),
+                    with(nullValue(WorkListener.class)));
 
             }
         });
@@ -473,12 +487,18 @@ public class ServerSessionImplTest {
                 will(returnValue(Boolean.FALSE));
                 allowing(messageActivationSpec).isUseRAManagedTransactionEnabled();
                 will(returnValue(Boolean.TRUE));
-                allowing(messageEndpointFactory).createEndpoint(with(any(XAResource.class)));
+                allowing(messageEndpointFactory).createEndpoint(with(nullValue(XAResource.class)));
                 will(returnValue(messageEndpoint));
 
                 allowing(workManager).scheduleWork(with(any(Work.class)), with(any(long.class)), with(any(ExecutionContext.class)),
                         with(any(WorkListener.class)));
                 allowing(messageEndpoint).release();
+
+                allowing(workManager).scheduleWork(
+                    with(any(Work.class)),
+                    with(any(Long.TYPE)),
+                    with(nullValue(ExecutionContext.class)),
+                    with(nullValue(WorkListener.class)));
             }
         });
 
