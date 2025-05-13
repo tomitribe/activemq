@@ -25,7 +25,7 @@
 
   <groupId>org.apache.activemq</groupId>
   <artifactId>activemq-parent</artifactId>
-  <version>6.0.2-TT.2</version>
+  <version>6.0.2-TT.3-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>ActiveMQ</name>
   <inceptionYear>2005</inceptionYear>
@@ -73,6 +73,7 @@
     <jetty-version>11.0.24</jetty-version>
     <jmdns-version>3.5.8</jmdns-version>
     <tomcat-api-version>9.0.65</tomcat-api-version>
+    <javassist-version>3.30.2-GA</javassist-version>
     <jettison-version>1.5.4</jettison-version>
     <jmock-version>2.12.0</jmock-version>
     <jolokia-version>2.0.0-M4</jolokia-version>
@@ -240,7 +241,7 @@
     <connection>scm:git:git@github.com:tomitribe/activemq.git</connection>
     <developerConnection>scm:git:git@github.com:tomitribe/activemq.git</developerConnection>
     <url>git@github.com:tomitribe/activemq-git</url>
-    <tag>activemq-6.0.2-TT.2</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <dependencyManagement>
@@ -940,6 +941,11 @@
         <artifactId>jettison</artifactId>
         <version>${jettison-version}</version>
     </dependency>
+      <dependency>
+        <groupId>org.javassist</groupId>
+        <artifactId>javassist</artifactId>
+        <version>${javassist-version}</version>
+      </dependency>
 
       <dependency>
         <groupId>annogen</groupId>
@@ -1298,6 +1304,7 @@
         <configuration>
           <excludeSubProjects>false</excludeSubProjects>
           <excludes>
+            <exclude>**/RELEASE-NOTES-EAP-*</exclude>
             <exclude>**/*.bin</exclude>
             <exclude>**/*.log</exclude>
             <exclude>**/*.txt</exclude>
