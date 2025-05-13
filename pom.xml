@@ -1304,6 +1304,7 @@
         <configuration>
           <excludeSubProjects>false</excludeSubProjects>
           <excludes>
+            <exclude>**/RELEASE-NOTES-EAP-*</exclude>
             <exclude>**/*.bin</exclude>
             <exclude>**/*.log</exclude>
             <exclude>**/*.txt</exclude>
