@@ -27,10 +27,11 @@ import org.apache.activemq.command.TransactionInfo;
 import org.apache.activemq.util.Wait;
 import org.hamcrest.Description;
 import org.jmock.Expectations;
-import org.jmock.Mockery;
 import org.jmock.api.Action;
 import org.jmock.api.Invocation;
+import org.jmock.imposters.ByteBuddyClassImposteriser;
 import org.jmock.integration.junit4.JMock;
+import org.jmock.integration.junit4.JUnitRuleMockery;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -85,7 +86,6 @@ public class ServerSessionImplTest {
 
     @Before
     public void setUp() throws Exception {
-                setImposteriser(ByteBuddyClassImposteriser.INSTANCE);
         org.apache.activemq.ActiveMQConnectionFactory factory = new org.apache.activemq.ActiveMQConnectionFactory(BROKER_URL);
         con = (ActiveMQConnection) factory.createConnection();
         con.start();
