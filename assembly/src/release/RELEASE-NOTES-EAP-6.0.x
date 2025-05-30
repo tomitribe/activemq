@@ -1,5 +1,8 @@
 Apache ActiveMQ 6.0.x-TT.x
 
+ Apache ActiveMQ 6.0.2-TT.4
+  - CVE-2025-22233 - Spring Framework DataBinder Case Sensitive Match Exception (2nd update)
+
  Apache ActiveMQ 6.0.2-TT.3
   - CVE-2025-27533 Out Of Memory error during openwire unmarshalling
 
