@@ -1,7 +1,11 @@
  Apache ActiveMQ 6.1.x-TT.x
 
- Changes in ActiveMQ EAP 6.1.7-TT.2
-  - CVE-2025-22233 Spring Framework DataBinder Case Sensitive Match Exception (2nd update)
+ Changes in ActiveMQ EAP 6.1.7-TT.3
+   - CVE-2025-22233 - Spring Framework DataBinder Case Sensitive Match Exception (2nd update)
+   - CVE-2025-48734 - Apache Commons BeanUtils PropertyUtilsBean does not suppress an enum's declaredClass property by default
+
+Changes in ActiveMQ EAP 6.1.7-TT.2
+   - Fix to avoid deadlock in resource adapter
 
  Changes in ActiveMQ EAP 6.1.7-TT.1
    - Upgrade to Camel 4.8.5 to mitigate CVE-2025-29891 and CVE-2025-27636
