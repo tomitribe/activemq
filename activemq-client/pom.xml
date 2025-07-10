@@ -79,6 +79,11 @@
       <artifactId>log4j-slf4j2-impl</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.javassist</groupId>
+      <artifactId>javassist</artifactId>
+      <scope>test</scope>
+    </dependency>
 
   </dependencies>
 
@@ -215,6 +220,7 @@
           <reuseForks>false</reuseForks>
           <argLine>${surefire.argLine}</argLine>
           <runOrder>alphabetical</runOrder>
+          <failIfNoTests>false</failIfNoTests>
           <systemProperties>
             <property>
               <name>org.apache.activemq.default.directory.prefix</name>
