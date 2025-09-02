@@ -1,5 +1,8 @@
  Apache ActiveMQ 5.17.x-TT.x
 
+Changes in TomEE EAP 5.17.8-TT.3
+  - Updated to Spring 5.3.39.RELEASE-TT.5 to mitigate CVE-2025-41242
+
  Changes in ActiveMQ EAP 5.17.8-TT.2
   - CVE-2025-22233 - Spring Framework DataBinder Case Sensitive Match Exception (2nd update)
   - CVE-2024-13009 - Jetty Improper Resource Shutdown or Release
