@@ -1,5 +1,11 @@
  Apache ActiveMQ 6.1.x-TT.x
 
+ Changes in ActiveMQ EAP 6.1.8-TT.2
+   - CVE-2025-41242: Path traversal vulnerability on non-compliant Servlet containers
+
+ Changes in ActiveMQ EAP 6.1.8-TT.1
+   - CVE-2025-41234: Spring RFD Attack via “Content-Disposition” Header Sourced from Request
+
  Changes in ActiveMQ EAP 6.1.7-TT.3
    - CVE-2025-22233 - Spring Framework DataBinder Case Sensitive Match Exception (2nd update)
    - CVE-2025-48734 - Apache Commons BeanUtils PropertyUtilsBean does not suppress an enum's declaredClass property by default
