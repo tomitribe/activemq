@@ -1506,6 +1506,10 @@
             <artifactId>maven-javadoc-plugin</artifactId>
             <configuration>
               <noindex>true</noindex>
+              <detectLinks>false</detectLinks>
+              <links combine.self="override"/>
+              <doclint>none</doclint>
+              <failOnError>false</failOnError>
             </configuration>
             <executions>
               <execution>
