@@ -372,7 +372,7 @@ public final class OpenWireFormat implements WireFormat {
         this.version = version;
     }
 
-    private Object doUnmarshal(DataInput dis) throws IOException {
+    public Object doUnmarshal(DataInput dis) throws IOException {
         byte dataType = dis.readByte();
         if (dataType != NULL_TYPE) {
             DataStreamMarshaller dsm = dataMarshallers[dataType & 0xFF];
