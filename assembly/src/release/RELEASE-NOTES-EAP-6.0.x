@@ -1,5 +1,8 @@
 Apache ActiveMQ 6.0.x-TT.x
 
+ Apache ActiveMQ 6.0.2-TT.7
+  - CVE-2025-41249: Spring Framework Annotation Detection Vulnerability
+
  Apache ActiveMQ 6.0.2-TT.6
   - CVE-2025-41242 - Spring Path traversal vulnerability on non-compliant Servlet containers
 
