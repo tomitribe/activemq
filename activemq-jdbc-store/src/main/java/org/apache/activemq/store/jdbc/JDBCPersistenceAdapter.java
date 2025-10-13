@@ -28,6 +28,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import javax.sql.DataSource;
 
@@ -49,14 +50,12 @@ import org.apache.activemq.store.PersistenceAdapter;
 import org.apache.activemq.store.TopicMessageStore;
 import org.apache.activemq.store.TransactionStore;
 import org.apache.activemq.store.jdbc.adapter.DefaultJDBCAdapter;
-import org.apache.activemq.store.memory.MemoryTransactionStore;
 import org.apache.activemq.usage.SystemUsage;
 import org.apache.activemq.util.ByteSequence;
 import org.apache.activemq.util.FactoryFinder;
 import org.apache.activemq.util.IOExceptionSupport;
 import org.apache.activemq.util.LongSequenceGenerator;
 import org.apache.activemq.util.ServiceStopper;
-import org.apache.activemq.util.ThreadPoolUtils;
 import org.apache.activemq.wireformat.WireFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,6 +105,8 @@ public class JDBCPersistenceAdapter extends DataSourceServiceSupport implements 
     protected LongSequenceGenerator sequenceGenerator = new LongSequenceGenerator();
     protected int maxRows = DefaultJDBCAdapter.MAX_ROWS;
     protected final HashMap<ActiveMQDestination, MessageStore> storeCache = new HashMap<>();
+
+    protected ScheduledThreadPoolExecutor cleanupDaemon;
 
     {
         setLockKeepAlivePeriod(DEFAULT_LOCK_KEEP_ALIVE_PERIOD);
@@ -335,7 +336,7 @@ public class JDBCPersistenceAdapter extends DataSourceServiceSupport implements 
 
         // Cleanup the db periodically.
         if (cleanupPeriod > 0) {
-            cleanupTicket = getScheduledThreadPoolExecutor().scheduleWithFixedDelay(new Runnable() {
+            cleanupTicket = getCleanupScheduledThreadPoolExecutor().scheduleWithFixedDelay(new Runnable() {
                 @Override
                 public void run() {
                     cleanup();
@@ -377,19 +378,21 @@ public class JDBCPersistenceAdapter extends DataSourceServiceSupport implements 
         }
     }
 
-    @Override
-    public ScheduledThreadPoolExecutor getScheduledThreadPoolExecutor() {
-        if (clockDaemon == null) {
-            clockDaemon = new ScheduledThreadPoolExecutor(5, new ThreadFactory() {
+    public ScheduledThreadPoolExecutor getCleanupScheduledThreadPoolExecutor() {
+        if (cleanupDaemon == null) {
+            cleanupDaemon = new ScheduledThreadPoolExecutor(5, new ThreadFactory() {
+
+                private AtomicLong counter = new AtomicLong(0);
+
                 @Override
                 public Thread newThread(Runnable runnable) {
-                    Thread thread = new Thread(runnable, "ActiveMQ JDBC PA Scheduled Task");
+                    Thread thread = new Thread(runnable, "ActiveMQ JDBC PA Scheduled Task " + counter.incrementAndGet());
                     thread.setDaemon(true);
                     return thread;
                 }
             });
         }
-        return clockDaemon;
+        return cleanupDaemon;
     }
 
     public JDBCAdapter getAdapter() throws IOException {

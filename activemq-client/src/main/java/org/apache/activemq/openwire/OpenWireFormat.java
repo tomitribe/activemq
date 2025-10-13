@@ -147,7 +147,7 @@ public final class OpenWireFormat implements WireFormat {
             byte type = c.getDataStructureType();
             DataStreamMarshaller dsm = dataMarshallers[type & 0xFF];
             if (dsm == null) {
-                throw new IOException("Unknown data type: " + type);
+                throw new IOException("marshal1 (141): Unknown data type: " + type + ", DataStructure=" + c.getClass().getName());
             }
             if (tightEncodingEnabled) {
 
@@ -233,7 +233,7 @@ public final class OpenWireFormat implements WireFormat {
             byte type = c.getDataStructureType();
             DataStreamMarshaller dsm = dataMarshallers[type & 0xFF];
             if (dsm == null) {
-                throw new IOException("Unknown data type: " + type);
+                throw new IOException("marshal2 (230): Unknown data type: " + type + ", DataStructure=" + c.getClass().getName());
             }
             if (tightEncodingEnabled) {
                 BooleanStream bs = new BooleanStream();
@@ -309,7 +309,7 @@ public final class OpenWireFormat implements WireFormat {
             byte type = c.getDataStructureType();
             DataStreamMarshaller dsm = dataMarshallers[type & 0xFF];
             if (dsm == null) {
-                throw new IOException("Unknown data type: " + type);
+                throw new IOException("tightMarshal1 (303): Unknown data type: " + type + ", DataStructure=" + c.getClass().getName());
             }
 
             size += dsm.tightMarshal1(this, c, bs);
@@ -332,7 +332,7 @@ public final class OpenWireFormat implements WireFormat {
             byte type = c.getDataStructureType();
             DataStreamMarshaller dsm = dataMarshallers[type & 0xFF];
             if (dsm == null) {
-                throw new IOException("Unknown data type: " + type);
+                throw new IOException("tightMarshal2 (326): Unknown data type: " + type + ", DataStructure=" + c.getClass().getName());
             }
             ds.writeByte(type);
             bs.marshal(ds);
@@ -372,12 +372,12 @@ public final class OpenWireFormat implements WireFormat {
         this.version = version;
     }
 
-    private Object doUnmarshal(DataInput dis) throws IOException {
+    public Object doUnmarshal(DataInput dis) throws IOException {
         byte dataType = dis.readByte();
         if (dataType != NULL_TYPE) {
             DataStreamMarshaller dsm = dataMarshallers[dataType & 0xFF];
             if (dsm == null) {
-                throw new IOException("Unknown data type: " + dataType);
+                throw new IOException("doUnmarshal (371): Unknown data type: " + dataType);
             }
             Object data = dsm.createObject();
             if (this.tightEncodingEnabled) {
@@ -416,7 +416,7 @@ public final class OpenWireFormat implements WireFormat {
         byte type = o.getDataStructureType();
         DataStreamMarshaller dsm = dataMarshallers[type & 0xFF];
         if (dsm == null) {
-            throw new IOException("Unknown data type: " + type);
+            throw new IOException("tightMarshalNestedObject1 (410): Unknown data type: " + type + ", DataStructure=" + o.getClass().getName());
         }
         return 1 + dsm.tightMarshal1(this, o, bs);
     }
@@ -443,7 +443,7 @@ public final class OpenWireFormat implements WireFormat {
 
             DataStreamMarshaller dsm = dataMarshallers[type & 0xFF];
             if (dsm == null) {
-                throw new IOException("Unknown data type: " + type);
+                throw new IOException("tightMarshalNestedObject2 (437): Unknown data type: " + type + ", DataStructure=" + o.getClass().getName());
             }
             dsm.tightMarshal2(this, o, ds, bs);
 
@@ -456,7 +456,7 @@ public final class OpenWireFormat implements WireFormat {
             byte dataType = dis.readByte();
             DataStreamMarshaller dsm = dataMarshallers[dataType & 0xFF];
             if (dsm == null) {
-                throw new IOException("Unknown data type: " + dataType);
+                throw new IOException("tightUnmarshalNestedObject (450): Unknown data type: " + dataType);
             }
             DataStructure data = dsm.createObject();
 
@@ -489,7 +489,7 @@ public final class OpenWireFormat implements WireFormat {
             byte dataType = dis.readByte();
             DataStreamMarshaller dsm = dataMarshallers[dataType & 0xFF];
             if (dsm == null) {
-                throw new IOException("Unknown data type: " + dataType);
+                    throw new IOException("looseUnmarshalNestedObject1 (483): Unknown data type: " + dataType);
             }
             DataStructure data = dsm.createObject();
             dsm.looseUnmarshal(this, data, dis);
@@ -507,7 +507,7 @@ public final class OpenWireFormat implements WireFormat {
             dataOut.writeByte(type);
             DataStreamMarshaller dsm = dataMarshallers[type & 0xFF];
             if (dsm == null) {
-                throw new IOException("Unknown data type: " + type);
+                throw new IOException("looseMarshalNestedObject2 (501): Unknown data type: " + type + ", DataStructure=" + o.getClass().getName());
             }
             dsm.looseMarshal(this, o, dataOut);
         }
