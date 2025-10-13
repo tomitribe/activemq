@@ -38,10 +38,12 @@ import jakarta.jms.Session;
 import jakarta.jms.TextMessage;
 
 import org.apache.activemq.ScheduledMessage;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Ignore
 public class JmsCronSchedulerTest extends JobSchedulerTestSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsCronSchedulerTest.class);

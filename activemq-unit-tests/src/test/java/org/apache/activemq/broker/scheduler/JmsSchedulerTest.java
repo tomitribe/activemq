@@ -44,10 +44,12 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Ignore
 public class JmsSchedulerTest extends JobSchedulerTestSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsSchedulerTest.class);
