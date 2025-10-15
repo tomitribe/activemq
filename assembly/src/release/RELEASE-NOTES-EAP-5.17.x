@@ -2,6 +2,7 @@
 
 Changes in TomEE EAP 5.17.8-TT.4
   - CVE-2025-41249 - Spring Framework Annotation Detection Vulnerability
+  - Additional debug logs for identifying client connection issues
 
 Changes in TomEE EAP 5.17.8-TT.3
   - Updated to Spring 5.3.39.RELEASE-TT.5 to mitigate CVE-2025-41242
