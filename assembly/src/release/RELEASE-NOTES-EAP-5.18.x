@@ -1,7 +1,7 @@
  Apache ActiveMQ 5.18.x-TT.x
 
  Changes in ActiveMQ EAP 5.18.8-TT.5
- - CVE-2025-21249 - Spring Framework Annotation Detection Vulnerability
+ - CVE-2025-41249 - Spring Framework Annotation Detection Vulnerability
 
  Changes in ActiveMQ EAP 5.18.8-TT.4
  - Updated to Spring 5.3.39.RELEASE-TT.5 to mitigate CVE-2025-41242
