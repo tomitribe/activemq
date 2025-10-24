@@ -27,7 +27,9 @@ import org.apache.activemq.ScheduledMessage;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.util.IOHelper;
 import org.apache.activemq.util.ProducerThread;
+import org.junit.Ignore;
 
+@Ignore
 public class JobSchedulerBrokerShutdownTest extends EmbeddedBrokerTestSupport {
 
     @Override

@@ -49,11 +49,12 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Ignore
+//@Ignore
 public class JmsSchedulerTest extends JobSchedulerTestSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger(JmsSchedulerTest.class);
 
+    @Ignore
     @Test
     public void testCron() throws Exception {
         final int COUNT = 10;

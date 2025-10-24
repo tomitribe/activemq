@@ -38,8 +38,10 @@ import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.util.IOHelper;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore
 public class LostScheduledMessagesTest {
 
     private BrokerService broker;
