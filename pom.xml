@@ -189,7 +189,7 @@
     <module>activemq-amqp</module>
     <module>activemq-kahadb-store</module>
     <module>activemq-jdbc-store</module>
-    <!--<module>activemq-unit-tests</module>-->
+    <module>activemq-unit-tests</module>
     <module>activemq-all</module>
     <module>activemq-console</module>
     <module>activemq-jaas</module>
