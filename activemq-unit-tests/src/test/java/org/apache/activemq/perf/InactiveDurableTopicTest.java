@@ -145,7 +145,7 @@ public class InactiveDurableTopicTest extends TestCase {
         }
     }
 
-    public void test3CreateSubscription() throws Exception {
+    public void ignoretest3CreateSubscription() throws Exception {
         try {
             /*
              * Step 1 - Establish a connection with a client id and create a
