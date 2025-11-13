@@ -25,7 +25,7 @@
 
   <groupId>org.apache.activemq</groupId>
   <artifactId>activemq-parent</artifactId>
-  <version>6.2.0-SNAPSHOT</version>
+  <version>6.2.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>ActiveMQ</name>
   <inceptionYear>2005</inceptionYear>
@@ -44,7 +44,7 @@
     <annogen-version>0.1.0</annogen-version>
     <ant-version>1.10.15</ant-version>
     <aries-version>1.1.0</aries-version>
-    <camel-version>4.14.1</camel-version>
+    <camel-version>4.14.2</camel-version>
     <commons-beanutils-version>1.11.0</commons-beanutils-version>
     <commons-collections-version>3.2.2</commons-collections-version>
     <commons-dbcp2-version>2.13.0</commons-dbcp2-version>
@@ -60,7 +60,7 @@
     <httpclient-version>4.5.14</httpclient-version>
     <httpcore-version>4.4.16</httpcore-version>
     <insight-version>1.2.0.Beta4</insight-version>
-    <jackson-version>2.20.0</jackson-version>
+    <jackson-version>2.20.1</jackson-version>
     <jackson-annotations-version>2.20</jackson-annotations-version>
     <jakarta-jms-api-version>3.1.0</jakarta-jms-api-version>
     <jasypt-version>1.9.3</jasypt-version>
@@ -86,7 +86,7 @@
     <qpid-jms-version>2.4.0</qpid-jms-version>
     <netty-version>4.1.94.Final</netty-version>
     <rome-version>2.1.0</rome-version>
-    <shiro-version>1.13.0</shiro-version>
+    <shiro-version>2.0.6</shiro-version>
     <slf4j-version>2.0.17</slf4j-version>
     <snappy-version>1.1.2</snappy-version>
     <spring-version>6.2.12</spring-version>
@@ -94,7 +94,7 @@
     <taglibs-version>1.2.5</taglibs-version>
     <xpp3-version>1.1.4c</xpp3-version>
     <xstream-version>1.4.21</xstream-version>
-    <xbean-version>4.27</xbean-version>
+    <xbean-version>4.28</xbean-version>
     <xerces-version>2.12.2</xerces-version>
     <jaxb-tools-version>4.0.8</jaxb-tools-version>
     <stompjms-version>3.1.0</stompjms-version>
@@ -219,7 +219,7 @@
     <connection>scm:git:http://gitbox.apache.org/repos/asf/activemq.git</connection>
     <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/activemq.git</developerConnection>
     <url>https://github.com/apache/activemq</url>
-    <tag>main</tag>
+    <tag>activemq-6.2.0</tag>
   </scm>
 
   <dependencyManagement>

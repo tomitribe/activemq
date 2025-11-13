@@ -15,26 +15,20 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<beans
+        xmlns="http://www.springframework.org/schema/beans"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+  http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
 
-  <modelVersion>4.0.0</modelVersion>
+  <broker xmlns="http://activemq.apache.org/schema/core" start="false" persistent="false" >
+    <plugins>
+      <runtimeConfigurationPlugin checkPeriod="1000" />
+    </plugins>
 
-  <parent>
-    <groupId>org.apache.activemq</groupId>
-    <artifactId>activemq-parent</artifactId>
-    <version>6.2.1-SNAPSHOT</version>
-  </parent>
-
-  <groupId>org.apache.activemq.tooling</groupId>
-  <artifactId>activemq-tooling</artifactId>
-  <packaging>pom</packaging>
-  <name>ActiveMQ :: Tooling</name>
-
-  <modules>
-    <module>activemq-memtest-maven-plugin</module>
-    <module>activemq-perf-maven-plugin</module>
-    <module>activemq-maven-plugin</module>
-    <module>activemq-junit</module>
-    <module>activemq-joram-jms-tests</module>
-  </modules>
-</project>
+    <networkConnectors>
+      <networkConnector uri="static:(tcp://localhost:5555)" networkTTL="1" name="two"/>
+      <networkConnector uri="static:(tcp://localhost:5555)" networkTTL="1" name="one"/>
+    </networkConnectors>
+  </broker>
+</beans>
