@@ -1,5 +1,8 @@
 Apache ActiveMQ 5.19.x-TT.x
 
+Changes in ActiveMQ EAP 5.19.2-TT.1
+- Merged upstream Apache ActiveMQ 5.19.1 release changes (broker/store fixes, web console updates, and test improvements)
+
 Changes in ActiveMQ EAP 5.19.1-TT.4
 - CVE-2025-41249 Spring Framework Annotation Detection Vulnerability
 
