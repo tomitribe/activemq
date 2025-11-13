@@ -245,9 +245,9 @@
   </modules>
 
   <scm>
-    <connection>scm:git:http://gitbox.apache.org/repos/asf/activemq.git</connection>
-    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/activemq.git</developerConnection>
-    <url>https://github.com/apache/activemq</url>
+    <connection>scm:git:git@github.com:tomitribe/activemq.git</connection>
+    <developerConnection>scm:git:git@github.com:tomitribe/activemq.git</developerConnection>
+    <url>git@github.com:tomitribe/activemq-git</url>
     <tag>HEAD</tag>
   </scm>
 
