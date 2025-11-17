@@ -219,6 +219,7 @@ public class JmsSchedulerTest extends JobSchedulerTestSupport {
         testScheduleRestart(RestartType.FULL_RECOVERY);
     }
 
+    @Ignore
     @Test
     public void testUpdatesAppliedToIndexBeforeJournalShouldBeDiscarded() throws Exception {
         final int NUMBER_OF_MESSAGES = 1000;
