@@ -20,8 +20,12 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.activemq.command.MessageDispatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FifoMessageDispatchChannel implements MessageDispatchChannel {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TransactionContext.class);
 
     private final Object mutex = new Object();
     private final LinkedList<MessageDispatch> list;
@@ -71,6 +75,7 @@ public class FifoMessageDispatchChannel implements MessageDispatchChannel {
                 if (timeout == -1) {
                     mutex.wait();
                 } else {
+
                     mutex.wait(timeout);
                     break;
                 }

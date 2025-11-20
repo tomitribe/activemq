@@ -126,7 +126,7 @@ public class FailoverDurableSubTransactionTest {
     }
 
 
-    @org.junit.Test
+    @org.junit.Test(timeout = 120000)
     public void testFailoverCommit() throws Exception {
 
         final AtomicInteger dispatchedCount = new AtomicInteger(0);
@@ -194,9 +194,11 @@ public class FailoverDurableSubTransactionTest {
         consumer = session.createDurableSubscriber(destination, "DS");
 
         AtomicBoolean success = new AtomicBoolean(false);
+        AtomicInteger attempts = new AtomicInteger();
+        int maxAttempts = 10;
 
         HashSet<Integer> dupCheck = new HashSet<Integer>();
-        while (!success.get()) {
+        while (!success.get() && attempts.getAndIncrement() < maxAttempts) {
             dupCheck.clear();
             int i = 0;
             for (i = 0; i < messageCount; i++) {
@@ -228,10 +230,10 @@ public class FailoverDurableSubTransactionTest {
         org.apache.activemq.broker.region.Destination dlq = broker.getDestination(ActiveMQDestination.transform(new ActiveMQQueue(DEFAULT_DEAD_LETTER_QUEUE_NAME)));
         LOG.info("DLQ: " + dlq);
         assertEquals("DLQ empty ", 0, dlq.getDestinationStatistics().getMessages().getCount());
-
+        assertTrue(success.get());
     }
 
-    @org.junit.Test
+    @org.junit.Test(timeout = 120000)
     public void testFailoverCommitListener() throws Exception {
 
         final AtomicInteger dispatchedCount = new AtomicInteger(0);
