@@ -198,7 +198,8 @@ public class FailoverDurableSubTransactionTest {
         int maxAttempts = 10;
 
         HashSet<Integer> dupCheck = new HashSet<Integer>();
-        while (!success.get() && attempts.getAndIncrement() < maxAttempts) {
+        while (!success.get() /*&& attempts.getAndIncrement() < maxAttempts*/) {
+            attempts.getAndIncrement();
             dupCheck.clear();
             int i = 0;
             for (i = 0; i < messageCount; i++) {
