@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>6.1.8-TT.4-SNAPSHOT</version>
+    <version>6.1.9-TT.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-cf</artifactId>
@@ -65,7 +65,7 @@
                     		!*
                     	</Export-Package>
 						<Import-Package>
-							javax.jms*;version="[1,3)",
+							jakarta.jms*;version="[3,4)",
 							*
 						</Import-Package>
                         <Private-Package>
