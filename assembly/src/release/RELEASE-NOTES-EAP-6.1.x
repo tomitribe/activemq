@@ -1,5 +1,8 @@
  Apache ActiveMQ 6.1.x-TT.x
 
+Changes in ActiveMQ EAP 6.1.9-TT.1
+   - Post OSS 6.1.8 release
+
  Changes in ActiveMQ EAP 6.1.8-TT.3
    - CVE-2025-41249: Spring Framework Annotation Detection Vulnerability
 
