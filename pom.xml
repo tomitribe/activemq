@@ -25,14 +25,14 @@
 
   <groupId>org.apache.activemq</groupId>
   <artifactId>activemq-parent</artifactId>
-  <version>5.19.1-TT.5-SNAPSHOT</version>
+  <version>5.19.2-TT.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>ActiveMQ</name>
   <inceptionYear>2005</inceptionYear>
 
   <properties>
     <!-- for reproducible builds -->	
-    <project.build.outputTimestamp>2025-10-15T22:47:04Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2025-03-07T13:22:49Z</project.build.outputTimestamp>
 
     <activeio-version>3.1.4</activeio-version>
     <siteId>activemq-${project.version}</siteId>
@@ -53,8 +53,8 @@
     <commons-collections-version>3.2.2-TT.1</commons-collections-version>
     <commons-daemon-version>1.4.1</commons-daemon-version>
     <commons-dbcp2-version>2.13.0</commons-dbcp2-version>
-    <commons-io-version>2.18.0</commons-io-version>
-    <commons-lang-version>3.14.0</commons-lang-version>
+    <commons-io-version>2.20.0</commons-io-version>
+    <commons-lang-version>3.18.0</commons-lang-version>
     <commons-logging-version>1.3.5</commons-logging-version>
     <commons-pool2-version>2.12.1</commons-pool2-version>
     <commons-primitives-version>1.0</commons-primitives-version>
@@ -69,12 +69,13 @@
     <insight-version>1.2.0.Beta4</insight-version>
     <jakarta-jms-api-version>2.0.3</jakarta-jms-api-version>
     <jakarta-jms-api-v3-version>3.1.0</jakarta-jms-api-v3-version>
-    <jackson-version>2.18.3</jackson-version>
+    <jackson-version>2.20.0</jackson-version>
+    <jackson-annotations-version>2.20</jackson-annotations-version>
     <jasypt-version>1.9.3</jasypt-version>
     <jaxb-bundle-version>2.3.2_1</jaxb-bundle-version>
-    <jetty9-version>9.4.57.v20241219</jetty9-version>
+    <jetty9-version>9.4.58.v20250814</jetty9-version>
     <jetty-version>${jetty9-version}</jetty-version>
-    <jmdns-version>3.6.0</jmdns-version>
+    <jmdns-version>3.6.2</jmdns-version>
     <tomcat-api-version>9.0.100</tomcat-api-version>
     <javassist-version>3.30.2-GA</javassist-version>
     <jettison-version>1.5.4</jettison-version>
@@ -107,7 +108,7 @@
     <velocity-version>2.4.1</velocity-version>
     <xpp3-version>1.1.4c</xpp3-version>
     <xstream-version>1.4.21</xstream-version>
-    <xbean-version>4.26</xbean-version>
+    <xbean-version>4.27</xbean-version>
     <xerces-version>2.12.2</xerces-version>
     <jaxb-basics-version>0.12.0</jaxb-basics-version>
     <stompjms-version>1.19</stompjms-version>
@@ -488,7 +489,7 @@
      <dependency>
        <groupId>org.ow2.asm</groupId>
        <artifactId>asm</artifactId>
-       <version>9.7.1</version>
+       <version>9.9</version>
      </dependency>
 
       <!-- Servlet 3.1 and JSP -->
@@ -718,7 +719,7 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-annotations</artifactId>
-        <version>${jackson-version}</version>
+        <version>${jackson-annotations-version}</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
