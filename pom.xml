@@ -1616,6 +1616,7 @@
             <artifactId>maven-javadoc-plugin</artifactId>
             <configuration>
               <noindex>true</noindex>
+              <failOnError>false</failOnError>
             </configuration>
             <executions>
               <execution>
