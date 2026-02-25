@@ -1,5 +1,9 @@
  Apache ActiveMQ 5.17.x-TT.x
 
+ Changes in ActiveMQ EAP 5.17.8-TT.5
+  - CVE-2026-23901: Observable Timing Discrepancy vulnerability in Apache Shiro
+  - CVE-2026-23903: Apache Shiro [ActiveMQ] Auth bypass when accessing static files only on case-insensitive filesystems
+
 Changes in TomEE EAP 5.17.8-TT.4
   - CVE-2025-41249 - Spring Framework Annotation Detection Vulnerability
   - Additional debug logs for identifying client connection issues
