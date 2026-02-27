@@ -1,5 +1,9 @@
  Apache ActiveMQ 6.1.x-TT.x
 
+ Changes in ActiveMQ EAP 6.1.9-TT.2
+  - CVE-2026-23901: Observable Timing Discrepancy vulnerability in Apache Shiro
+  - CVE-2026-23903: Apache Shiro [ActiveMQ] Auth bypass when accessing static files only on case-insensitive filesystems
+
 Changes in ActiveMQ EAP 6.1.9-TT.1
    - Post OSS 6.1.8 release
 
