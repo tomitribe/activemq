@@ -1,9 +1,12 @@
 Apache ActiveMQ 6.0.x-TT.x
 
- Changes in ActiveMQ EAP 6.0.2-TT.9
+ Apache ActiveMQ 6.0.2-TT.10
+  - CVE-2025-68161: Socket Appender does not properly perform TLS hostname verification of the peer certificate
+
+ Apache ActiveMQ 6.0.2-TT.9
   - Update Shiro to 1.13.0-TT.2
 
- Changes in ActiveMQ EAP 6.0.2-TT.8
+ Apache ActiveMQ 6.0.2-TT.8
   - CVE-2026-23901: Observable Timing Discrepancy vulnerability in Apache Shiro
   - CVE-2026-23903: Apache Shiro [ActiveMQ] Auth bypass when accessing static files only on case-insensitive filesystems
 
