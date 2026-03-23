@@ -2,6 +2,7 @@
 
  Changes in ActiveMQ EAP 6.1.9-TT.3
    - CVE-2025-68161: Socket Appender does not properly perform TLS hostname verification of the peer certificate
+   - CVE-2026-25747: Deserialization of Untrusted Data vulnerability in Apache Camel LevelDB component
 
  Changes in ActiveMQ EAP 6.1.9-TT.2
   - CVE-2026-23901: Observable Timing Discrepancy vulnerability in Apache Shiro
