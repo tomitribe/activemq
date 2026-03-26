@@ -579,10 +579,8 @@ public class BrokerView implements BrokerViewMBean {
         }
     }
 
-    // We don't allow VM transport scheme to be used
-    private static void validateAllowedScheme(String scheme) {
-        if (scheme.equals("vm")) {
-            throw new IllegalArgumentException("VM scheme is not allowed");
-        }
+    @Override
+    public long getTotalMaxUncommittedExceededCount() {
+        return safeGetBroker().getDestinationStatistics().getMaxUncommittedExceededCount().getCount();
     }
 }
