@@ -1,5 +1,8 @@
 Apache ActiveMQ 5.19.x-TT.x
 
+ Changes in ActiveMQ EAP 5.19.3-TT.2
+  - sonatype-2026-000642: Denial of Service (DoS) in jackson-core
+
  Changes in ActiveMQ EAP 5.19.3-TT.1
   - Post OSS 5.19.2 release
   - CVE-2026-23901: Observable Timing Discrepancy vulnerability in Apache Shiro
