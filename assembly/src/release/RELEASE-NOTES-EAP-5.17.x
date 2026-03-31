@@ -1,6 +1,10 @@
  Apache ActiveMQ 5.17.x-TT.x
 
- Changes in ActiveMQ EAP 5.17.8-TT.6
+Changes in ActiveMQ EAP 5.17.8-TT.7
+  - CVE-2025-68161: Log4J Socket Appender does not properly perform TLS hostname verification of the peer certificate
+  - sonatype-2026-000642: Denial of Service (DoS) in jackson-core
+
+Changes in ActiveMQ EAP 5.17.8-TT.6
   - CVE-2026-23901: Observable Timing Discrepancy vulnerability in Apache Shiro
   - CVE-2026-23903: Apache Shiro [ActiveMQ] Auth bypass when accessing static files only on case-insensitive filesystems
 
