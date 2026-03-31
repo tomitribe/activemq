@@ -1,7 +1,8 @@
  Apache ActiveMQ 5.18.x-TT.x
 
  Changes in ActiveMQ EAP 5.18.8-TT.7
-  - CVE-2025-68161: Socket Appender does not properly perform TLS hostname verification of the peer certificate
+  - CVE-2025-68161: Log4J Socket Appender does not properly perform TLS hostname verification of the peer certificate
+  - sonatype-2026-000642: Denial of Service (DoS) in jackson-core
 
  Changes in ActiveMQ EAP 5.18.8-TT.6
   - CVE-2026-23901: Observable Timing Discrepancy vulnerability in Apache Shiro
