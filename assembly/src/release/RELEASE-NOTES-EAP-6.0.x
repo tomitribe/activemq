@@ -1,9 +1,10 @@
 Apache ActiveMQ 6.0.x-TT.x
 
- Apache ActiveMQ 6.0.2-TT.10
-  - CVE-2025-68161: Socket Appender does not properly perform TLS hostname verification of the peer certificate
+ Changes in ActiveMQ EAP 6.0.2-TT.10
+  - CVE-2025-68161: Log4J Socket Appender does not properly perform TLS hostname verification of the peer certificate
+  - sonatype-2026-000642: Denial of Service (DoS) in jackson-core
 
- Apache ActiveMQ 6.0.2-TT.9
+ Changes in ActiveMQ EAP 6.0.2-TT.9
   - Update Shiro to 1.13.0-TT.2
 
  Apache ActiveMQ 6.0.2-TT.8
