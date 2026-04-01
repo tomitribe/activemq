@@ -25,7 +25,7 @@
 
   <groupId>org.apache.activemq</groupId>
   <artifactId>activemq-parent</artifactId>
-  <version>5.18.8-TT.7-SNAPSHOT</version>
+  <version>5.18.8-TT.7</version>
 
   <packaging>pom</packaging>
   <name>ActiveMQ</name>
@@ -33,7 +33,7 @@
 
   <properties>
     <!-- for reproducible builds -->	
-    <project.build.outputTimestamp>2026-02-27T23:00:56Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2026-04-01T16:02:18Z</project.build.outputTimestamp>
 
     <activeio-version>3.1.4</activeio-version>
     <siteId>activemq-${project.version}</siteId>
@@ -249,7 +249,7 @@
     <connection>scm:git:git@github.com:tomitribe/activemq.git</connection>
     <developerConnection>scm:git:git@github.com:tomitribe/activemq.git</developerConnection>
     <url>git@github.com:tomitribe/activemq-git</url>
-    <tag>HEAD</tag>
+    <tag>activemq-5.18.8-TT.7</tag>
   </scm>
 
   <dependencyManagement>
