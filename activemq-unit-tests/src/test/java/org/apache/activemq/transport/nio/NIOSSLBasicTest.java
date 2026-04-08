@@ -87,7 +87,10 @@ public class NIOSSLBasicTest {
 
     @Test
     public void enabledCipherSuites() throws Exception {
-        BrokerService broker = createBroker("nio+ssl", getTransportType() + "://localhost:0?transport.needClientAuth=true&transport.verifyHostName=false&transport.enabledCipherSuites=TLS_RSA_WITH_AES_256_CBC_SHA256");
+        SSLServerSocketFactory s = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
+        String[] defaultCipherSuites = s.getSupportedCipherSuites();
+        assertTrue(defaultCipherSuites.length > 0);
+        BrokerService broker = createBroker("nio+ssl", getTransportType() + "://localhost:0?transport.needClientAuth=true&transport.verifyHostName=false&transport.enabledCipherSuites=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256");
         basicSendReceive("ssl://localhost:" + broker.getConnectorByName("nio+ssl").getConnectUri().getPort() + "?socket.verifyHostName=false");
         stopBroker(broker);
     }
