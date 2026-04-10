@@ -1,6 +1,6 @@
  Apache ActiveMQ 5.16.x-TT.x
 
- Changes in ActiveMQ EAP 5.16.9-TT.5
+ Changes in ActiveMQ EAP 5.16.9-TT.6
   - CVE-2025-11143 - Upgrade to jetty 9.4.59-TT.1
 
  Changes in ActiveMQ EAP 5.16.9-TT.5
