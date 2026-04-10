@@ -1,6 +1,9 @@
  Apache ActiveMQ 5.16.x-TT.x
 
  Changes in ActiveMQ EAP 5.16.9-TT.5
+  - CVE-2025-11143 - Upgrade to jetty 9.4.59-TT.1
+
+ Changes in ActiveMQ EAP 5.16.9-TT.5
   - sonatype-2026-000642: Denial of Service (DoS) in jackson-core
 
  Changes in ActiveMQ EAP 5.16.9-TT.4
