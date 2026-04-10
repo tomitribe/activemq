@@ -1,5 +1,8 @@
  Apache ActiveMQ 6.1.x-TT.x
 
+ Changes in ActiveMQ EAP 6.1.9-TT.4
+   - CVE-2025-11143 - Upgrade to jetty 11.0.27-TT.1
+
  Changes in ActiveMQ EAP 6.1.9-TT.3
    - CVE-2025-68161: Log4J Socket Appender does not properly perform TLS hostname verification of the peer certificate
    - CVE-2026-25747: Deserialization of Untrusted Data vulnerability in Apache Camel LevelDB component
