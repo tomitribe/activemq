@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>5.15.17-TT.7-SNAPSHOT</version>
+    <version>5.15.17-TT.8-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-stomp</artifactId>
@@ -51,6 +51,11 @@
     <dependency>
       <groupId>org.codehaus.jettison</groupId>
       <artifactId>jettison</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-xml</artifactId>
       <optional>true</optional>
     </dependency>
 

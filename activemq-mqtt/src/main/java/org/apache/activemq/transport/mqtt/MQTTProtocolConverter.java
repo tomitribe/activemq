@@ -127,7 +127,9 @@ public class MQTTProtocolConverter {
 
     public int version;
 
-    private final FactoryFinder STRATAGY_FINDER = new FactoryFinder("META-INF/services/org/apache/activemq/transport/strategies/");
+    private final FactoryFinder<MQTTSubscriptionStrategy> STRATEGY_FINDER =
+            new FactoryFinder<>("META-INF/services/org/apache/activemq/transport/strategies/",
+                    MQTTSubscriptionStrategy.class, null);
 
     /*
      * Subscription strategy configuration element.
@@ -857,7 +859,7 @@ public class MQTTProtocolConverter {
 
     protected MQTTSubscriptionStrategy findSubscriptionStrategy() throws IOException {
         if (subsciptionStrategy == null) {
-            synchronized (STRATAGY_FINDER) {
+            synchronized (STRATEGY_FINDER) {
                 if (subsciptionStrategy != null) {
                     return subsciptionStrategy;
                 }
@@ -865,7 +867,7 @@ public class MQTTProtocolConverter {
                 MQTTSubscriptionStrategy strategy = null;
                 if (subscriptionStrategyName != null && !subscriptionStrategyName.isEmpty()) {
                     try {
-                        strategy = (MQTTSubscriptionStrategy) STRATAGY_FINDER.newInstance(subscriptionStrategyName);
+                        strategy = STRATEGY_FINDER.newInstance(subscriptionStrategyName);
                         LOG.debug("MQTT Using subscription strategy: {}", subscriptionStrategyName);
                         if (strategy instanceof BrokerServiceAware) {
                             ((BrokerServiceAware)strategy).setBrokerService(brokerService);
