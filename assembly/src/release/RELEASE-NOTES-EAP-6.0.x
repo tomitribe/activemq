@@ -1,5 +1,8 @@
 Apache ActiveMQ 6.0.x-TT.x
 
+ Changes in ActiveMQ EAP 6.0.2-TT.11
+  - CVE-2025-11143 - Upgrade to jetty 11.0.27-TT.1
+
  Changes in ActiveMQ EAP 6.0.2-TT.10
   - CVE-2025-68161: Log4J Socket Appender does not properly perform TLS hostname verification of the peer certificate
   - sonatype-2026-000642: Denial of Service (DoS) in jackson-core
