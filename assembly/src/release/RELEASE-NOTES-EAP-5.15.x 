@@ -1,7 +1,10 @@
 Apache ActiveMQ EAP 5.15.x-TT.x
 
  Changes in ActiveMQ EAP 5.15.17-TT.8
-  - CVE-2025-11143 - Upgrade to jetty 9.4.59-TT.1
+  - CVE-2025-11143: Upgrade to jetty 11.0.27-TT.1
+  - CVE-2025-66168: Improper validation of remaining length which may lead to an overflow during the decoding of malformed packets
+  - CVE-2026-24308: Not affected (Sensitive information can be exposed in the client's logfile)
+  - CVE-2026-24281: Not affected (PTR records can be manipulated to impersonate ZooKeeper servers and clients)
 
  Changes in ActiveMQ EAP 5.15.17-TT.7
   - sonatype-2026-000642: Denial of Service (DoS) in jackson-core
