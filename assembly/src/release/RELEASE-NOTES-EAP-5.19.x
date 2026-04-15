@@ -2,6 +2,9 @@ Apache ActiveMQ 5.19.x-TT.x
 
  Changes in ActiveMQ EAP 5.19.6-TT.1
   - CVE-2025-11143 - Upgrade to jetty 9.4.59-TT.1
+  - CVE-2026-34477: Upgrade to Log4J 2.25.4
+  - CVE-2026-24308: Not affected (Sensitive information can be exposed in the client's logfile)
+  - CVE-2026-24281: Not affected (PTR records can be manipulated to impersonate ZooKeeper servers and clients)
 
  Changes in ActiveMQ EAP 5.19.3-TT.2
   - sonatype-2026-000642: Denial of Service (DoS) in jackson-core
