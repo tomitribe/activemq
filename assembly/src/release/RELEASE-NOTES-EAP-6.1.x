@@ -1,7 +1,11 @@
  Apache ActiveMQ 6.1.x-TT.x
 
  Changes in ActiveMQ EAP 6.1.9-TT.4
-   - CVE-2025-11143 - Upgrade to jetty 11.0.27-TT.1
+   - CVE-2025-11143: Upgrade to jetty 11.0.27-TT.1
+   - CVE-2025-66168: Improper validation of remaining length which may lead to an overflow during the decoding of malformed packets
+   - CVE-2026-34477: Upgrade to Log4J 2.25.4
+   - CVE-2026-24308: Not affected (Sensitive information can be exposed in the client's logfile)
+   - CVE-2026-24281: Not affected (PTR records can be manipulated to impersonate ZooKeeper servers and clients)
 
  Changes in ActiveMQ EAP 6.1.9-TT.3
    - CVE-2025-68161: Log4J Socket Appender does not properly perform TLS hostname verification of the peer certificate
