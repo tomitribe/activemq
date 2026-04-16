@@ -1,5 +1,8 @@
  Apache ActiveMQ 5.18.x-TT.x
 
+ Changes in ActiveMQ EAP 5.18.8-TT.9
+  - CVE-2026-39304: Improper SSL/TLS session handling in NIO SSL transport
+
  Changes in ActiveMQ EAP 5.18.8-TT.8
   - CVE-2025-11143: Upgrade to jetty 9.4.59-TT.1
   - CVE-2025-66168: Improper validation of remaining length which may lead to an overflow during the decoding of malformed packets
