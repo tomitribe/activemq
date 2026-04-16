@@ -25,6 +25,7 @@ import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLServerSocketFactory;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.broker.BrokerService;
