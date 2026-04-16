@@ -19,6 +19,7 @@ package org.apache.activemq.broker.jmx;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -35,6 +36,7 @@ import org.apache.activemq.broker.region.Subscription;
 import org.apache.activemq.command.*;
 import org.apache.activemq.network.NetworkConnector;
 import org.apache.activemq.util.BrokerSupport;
+import org.apache.activemq.util.URISupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -400,6 +402,8 @@ public class BrokerView implements BrokerViewMBean {
 
     @Override
     public String addConnector(String discoveryAddress) throws Exception {
+        // Verify VM transport is not used
+        validateAllowedUrl(discoveryAddress);
         TransportConnector connector = brokerService.addConnector(discoveryAddress);
         if (connector == null) {
             throw new NoSuchElementException("Not connector matched the given name: " + discoveryAddress);
@@ -410,6 +414,8 @@ public class BrokerView implements BrokerViewMBean {
 
     @Override
     public String addNetworkConnector(String discoveryAddress) throws Exception {
+        // Verify VM transport is not used
+        validateAllowedUrl(discoveryAddress);
         NetworkConnector connector = brokerService.addNetworkConnector(discoveryAddress);
         if (connector == null) {
             throw new NoSuchElementException("Not connector matched the given name: " + discoveryAddress);
@@ -596,4 +602,42 @@ public class BrokerView implements BrokerViewMBean {
     public long getTotalMaxUncommittedExceededCount() {
         return safeGetBroker().getDestinationStatistics().getMaxUncommittedExceededCount().getCount();
 	}
+
+    private static void validateAllowedUrl(String uriString) throws URISyntaxException {
+        validateAllowedUri(new URI(uriString), 0);
+    }
+
+    // Validate the URI does not contain VM transport
+    private static void validateAllowedUri(URI uri, int depth) throws URISyntaxException {
+        // Don't allow more than 5 nested URIs to prevent blowing the stack
+        if (depth > 5) {
+            throw new IllegalArgumentException("URI can't contain more than 5 nested composite URIs");
+        }
+
+        // First check the main URI scheme
+        validateAllowedScheme(uri.getScheme());
+
+        // If composite, iterate and check each of the composite URIs
+        if (URISupport.isCompositeURI(uri)) {
+            URISupport.CompositeData data = URISupport.parseComposite(uri);
+            depth++;
+            for (URI component : data.getComponents()) {
+                // Each URI could be a nested composite URI so call validateAllowedUri()
+                // to validate it. This check if composite first so we don't add to
+                // the recursive stack depth if there's a lot of URIs that are not composite
+                if (URISupport.isCompositeURI(uri)) {
+                    validateAllowedUri(component, depth);
+                } else {
+                    validateAllowedScheme(uri.getScheme());
+                }
+            }
+        }
+    }
+
+    // We don't allow VM transport scheme to be used
+    private static void validateAllowedScheme(String scheme) {
+        if (scheme.equals("vm")) {
+            throw new IllegalArgumentException("VM scheme is not allowed");
+        }
+    }
 }

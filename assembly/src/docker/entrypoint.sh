@@ -78,4 +78,28 @@ if [ -n "${ACTIVEMQ_WEB_USER}" ]; then
   fi
 fi
 
-exec "$@"
+if [ -z "${ACTIVEMQ_OPTS_MEMORY}" ]; then
+  ACTIVEMQ_OPTS_MEMORY="-Xms64M -Xmx1G"
+  export ACTIVEMQ_OPTS_MEMORY
+fi
+
+if [ -z "${ACTIVEMQ_OPTS}" ]; then
+  # Make the Web console accesible from outside the container if not already set
+  ACTIVEMQ_OPTS="${ACTIVEMQ_OPTS_MEMORY} -Djava.util.logging.config.file=logging.properties -Djava.security.auth.login.config=${ACTIVEMQ_CONF}/login.config -Djetty.host=0.0.0.0"
+  export ACTIVEMQ_OPTS
+fi
+
+_term() {
+  echo "Received signal, stopping ActiveMQ..."
+  if [ -n "${child_pid:-}" ] && kill -0 "${child_pid}" 2>/dev/null; then
+    kill -TERM "${child_pid}" 2>/dev/null || true
+  fi
+}
+
+trap _term TERM INT
+
+"$@" &
+child_pid=$!
+wait "${child_pid}"
+
+exit $?

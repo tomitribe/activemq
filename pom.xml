@@ -25,7 +25,7 @@
 
   <groupId>org.apache.activemq</groupId>
   <artifactId>activemq-parent</artifactId>
-  <version>6.2.1-SNAPSHOT</version>
+  <version>6.2.5-TT.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>ActiveMQ</name>
   <inceptionYear>2005</inceptionYear>
@@ -60,7 +60,7 @@
     <httpclient-version>4.5.14</httpclient-version>
     <httpcore-version>4.4.16</httpcore-version>
     <insight-version>1.2.0.Beta4</insight-version>
-    <jackson-version>2.21.0</jackson-version>
+    <jackson-version>2.21.1</jackson-version>
     <jackson-annotations-version>2.21</jackson-annotations-version>
     <jakarta-jms-api-version>3.1.0</jakarta-jms-api-version>
     <jasypt-version>1.9.3</jasypt-version>
@@ -72,7 +72,7 @@
     <javassist-version>3.30.2-GA</javassist-version>
     <jettison-version>1.5.4</jettison-version>
     <jmock-version>2.13.1</jmock-version>
-    <jolokia-version>2.4.3</jolokia-version>
+    <jolokia-version>2.5.0</jolokia-version>
     <junit-version>4.13.2</junit-version>
     <hamcrest-version>1.3</hamcrest-version>
     <karaf-version>4.4.9</karaf-version>
@@ -84,12 +84,12 @@
     <osgi-version>6.0.0</osgi-version>
     <qpid-proton-version>0.34.1</qpid-proton-version>
     <qpid-jms-version>2.10.0</qpid-jms-version>
-    <netty-version>4.2.9.Final</netty-version>
+    <netty-version>4.2.10.Final</netty-version>
     <rome-version>2.1.0</rome-version>
-    <shiro-version>2.0.6</shiro-version>
+    <shiro-version>2.1.0</shiro-version>
     <slf4j-version>2.0.17</slf4j-version>
     <snappy-version>1.1.2</snappy-version>
-    <spring-version>6.2.15</spring-version>
+    <spring-version>6.2.16</spring-version>
     <spring-version-range>[6,7)</spring-version-range>
     <taglibs-version>1.2.5</taglibs-version>
     <xpp3-version>1.1.4c</xpp3-version>
