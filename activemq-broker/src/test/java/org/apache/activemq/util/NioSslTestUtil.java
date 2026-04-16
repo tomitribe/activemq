@@ -41,7 +41,7 @@ public class NioSslTestUtil {
 
         TransportConnection con = connector.getConnections().stream()
                 .filter(tc -> tc.getRemoteAddress().contains(
-                Integer.toString(localPort))).findFirst().orElseThrow();
+                Integer.toString(localPort))).findFirst().orElseThrow(() -> new RuntimeException("Connection not found"));
 
         Field field = NIOSSLTransport.class.getDeclaredField("handshakeStatus");
         field.setAccessible(true);
