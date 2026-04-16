@@ -21,22 +21,30 @@ FROM eclipse-temurin:11-jre
 # ActiveMQ environment variables
 ENV ACTIVEMQ_INSTALL_PATH /opt
 ENV ACTIVEMQ_HOME $ACTIVEMQ_INSTALL_PATH/apache-activemq
+ENV ACTIVEMQ_CONF $ACTIVEMQ_HOME/conf
 ENV ACTIVEMQ_EXEC exec
 ENV PATH $PATH:$ACTIVEMQ_HOME/bin
-# Make the Web console accessible from outside the container
-ENV ACTIVEMQ_OPTS $ACTIVEMQ_OPTS -Djetty.host=0.0.0.0
 #WORKDIR $ACTIVEMQ_HOME
 
 # activemq_dist can point to a directory or a tarball on the local system
 ARG activemq_dist=NOT_SET
 
+RUN groupadd -r activemq && useradd -r -g activemq activemq
+
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chown activemq:activemq /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh
 
 # Install build dependencies and activemq
 ADD $activemq_dist $ACTIVEMQ_INSTALL_PATH
 RUN set -x && \
   cp -r $ACTIVEMQ_INSTALL_PATH/apache-activemq-* $ACTIVEMQ_HOME && \
 	rm -r $ACTIVEMQ_INSTALL_PATH/apache-activemq-*
+
+RUN chown -R activemq:activemq $ACTIVEMQ_HOME
+
+STOPSIGNAL SIGTERM
+
+USER activemq
 
 EXPOSE 8161 61616 5672 61613 1883 61614 1099
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
