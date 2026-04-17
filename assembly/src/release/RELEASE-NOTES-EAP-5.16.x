@@ -1,5 +1,14 @@
  Apache ActiveMQ 5.16.x-TT.x
 
+ Changes in ActiveMQ EAP 5.16.9-TT.7
+  - CVE-2026-33227: Apache ActiveMQ Improper validation and restriction of a classpath path name vulnerability
+  - CVE-2026-34197: Apache ActiveMQ Improper Input Validation, Improper Control of Generation of Code ('Code Injection') vulnerability 
+  - CVE-2026-34478: Log4j2 log injection via CRLF
+  - CVE-2026-34479: Log4j2 Apache Log4j 1-to-Log4j 2 bridge fails to escape characters forbidden by the XML 1.0 standard
+  - CVE-2026-39304: Improper SSL/TLS session handling in NIO SSL transport
+  - CVE-2026-40046: Apache ActiveMQ MQTT control packet remaining length field is not properly validated
+  - AMQ-9473: Fix IntrospectionSupport to deal with SSLSocket properties
+
  Changes in ActiveMQ EAP 5.16.9-TT.6
   - CVE-2025-11143: Upgrade to jetty 11.0.27-TT.1
   - CVE-2025-66168: Improper validation of remaining length which may lead to an overflow during the decoding of malformed packets
