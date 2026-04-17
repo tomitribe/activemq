@@ -23,8 +23,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import jakarta.jms.Destination;
 import java.io.IOException;
 import java.io.StringReader;
+import java.lang.reflect.Field;
 import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -32,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -50,7 +53,12 @@ import jakarta.jms.Session;
 import jakarta.jms.TextMessage;
 import javax.management.ObjectName;
 
+import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.SSLEngineResult.HandshakeStatus;
+import javax.net.ssl.SSLSocket;
 import org.apache.activemq.broker.BrokerService;
+import org.apache.activemq.broker.TransportConnection;
+import org.apache.activemq.broker.TransportConnector;
 import org.apache.activemq.broker.jmx.BrokerViewMBean;
 import org.apache.activemq.broker.jmx.QueueViewMBean;
 import org.apache.activemq.broker.region.AbstractSubscription;
@@ -59,9 +67,13 @@ import org.apache.activemq.broker.region.Subscription;
 import org.apache.activemq.broker.region.policy.PolicyEntry;
 import org.apache.activemq.broker.region.policy.PolicyMap;
 import org.apache.activemq.command.ActiveMQDestination;
+import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQQueue;
 import org.apache.activemq.command.ActiveMQTextMessage;
+import org.apache.activemq.transport.nio.NIOSSLTransport;
+import org.apache.activemq.util.NioSslTestUtil;
 import org.apache.activemq.util.Wait;
+import org.junit.Assume;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,6 +91,7 @@ public class StompTest extends StompTestSupport {
     protected Session session;
     protected ActiveMQQueue queue;
     protected XStream xstream;
+    protected String clientSslProtocol;
 
     private final String xmlObject = "<pojo>\n"
             + "  <name>Dejan</name>\n"
@@ -134,6 +147,7 @@ public class StompTest extends StompTestSupport {
         queue = new ActiveMQQueue(getQueueName());
         super.setUp();
 
+        clientSslProtocol = null;
         stompConnect();
 
         connection = cf.createConnection("system", "manager");
@@ -1236,6 +1250,89 @@ public class StompTest extends StompTestSupport {
 
 
         compareFrameXML(frame, xmlObject);
+    }
+
+    @Test(timeout = 60000)
+    public void testTransformationSuccess() throws Exception {
+        // transformation is allowed, use default configured transformers
+        assertStompTransformation(null,
+                Stomp.Transformations.JMS_OBJECT_XML.toString(),
+                frame -> assertTrue(frame.contains("<pojo>")));
+
+        // transformation is allowed
+        assertStompTransformation(ProtocolConverter.DEFAULT_ALLOWED_TRANSLATORS,
+                Stomp.Transformations.JMS_OBJECT_XML.toString(),
+                frame -> assertTrue(frame.contains("<pojo>")));
+
+        // transformation is allowed with wildcard, xml tag should exist
+        assertStompTransformation("*",
+                Stomp.Transformations.JMS_OBJECT_XML.toString(),
+                frame -> assertTrue(frame.contains("<pojo>")));
+
+        // verify TestTranslator was used and appended header
+        assertStompTransformation(TestTranslator.class.getName(),
+                "stomp-test",
+                frame -> assertTrue(frame.contains("stomp-test-translator-header")));
+    }
+
+    @Test(timeout = 60000)
+    public void testTransformationFailuresFallbackToDefault() throws Exception {
+        // path traversal is not allowed so given translator should fail
+        assertStompTransformation(ProtocolConverter.DEFAULT_ALLOWED_TRANSLATORS,
+                "../" + Stomp.Transformations.JMS_OBJECT_XML,
+                frame -> assertEquals(-1, frame.indexOf("<pojo>")));
+
+        // xml translator maps to JmsFrameTranslator.class which is not allowed
+        assertStompTransformation(LegacyFrameTranslator.class.getName(),
+                Stomp.Transformations.JMS_OBJECT_XML.toString(),
+                frame -> assertEquals(-1, frame.indexOf("<pojo>")));
+
+        // Allowed translators are set to none so translator should fail
+        assertStompTransformation("", Stomp.Transformations.JMS_OBJECT_XML.toString(),
+                frame -> assertEquals(-1, frame.indexOf("<pojo>")));
+
+        // TestTranslator is not allowed so won't have our header is it will fall back to
+        // the legacy default translator
+        assertStompTransformation(ProtocolConverter.DEFAULT_ALLOWED_TRANSLATORS,
+                "stomp-test",
+                frame -> assertFalse(frame.contains("stomp-test-translator-header")));
+    }
+
+    private void assertStompTransformation(String allowedTranslators,
+            String transformation, Consumer<String> verifier) throws Exception {
+        try {
+            if (allowedTranslators != null) {
+                tearDown();
+                System.setProperty(ProtocolConverter.FRAME_TRANSLATOR_CLASSES_PROP,
+                        allowedTranslators);
+                setUp();
+            }
+
+            MessageProducer producer = session.createProducer(
+                    new ActiveMQQueue("USERS." + getQueueName()));
+            ObjectMessage message = session.createObjectMessage(
+                    new SamplePojo("Dejan", "Belgrade"));
+            producer.send(message);
+
+            String frame = "CONNECT\n" + "login:system\n" + "passcode:manager\n\n" + Stomp.NULL;
+            stompConnection.sendFrame(frame);
+
+            frame = stompConnection.receiveFrame();
+            assertTrue(frame.startsWith("CONNECTED"));
+
+            frame = "SUBSCRIBE\n" + "destination:/queue/USERS." + getQueueName() + "\n" + "ack:auto"
+                    + "\n" + "transformation:" + transformation + "\n\n"
+                    + Stomp.NULL;
+            stompConnection.sendFrame(frame);
+            frame = stompConnection.receiveFrame();
+
+            verifier.accept(frame);
+        } finally {
+            tearDown();
+            System.setProperty(ProtocolConverter.FRAME_TRANSLATOR_CLASSES_PROP,
+                    ProtocolConverter.DEFAULT_ALLOWED_TRANSLATORS);
+            setUp();
+        }
     }
 
     private void compareFrameXML(String frame, String xmlObject) {
@@ -2437,6 +2534,97 @@ public class StompTest extends StompTestSupport {
 
     }
 
+    // Verify that full handshake renegotiation is handled by both SSL
+    // and NIO ssl transports and we don't get stuck. This is primarily
+    // to test NIO handles NEED_TASK but also double checks SSL works
+    @Test(timeout = 60000)
+    public void testHandshakeRenegotiationTlsv12() throws Exception {
+        Assume.assumeTrue(stompConnection.getStompSocket() instanceof SSLSocket);
+
+        // Reset
+        clientSslProtocol = "TLSv1.2";
+        stompDisconnect();
+        stompConnect();
+
+        connectForSslHandshakeTest();
+
+        SSLSocket socket = (SSLSocket) stompConnection.getStompSocket();
+        assertEquals("TLSv1.2", socket.getSession().getProtocol());
+
+        socket.startHandshake();
+        Thread.sleep(100);
+
+        // Wait to get past NEED_TASK as that indicates we correctly handled
+        // the tasks issued for TLSv1.2 renegotiation
+        checkHandshakeStatusAdvances(socket);
+
+        receiveForSslHandshakeTest();
+    }
+
+    // Verify that TLS1.3 KeyUpdates during handshake renegotiation will be processed
+    // by the server correctly
+    @Test(timeout = 60000)
+    public void testHandshakeRenegotiationTlsv13() throws Exception {
+        Assume.assumeTrue(stompConnection.getStompSocket() instanceof SSLSocket);
+
+        // Set to TLSv1.3
+        clientSslProtocol = "TLSv1.3";
+        stompDisconnect();
+        stompConnect();
+
+        connectForSslHandshakeTest();
+
+        SSLSocket socket = (SSLSocket) stompConnection.getStompSocket();
+        assertEquals("TLSv1.3", socket.getSession().getProtocol());
+
+        // Run 100 key updates in a loop so that we can
+        // verify that the transport correctly processes them
+        // and that we are not stuck in NEED_WRAP state. This
+        // only applies to NIO, for regular SSL the state is not
+        // handled by the transport
+        for (int i = 0; i < 100; i++) {
+            try {
+                socket.startHandshake();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        // give some time for the handshake updates
+        Thread.sleep(100);
+
+        // Wait to get past NEED_WRAP as that indicates we correctly handled
+        // the key updates issued for TLSv1.3 renegotiation
+        checkHandshakeStatusAdvances(socket);
+
+        // Make sure we can still subscribe and receive
+        receiveForSslHandshakeTest();
+    }
+
+    private void checkHandshakeStatusAdvances(SSLSocket socket) throws Exception {
+        TransportConnector connector = brokerService.getTransportConnectorByName(transportConnectorName);
+        NioSslTestUtil.checkHandshakeStatusAdvances(connector, socket);
+    }
+
+    private void connectForSslHandshakeTest() throws Exception {
+        String frame = "CONNECT\n" + "login:system\n" + "passcode:manager\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+        frame = stompConnection.receiveFrame();
+        assertTrue(frame.startsWith("CONNECTED"));
+        frame = "SEND\n" + "destination:/queue/" + getQueueName() + "\ncontent-length:5" + " \n\n" + "\u0001\u0002\u0000\u0004\u0005" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+    }
+
+    private void receiveForSslHandshakeTest() throws Exception {
+        String frame = "SUBSCRIBE\n" + "destination:/queue/" + getQueueName() + "\n" + "ack:auto\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+        StompFrame message = stompConnection.receive();
+        assertTrue(message.getAction().startsWith("MESSAGE"));
+        String length = message.getHeaders().get("content-length");
+        assertEquals("5", length);
+        assertEquals(5, message.getContent().length);
+    }
+
     public void doTestAckInTransaction(boolean topic) throws Exception {
 
         String frame = "CONNECT\n" + "login:system\n" + "passcode:manager\n\n" + Stomp.NULL;
@@ -2500,7 +2688,7 @@ public class StompTest extends StompTestSupport {
     }
 
     private static Map<ActiveMQDestination, org.apache.activemq.broker.region.Destination> getDestinationMap(BrokerService target,
-                                                                                                             ActiveMQDestination destination) {
+            ActiveMQDestination destination) {
         RegionBroker regionBroker = (RegionBroker) target.getRegionBroker();
         if (destination.isTemporary()) {
             return destination.isQueue() ? regionBroker.getTempQueueRegion().getDestinationMap() :
@@ -2542,4 +2730,35 @@ public class StompTest extends StompTestSupport {
         Map<String, String> map = (Map<String, String>)xstream.unmarshal(in);
         return map;
     }
+
+    public static class TestTranslator implements FrameTranslator {
+        private final JmsFrameTranslator translator = new JmsFrameTranslator();
+
+        @Override
+        public ActiveMQMessage convertFrame(ProtocolConverter converter, StompFrame command)
+                throws JMSException, ProtocolException {
+            return translator.convertFrame(converter, command);
+        }
+
+        @Override
+        public StompFrame convertMessage(ProtocolConverter converter, ActiveMQMessage message)
+                throws IOException, JMSException {
+            StompFrame frame = translator.convertMessage(converter, message);
+            // add a header to make it easy to detect if translator was used
+            frame.getHeaders().put("stomp-test-translator-header", "header-value");
+            return frame;
+        }
+
+        @Override
+        public String convertDestination(ProtocolConverter converter, Destination d) {
+            return translator.convertDestination(converter, d);
+        }
+
+        @Override
+        public ActiveMQDestination convertDestination(ProtocolConverter converter, String name,
+                boolean forceFallback) throws ProtocolException {
+            return translator.convertDestination(converter, name, forceFallback);
+        }
+    }
+
 }
