@@ -1337,6 +1337,9 @@
           <name>apache-release</name>
         </property>
       </activation>
+      <properties>
+        <maven.source.skip>false</maven.source.skip>
+      </properties>
       <build>
         <plugins>
           <plugin>
