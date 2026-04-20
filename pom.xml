@@ -953,7 +953,7 @@
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <allowTimestampedSnapshots>false</allowTimestampedSnapshots>
             <preparationGoals>clean install -DskipTests</preparationGoals>
-            <goals>deploy -DskipTests</goals>
+            <goals>deploy -DskipTests -Papache-release,deploy</goals>
             <remoteTagging>false</remoteTagging>
             <suppressCommitBeforeTag>false</suppressCommitBeforeTag>
             <tagNameFormat>activemq-@{project.version}</tagNameFormat>
