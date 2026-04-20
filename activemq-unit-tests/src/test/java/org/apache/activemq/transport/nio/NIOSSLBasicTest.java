@@ -36,6 +36,8 @@ import org.junit.Test;
 
 import junit.framework.TestCase;
 
+import static org.junit.Assert.assertTrue;
+
 public class NIOSSLBasicTest {
 
     public static final String KEYSTORE_TYPE = "jks";

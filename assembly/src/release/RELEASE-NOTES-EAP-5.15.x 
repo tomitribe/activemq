@@ -1,5 +1,11 @@
 Apache ActiveMQ EAP 5.15.x-TT.x
 
+ Changes in ActiveMQ EAP 5.15.17-TT.9
+ - Fix for CVE-2026-33227: Apache ActiveMQ: improper limitation of a pathname to a restricted classpath directory (path validation flaw in the classpath).
+ - Fix for CVE-2026-34197: Apache ActiveMQ Classic: authenticated (and in some configurations unauthenticated) remote code execution via the Jolokia API's addNetworkConnector operation, which could be abused to load a remote Spring XML configuration and execute arbitrary OS commands.
+ - Fix for CVE-2026-39304: Apache ActiveMQ: incorrect handling of the TLSv1.3 KeyUpdate message allows a client to trigger repeated key updates and exhaust broker memory in the SSL engine, causing denial of service; older TLS versions could also be made to hang during renegotiation.
+
+
  Changes in ActiveMQ EAP 5.15.17-TT.8
   - CVE-2025-11143: Upgrade to jetty 11.0.27-TT.1
   - CVE-2025-66168: Improper validation of remaining length which may lead to an overflow during the decoding of malformed packets
