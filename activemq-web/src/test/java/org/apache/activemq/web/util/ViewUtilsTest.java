@@ -19,8 +19,9 @@ package org.apache.activemq.web.util;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.apache.commons.text.StringEscapeUtils;
 import org.junit.Test;
 
@@ -28,7 +29,7 @@ public class ViewUtilsTest {
 
     @Test
     public void testXmlEscape() throws IOException {
-        final String original = Files.readString(Path.of("src/test/resources/activemq.xml"));
+        final String original = new String(Files.readAllBytes(Paths.get("src/test/resources/activemq.xml")), StandardCharsets.UTF_8);
         final String escaped = ViewUtils.escapeXml(original);
 
         // Verify that our escape method matches StringEscapeUtils

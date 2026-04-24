@@ -21,6 +21,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.activemq.broker.BrokerFactoryHandler;
@@ -63,8 +64,8 @@ public class XBeanBrokerFactory implements BrokerFactoryHandler {
         // Empty string will map to an empty set and will deny all
         this.allowedProtocols = !allowedProtocols.equals("*") ?
                 Arrays.stream(allowedProtocols.split("\\s*,\\s*"))
-                .filter(s -> !s.isBlank())
-                .collect(Collectors.toUnmodifiableSet()) : null;
+                .filter(s -> !s.trim().isEmpty())
+                .collect(Collectors.collectingAndThen(Collectors.toSet(), Collections::unmodifiableSet)) : null;
     }
 
     private boolean validate = true;

@@ -27,6 +27,9 @@ import static org.junit.Assert.fail;
 
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import org.junit.Test;
@@ -39,88 +42,88 @@ public class UtilsTest {
 
     @Test
     public void testIsAllowLocalFile() {
-        Set<String> localFileExamples = Set.of("/some/absolute/file", "relative/file", "file.txt");
+        Set<String> localFileExamples = setOf("/some/absolute/file", "relative/file", "file.txt");
         for (String localFile : localFileExamples) {
             assertTrue(Utils.isAllowFile(null, localFile));
-            assertTrue(Utils.isAllowFile(Set.of(FILE_PROTOCOL), localFile));
-            assertTrue(Utils.isAllowFile(Set.of(FILE_PROTOCOL, "ftp", "ssl"), localFile));
+            assertTrue(Utils.isAllowFile(setOf(FILE_PROTOCOL), localFile));
+            assertTrue(Utils.isAllowFile(setOf(FILE_PROTOCOL, "ftp", "ssl"), localFile));
 
-            assertFalse(Utils.isAllowFile(Set.of(CLASSPATH_PROTOCOL, "ftp", "ssl"), localFile));
-            assertFalse(Utils.isAllowFile(Set.of(), localFile));
-            assertFalse(Utils.isAllowFile(Set.of(""), localFile));   
+            assertFalse(Utils.isAllowFile(setOf(CLASSPATH_PROTOCOL, "ftp", "ssl"), localFile));
+            assertFalse(Utils.isAllowFile(setOf(), localFile));
+            assertFalse(Utils.isAllowFile(setOf(""), localFile));   
         }
 
         // Test a remote file isn't allowed with only local
         // Check windows backward slashes as well
-        Set<String> remoteFileExamples = Set.of("//some/remote/file", "\\\\remote\\file");
+        Set<String> remoteFileExamples = setOf("//some/remote/file", "\\\\remote\\file");
         for (String remoteFileName : remoteFileExamples) {
             assertTrue(Utils.isAllowFile(null, remoteFileName));
             // None of these should be allowed as remote-file isn't included with FILE
-            assertFalse(Utils.isAllowFile(Set.of(FILE_PROTOCOL), remoteFileName));
-            assertFalse(Utils.isAllowFile(Set.of(FILE_PROTOCOL, "ftp", "ssl"), remoteFileName));
+            assertFalse(Utils.isAllowFile(setOf(FILE_PROTOCOL), remoteFileName));
+            assertFalse(Utils.isAllowFile(setOf(FILE_PROTOCOL, "ftp", "ssl"), remoteFileName));
         }
     }
 
     @Test
     public void testIsAllowRemoteFile() {
         // Test a remote file
-        Set<String> remoteFileExamples = Set.of("//some/remote/file", "\\\\remote\\file");
+        Set<String> remoteFileExamples = setOf("//some/remote/file", "\\\\remote\\file");
         for (String remoteFileName : remoteFileExamples) {
             assertTrue(Utils.isAllowFile(null, remoteFileName));
-            assertTrue(Utils.isAllowFile(Set.of(REMOTE_FILE_PROTOCOL), remoteFileName));
-            assertTrue(Utils.isAllowFile(Set.of(REMOTE_FILE_PROTOCOL, "ftp", "ssl"), remoteFileName));
-            assertFalse(Utils.isAllowFile(Set.of(CLASSPATH_PROTOCOL, "ftp", "ssl"), remoteFileName));
-            assertFalse(Utils.isAllowFile(Set.of(), remoteFileName));
-            assertFalse(Utils.isAllowFile(Set.of(""), remoteFileName));
+            assertTrue(Utils.isAllowFile(setOf(REMOTE_FILE_PROTOCOL), remoteFileName));
+            assertTrue(Utils.isAllowFile(setOf(REMOTE_FILE_PROTOCOL, "ftp", "ssl"), remoteFileName));
+            assertFalse(Utils.isAllowFile(setOf(CLASSPATH_PROTOCOL, "ftp", "ssl"), remoteFileName));
+            assertFalse(Utils.isAllowFile(setOf(), remoteFileName));
+            assertFalse(Utils.isAllowFile(setOf(""), remoteFileName));
         }
     }
 
     @Test
     public void testIsAllowClasspath() {
         assertTrue(Utils.isAllowClasspath(null));
-        assertTrue(Utils.isAllowClasspath(Set.of(CLASSPATH_PROTOCOL)));
-        assertTrue(Utils.isAllowClasspath(Set.of(CLASSPATH_PROTOCOL, "ftp", "ssl")));
-        assertFalse(Utils.isAllowClasspath(Set.of(FILE_PROTOCOL, "ftp", "ssl")));
-        assertFalse(Utils.isAllowClasspath(Set.of()));
-        assertFalse(Utils.isAllowClasspath(Set.of("")));
+        assertTrue(Utils.isAllowClasspath(setOf(CLASSPATH_PROTOCOL)));
+        assertTrue(Utils.isAllowClasspath(setOf(CLASSPATH_PROTOCOL, "ftp", "ssl")));
+        assertFalse(Utils.isAllowClasspath(setOf(FILE_PROTOCOL, "ftp", "ssl")));
+        assertFalse(Utils.isAllowClasspath(setOf()));
+        assertFalse(Utils.isAllowClasspath(setOf("")));
     }
 
     @Test
     public void testValidateUrlAllowed() throws URISyntaxException {
         // not a qualified url so this throws an exception
-        assertValidateUrlAllowedThrows("somefile.txt", Set.of(FILE_PROTOCOL));
+        assertValidateUrlAllowedThrows("somefile.txt", setOf(FILE_PROTOCOL));
 
         // Test File - Allowed
-        Utils.validateUrlAllowed("file:/somefile.txt", Set.of(FILE_PROTOCOL));
-        Utils.validateUrlAllowed("file:/somefile.txt", Set.of(FILE_PROTOCOL, CLASSPATH_PROTOCOL));
+        Utils.validateUrlAllowed("file:/somefile.txt", setOf(FILE_PROTOCOL));
+        Utils.validateUrlAllowed("file:/somefile.txt", setOf(FILE_PROTOCOL, CLASSPATH_PROTOCOL));
         Utils.validateUrlAllowed("file:some/other/file.txt", null);
 
         // Test File - Blocked
-        assertValidateUrlAllowedThrows("file:somefile.txt", Set.of());
-        assertValidateUrlAllowedThrows("file:some/other/file.txt", Set.of(""));
-        assertValidateUrlAllowedThrows("file:some/other/file.txt", Set.of(CLASSPATH_PROTOCOL));
+        assertValidateUrlAllowedThrows("file:somefile.txt", setOf());
+        assertValidateUrlAllowedThrows("file:some/other/file.txt", setOf(""));
+        assertValidateUrlAllowedThrows("file:some/other/file.txt", setOf(CLASSPATH_PROTOCOL));
 
         // Test Remote File - Allowed
-        Utils.validateUrlAllowed("file://somefile.txt", Set.of(REMOTE_FILE_PROTOCOL));
-        Utils.validateUrlAllowed("file://somefile.txt", Set.of(FILE_PROTOCOL, REMOTE_FILE_PROTOCOL));
+        Utils.validateUrlAllowed("file://somefile.txt", setOf(REMOTE_FILE_PROTOCOL));
+        Utils.validateUrlAllowed("file://somefile.txt", setOf(FILE_PROTOCOL, REMOTE_FILE_PROTOCOL));
         Utils.validateUrlAllowed("file://some/other/file.txt", null);
 
         // Test File - Blocked
-        assertValidateUrlAllowedThrows("file://somefile.txt", Set.of());
-        assertValidateUrlAllowedThrows("file://some/other/file.txt", Set.of(""));
-        assertValidateUrlAllowedThrows("file://some/other/file.txt", Set.of(FILE_PROTOCOL));
+        assertValidateUrlAllowedThrows("file://somefile.txt", setOf());
+        assertValidateUrlAllowedThrows("file://some/other/file.txt", setOf(""));
+        assertValidateUrlAllowedThrows("file://some/other/file.txt", setOf(FILE_PROTOCOL));
         // Test extra slash, we consider everything with more than one slash to be remote to simplify
-        assertValidateUrlAllowedThrows("file:///some/other/file.txt", Set.of(FILE_PROTOCOL));
+        assertValidateUrlAllowedThrows("file:///some/other/file.txt", setOf(FILE_PROTOCOL));
 
         // Test http - Allowed
-        Utils.validateUrlAllowed("http://somefile.txt", Set.of("http"));
-        Utils.validateUrlAllowed("http://somefile.txt", Set.of(FILE_PROTOCOL, "http"));
+        Utils.validateUrlAllowed("http://somefile.txt", setOf("http"));
+        Utils.validateUrlAllowed("http://somefile.txt", setOf(FILE_PROTOCOL, "http"));
         Utils.validateUrlAllowed("http://some/other/file.txt", null);
 
         // Test http - Blocked
-        assertValidateUrlAllowedThrows("http://somefile.txt", Set.of());
-        assertValidateUrlAllowedThrows("http://some/other/file.txt", Set.of(""));
-        assertValidateUrlAllowedThrows("http://some/other/file.txt", Set.of("ftp"));
+        assertValidateUrlAllowedThrows("http://somefile.txt", setOf());
+        assertValidateUrlAllowedThrows("http://some/other/file.txt", setOf(""));
+        assertValidateUrlAllowedThrows("http://some/other/file.txt", setOf("ftp"));
     }
 
     private void assertValidateUrlAllowedThrows(String uriString, Set<String> allowedProtocols)
@@ -149,17 +152,17 @@ public class UtilsTest {
 
         // file not allowed, only jar
         assertNotAllowed("URL [" + url + "] can't be found or the protocol is not allowed for loading resources",
-                () -> Utils.resourceFromString(url, Set.of("jar")));
+                () -> Utils.resourceFromString(url, setOf("jar")));
         // if classpath is allowed and not fully qualified, it will not find the file and fallback
-        resource = Utils.resourceFromString(url, Set.of(CLASSPATH_PROTOCOL));
+        resource = Utils.resourceFromString(url, setOf(CLASSPATH_PROTOCOL));
         assertTrue(resource instanceof ClassPathResource);
         assertFalse(resource.exists());
         // fully qualified fails regardless
         assertNotAllowed("URL [" + fqUrl + "] uses protocol '" + protocol + "' which is not allowed for loading URL resources",
-                () -> Utils.resourceFromString(fqUrl, Set.of(CLASSPATH_PROTOCOL)));
+                () -> Utils.resourceFromString(fqUrl, setOf(CLASSPATH_PROTOCOL)));
         // Test Uri format, empty set not allowed
         assertNotAllowed("No protocols are allowed for loading resources.",
-                () -> Utils.resourceFromString(fqUrl, Set.of()));
+                () -> Utils.resourceFromString(fqUrl, setOf()));
 
     }
 
@@ -180,7 +183,7 @@ public class UtilsTest {
         Resource resource;
 
         //classpath allowed so it will fallback
-        resource = Utils.resourceFromString(url, Set.of(protocol, CLASSPATH_PROTOCOL));
+        resource = Utils.resourceFromString(url, setOf(protocol, CLASSPATH_PROTOCOL));
         assertTrue(resource instanceof ClassPathResource);
         assertFalse(resource.exists());
         resource = Utils.resourceFromString(url, null);
@@ -192,8 +195,8 @@ public class UtilsTest {
         assertFalse(resource.exists());
         // classpath not allowed so we get an exception as we can't find it
         assertNotAllowed("URL [" + url + "] can't be found or the protocol is not allowed for loading resources",
-                () -> Utils.resourceFromString(url, Set.of(protocol)));
-        resource = Utils.resourceFromString(fqUrl, Set.of(protocol));
+                () -> Utils.resourceFromString(url, setOf(protocol)));
+        resource = Utils.resourceFromString(fqUrl, setOf(protocol));
         assertNotNull(resource);
         assertFalse(resource.exists());
     }
@@ -205,17 +208,17 @@ public class UtilsTest {
 
         // Test using "jar" as allowed so we don't fallback
         assertNotAllowed("URL [src/test/resources/activemq.xml] can't be found or the protocol is not allowed for loading resources",
-                () -> Utils.resourceFromString("src/test/resources/activemq.xml", Set.of("jar")));
+                () -> Utils.resourceFromString("src/test/resources/activemq.xml", setOf("jar")));
         // classpath is allowed so it won't find the file and fallback to classpath
-        resource = Utils.resourceFromString("src/test/resources/activemq.xml", Set.of(CLASSPATH_PROTOCOL));
+        resource = Utils.resourceFromString("src/test/resources/activemq.xml", setOf(CLASSPATH_PROTOCOL));
         assertTrue(resource instanceof ClassPathResource);
         assertFalse(resource.exists());
         // empty allow list
         assertNotAllowed("No protocols are allowed for loading resources.",
-                () -> Utils.resourceFromString("src/test/resources/activemq.xml", Set.of()));
+                () -> Utils.resourceFromString("src/test/resources/activemq.xml", setOf()));
         // Test Uri format - only classpath allowed
         assertNotAllowed("URL [file:src/test/resources/activemq.xml] uses protocol 'file' which is not allowed for loading URL resources",
-                () -> Utils.resourceFromString("file:src/test/resources/activemq.xml", Set.of(CLASSPATH_PROTOCOL)));
+                () -> Utils.resourceFromString("file:src/test/resources/activemq.xml", setOf(CLASSPATH_PROTOCOL)));
     }
 
     // Test 4: Check file is both allowed and exists
@@ -223,12 +226,12 @@ public class UtilsTest {
     public void testResourceFromStringFile4() throws Exception {
         Resource resource;
 
-        resource = Utils.resourceFromString("src/test/resources/activemq.xml", Set.of(FILE_PROTOCOL));
+        resource = Utils.resourceFromString("src/test/resources/activemq.xml", setOf(FILE_PROTOCOL));
         assertTrue(resource instanceof FileSystemResource);
         assertTrue(resource.exists());
 
         // Retry with file allowed using uri format
-        resource = Utils.resourceFromString("file:src/test/resources/activemq.xml", Set.of(FILE_PROTOCOL));
+        resource = Utils.resourceFromString("file:src/test/resources/activemq.xml", setOf(FILE_PROTOCOL));
         assertTrue(resource instanceof UrlResource);
         assertTrue(resource.exists());
     }
@@ -238,12 +241,12 @@ public class UtilsTest {
     public void tetsResourceFromStringClasspath1() {
         // Check classpath is NOT allowed to load, and does NOT exist
         assertNotAllowed("URL [doesNotExist] can't be found or the protocol is not allowed for loading resources",
-                () -> Utils.resourceFromString("doesNotExist", Set.of(FILE_PROTOCOL)));
+                () -> Utils.resourceFromString("doesNotExist", setOf(FILE_PROTOCOL)));
         assertNotAllowed("URL [classpath:doesNotExist] uses protocol 'classpath' which is not allowed for loading URL resources",
-                () -> Utils.resourceFromString("classpath:doesNotExist", Set.of(FILE_PROTOCOL)));
+                () -> Utils.resourceFromString("classpath:doesNotExist", setOf(FILE_PROTOCOL)));
         // Test Uri format, empty set not allowed
         assertNotAllowed("No protocols are allowed for loading resources.",
-                () -> Utils.resourceFromString("classpath:doesNotExist", Set.of()));
+                () -> Utils.resourceFromString("classpath:doesNotExist", setOf()));
     }
 
     // Test 2: Check classpath is allowed to load, but it does not exist
@@ -253,10 +256,10 @@ public class UtilsTest {
     public void testResourceFromStringClasspath2() throws Exception {
         Resource resource;
 
-        resource = Utils.resourceFromString("doesNotExist", Set.of(FILE_PROTOCOL, CLASSPATH_PROTOCOL));
+        resource = Utils.resourceFromString("doesNotExist", setOf(FILE_PROTOCOL, CLASSPATH_PROTOCOL));
         assertTrue(resource instanceof ClassPathResource);
         assertFalse(resource.exists());
-        resource = Utils.resourceFromString("doesNotExist", Set.of(CLASSPATH_PROTOCOL));
+        resource = Utils.resourceFromString("doesNotExist", setOf(CLASSPATH_PROTOCOL));
         assertTrue(resource instanceof ClassPathResource);
         assertFalse(resource.exists());
         resource = Utils.resourceFromString("doesNotExist", null);
@@ -273,13 +276,13 @@ public class UtilsTest {
     public void testResourceFromStringClasspath3() {
         // This exists on the classpath but not allowed, only file is allowed
         assertNotAllowed("URL [activemq.xml] can't be found or the protocol is not allowed for loading resources",
-                () -> Utils.resourceFromString("activemq.xml", Set.of(FILE_PROTOCOL)));
+                () -> Utils.resourceFromString("activemq.xml", setOf(FILE_PROTOCOL)));
         // empty allow list
         assertNotAllowed("No protocols are allowed for loading resources.",
-                () -> Utils.resourceFromString("activemq.xml", Set.of()));
+                () -> Utils.resourceFromString("activemq.xml", setOf()));
         // Test Uri format - only file allowed
         assertNotAllowed("URL [classpath:activemq.xml] uses protocol 'classpath' which is not allowed for loading URL resources",
-                () -> Utils.resourceFromString("classpath:activemq.xml", Set.of(FILE_PROTOCOL)));
+                () -> Utils.resourceFromString("classpath:activemq.xml", setOf(FILE_PROTOCOL)));
     }
 
     @Test
@@ -287,11 +290,11 @@ public class UtilsTest {
         Resource resource;
 
         // Test 4: Check classpath is both allowed and exists
-        resource = Utils.resourceFromString("activemq.xml", Set.of(CLASSPATH_PROTOCOL));
+        resource = Utils.resourceFromString("activemq.xml", setOf(CLASSPATH_PROTOCOL));
         assertTrue(resource instanceof ClassPathResource);
         assertTrue(resource.exists());
         // Retry with classpath allowed using uri format
-        resource = Utils.resourceFromString("classpath:activemq.xml", Set.of(CLASSPATH_PROTOCOL));
+        resource = Utils.resourceFromString("classpath:activemq.xml", setOf(CLASSPATH_PROTOCOL));
         assertTrue(resource instanceof UrlResource);
         assertTrue(resource.exists());
     }
@@ -303,21 +306,21 @@ public class UtilsTest {
 
         // none of these protocols are allowed
         assertNotAllowed("URL [file://invalid] uses protocol 'remote-file' which is not allowed for loading URL resources",
-                () -> Utils.resourceFromString("file://invalid", Set.of(FILE_PROTOCOL,CLASSPATH_PROTOCOL)));
+                () -> Utils.resourceFromString("file://invalid", setOf(FILE_PROTOCOL,CLASSPATH_PROTOCOL)));
         assertNotAllowed("URL [file:\\\\invalid] uses protocol 'remote-file' which is not allowed for loading URL resources",
-                () -> Utils.resourceFromString("file:\\\\invalid", Set.of(FILE_PROTOCOL,CLASSPATH_PROTOCOL)));
+                () -> Utils.resourceFromString("file:\\\\invalid", setOf(FILE_PROTOCOL,CLASSPATH_PROTOCOL)));
         assertNotAllowed("URL [http://invalid] uses protocol 'http' which is not allowed for loading URL resources",
-                () -> Utils.resourceFromString("http://invalid", Set.of(FILE_PROTOCOL,CLASSPATH_PROTOCOL)));
+                () -> Utils.resourceFromString("http://invalid", setOf(FILE_PROTOCOL,CLASSPATH_PROTOCOL)));
         assertNotAllowed("URL [ftp://invalid] uses protocol 'ftp' which is not allowed for loading URL resources",
-                () -> Utils.resourceFromString("ftp://invalid", Set.of(FILE_PROTOCOL,CLASSPATH_PROTOCOL)));
+                () -> Utils.resourceFromString("ftp://invalid", setOf(FILE_PROTOCOL,CLASSPATH_PROTOCOL)));
         assertNotAllowed("URL [jar:file:invalid.jar!/] uses protocol 'jar' which is not allowed for loading URL resources",
-                () -> Utils.resourceFromString("jar:file:invalid.jar!/", Set.of(FILE_PROTOCOL,CLASSPATH_PROTOCOL)));
+                () -> Utils.resourceFromString("jar:file:invalid.jar!/", setOf(FILE_PROTOCOL,CLASSPATH_PROTOCOL)));
         assertNotAllowed("No protocols are allowed for loading resources.",
-                () -> Utils.resourceFromString("http://invalid", Set.of()));
+                () -> Utils.resourceFromString("http://invalid", setOf()));
         // malformed
         try {
             // not allowed but should have malformed error before it even checks
-            Utils.resourceFromString("http:", Set.of("http"));
+            Utils.resourceFromString("http:", setOf("http"));
             fail("should have exception");
         } catch (MalformedURLException e) {
             assertTrue(e.getCause() instanceof URISyntaxException);
@@ -326,16 +329,16 @@ public class UtilsTest {
         // special edge case - "bad" is not a valid protocol so it skips the URI loading
         // and falls back to a classpath search, which is allowed. That will of course fail because
         // it's not a valid classpath entry
-        resource = Utils.resourceFromString("bad://doesNotExist", Set.of(CLASSPATH_PROTOCOL));
+        resource = Utils.resourceFromString("bad://doesNotExist", setOf(CLASSPATH_PROTOCOL));
         assertTrue(resource instanceof ClassPathResource);
         assertFalse(resource.exists());
-        resource = Utils.resourceFromString("bad:doesNotExist", Set.of(CLASSPATH_PROTOCOL));
+        resource = Utils.resourceFromString("bad:doesNotExist", setOf(CLASSPATH_PROTOCOL));
         assertTrue(resource instanceof ClassPathResource);
         assertFalse(resource.exists());
 
         // classpath is now not allowed either so it fails
         assertNotAllowed("URL [bad://invalid] can't be found or the protocol is not allowed for loading resources",
-                () -> Utils.resourceFromString("bad://invalid", Set.of(FILE_PROTOCOL)));
+                () -> Utils.resourceFromString("bad://invalid", setOf(FILE_PROTOCOL)));
     }
 
     // check urls that are allowed
@@ -344,17 +347,17 @@ public class UtilsTest {
         Resource resource;
 
         // we should be able to build the resources now that they allowed even if they don't exist
-        resource = Utils.resourceFromString("http://doesNotExist", Set.of("http"));
+        resource = Utils.resourceFromString("http://doesNotExist", setOf("http"));
         assertTrue(resource instanceof UrlResource);
         assertFalse(resource.exists());
 
-        resource = Utils.resourceFromString("jar:file:invalid.jar!/", Set.of("jar"));
+        resource = Utils.resourceFromString("jar:file:invalid.jar!/", setOf("jar"));
         assertTrue(resource instanceof UrlResource);
         assertFalse(resource.exists());
 
         try {
             // allowed but should have malformed error
-            Utils.resourceFromString("http:", Set.of("http"));
+            Utils.resourceFromString("http:", setOf("http"));
             fail("should have exception");
         } catch (MalformedURLException e) {
             assertTrue(e.getCause() instanceof URISyntaxException);
@@ -369,5 +372,10 @@ public class UtilsTest {
             assertTrue(e instanceof IllegalArgumentException);
             assertEquals(expected, e.getMessage());
         }
+    }
+
+    @SafeVarargs
+    private static <T> Set<T> setOf(T... elements) {
+        return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(elements)));
     }
 }
