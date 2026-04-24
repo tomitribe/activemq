@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.apache.activemq</groupId>
     <artifactId>activemq-parent</artifactId>
-    <version>5.19.6-TT.2-SNAPSHOT</version>
+    <version>5.19.7-TT.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>activemq-web</artifactId>
@@ -89,6 +89,13 @@
     <dependency>
       <groupId>org.eclipse.jetty.websocket</groupId>
       <artifactId>websocket-server</artifactId>
+    </dependency>
+
+    <!-- Just used for testing -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+      <scope>test</scope>
     </dependency>
 
     <!-- Rome RSS Reader -->
