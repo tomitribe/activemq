@@ -164,36 +164,59 @@ public class ActiveMQConnectionFactoryXBeanTest {
                 UnknownHostException.class);
     }
 
-    private void assertBrokerCreated(String url) throws JMSException {
+    private void assertBrokerCreated(final String url) throws JMSException {
         final ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(url);
-        try (Connection connection = factory.createConnection()) {
+        final Connection connection = factory.createConnection();
+        try {
             assertNotNull(connection);
+        } finally {
+            connection.close();
         }
     }
 
-    private void assertUrlNotAllowed(String url) {
+    private void assertUrlNotAllowed(final String url) {
         assertUrlNotAllowed(url, " which is not allowed for loading URL resources");
     }
 
-    private void assertUrlNotAllowed(String url, String error) {
+    private void assertUrlNotAllowed(final String url, final String error) {
         final ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(url);
-        try (Connection ignored = factory.createConnection()) {
+        Connection connection = null;
+        try {
+            connection = factory.createConnection();
             fail("Should of thrown exception");
         } catch (JMSException e) {
             assertTrue(e.getCause() instanceof IllegalArgumentException);
             assertTrue(e.getMessage().contains(error));
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (JMSException e) {
+                    // ignore
+                }
+            }
         }
     }
 
-    private void assertBrokerStartError(String url, Class<? extends Exception> expected) {
+    private void assertBrokerStartError(final String url, final Class<? extends Exception> expected) {
         final ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(url);
-        try (Connection ignored = factory.createConnection()) {
+        Connection connection = null;
+        try {
+            connection = factory.createConnection();
             fail("Should have failed with an exception");
         } catch (JMSException e) {
             Throwable cause = e.getCause() != null ? e.getCause() : e;
             assertTrue(cause instanceof FatalBeanException);
             cause = cause.getCause() != null ? cause.getCause() : cause;
             assertTrue(expected.isAssignableFrom(cause.getClass()));
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (JMSException e) {
+                    // ignore
+                }
+            }
         }
     }
 }
