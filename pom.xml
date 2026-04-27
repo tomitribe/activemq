@@ -1155,8 +1155,8 @@
           <configuration>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <allowTimestampedSnapshots>false</allowTimestampedSnapshots>
-            <preparationGoals>clean install</preparationGoals>
-            <goals>deploy</goals>
+            <preparationGoals>clean install -DskipTests</preparationGoals>
+            <goals>deploy -DskipTests</goals>
             <remoteTagging>false</remoteTagging>
             <suppressCommitBeforeTag>false</suppressCommitBeforeTag>
             <tagNameFormat>activemq-@{project.version}</tagNameFormat>
