@@ -240,7 +240,7 @@
   <scm>
     <connection>scm:git:git@github.com:tomitribe/activemq.git</connection>
     <developerConnection>scm:git:git@github.com:tomitribe/activemq.git</developerConnection>
-    <url>git@github.com:tomitribe/activemq-git</url>
+    <url>scm:git:git@github.com:tomitribe/activemq.git</url>
     <tag>HEAD</tag>
   </scm>
 
