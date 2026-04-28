@@ -24,7 +24,7 @@
   http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
 
   
-  <broker xmlns="http://activemq.apache.org/schema/core" useJmx="false">
+  <broker xmlns="http://activemq.apache.org/schema/core" useJmx="false" id="broker">
 
     <persistenceFactory>
       <journalPersistenceAdapterFactory journalLogFiles="5" dataDirectory="../data"/>
