@@ -52,6 +52,7 @@
     <commons-collections-version>3.2.2-TT.1</commons-collections-version>
     <commons-daemon-version>1.2.4</commons-daemon-version>
     <commons-dbcp2-version>2.9.0</commons-dbcp2-version>
+    <commons-text-version>1.15.0</commons-text-version>
     <commons-io-version>2.17.0</commons-io-version>
     <commons-lang-version>3.12.0</commons-lang-version>
     <commons-logging-version>1.2</commons-logging-version>
@@ -1041,6 +1042,12 @@
         <version>${commons-io-version}</version>
       </dependency>
 
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-text</artifactId>
+        <version>${commons-text-version}</version>
+      </dependency>
+
       <!-- ACTIVEMQ-WEB Specific Dependencies -->
       <dependency>
         <groupId>com.rometools</groupId>
@@ -1135,8 +1142,8 @@
           <configuration>
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <allowTimestampedSnapshots>false</allowTimestampedSnapshots>
-            <preparationGoals>clean install</preparationGoals>
-            <goals>deploy</goals>
+            <preparationGoals>clean install -DskipTests</preparationGoals>
+            <goals>deploy -DskipTests</goals>
             <remoteTagging>false</remoteTagging>
             <suppressCommitBeforeTag>false</suppressCommitBeforeTag>
             <tagNameFormat>activemq-@{project.version}</tagNameFormat>

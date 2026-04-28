@@ -44,6 +44,11 @@ public class BrokerView implements BrokerViewMBean {
 
     private static final Logger LOG = LoggerFactory.getLogger(BrokerView.class);
 
+    public static final Set<String> DENIED_TRANSPORT_SCHEMES = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList("vm", "http",
+            "multicast", "zeroconf", "discovery", "fanout", "mock", "peer", "failover",
+            "proxy", "reliable", "simple", "udp")));
+
     ManagedRegionBroker broker;
 
     private final BrokerService brokerService;
@@ -372,7 +377,7 @@ public class BrokerView implements BrokerViewMBean {
 
     @Override
     public String addConnector(String discoveryAddress) throws Exception {
-        // Verify VM transport is not used
+        // Verify a denied transport scheme is not used
         validateAllowedUrl(discoveryAddress);
         TransportConnector connector = brokerService.addConnector(discoveryAddress);
         if (connector == null) {
@@ -384,7 +389,7 @@ public class BrokerView implements BrokerViewMBean {
 
     @Override
     public String addNetworkConnector(String discoveryAddress) throws Exception {
-        // Verify VM transport is not used
+        // Verify a denied transport scheme is not used
         validateAllowedUrl(discoveryAddress);
         NetworkConnector connector = brokerService.addNetworkConnector(discoveryAddress);
         if (connector == null) {
@@ -552,10 +557,11 @@ public class BrokerView implements BrokerViewMBean {
         validateAllowedUri(new URI(uriString), 0);
     }
 
-    // Validate the URI does not contain VM transport
+    // Validate the URI does not contain a denied transport scheme
     private static void validateAllowedUri(URI uri, int depth) throws URISyntaxException {
         // Don't allow more than 5 nested URIs to prevent blowing the stack
-        if (depth > 5) {
+        // If we are greater than 4 then this is the 5th level of composite
+        if (depth > 4) {
             throw new IllegalArgumentException("URI can't contain more than 5 nested composite URIs");
         }
 
@@ -570,19 +576,22 @@ public class BrokerView implements BrokerViewMBean {
                 // Each URI could be a nested composite URI so call validateAllowedUri()
                 // to validate it. This check if composite first so we don't add to
                 // the recursive stack depth if there's a lot of URIs that are not composite
-                if (URISupport.isCompositeURI(uri)) {
+                if (URISupport.isCompositeURI(component)) {
                     validateAllowedUri(component, depth);
                 } else {
-                    validateAllowedScheme(uri.getScheme());
+                    validateAllowedScheme(component.getScheme());
                 }
             }
         }
     }
 
-    // We don't allow VM transport scheme to be used
+    // Check all denied schemes
     private static void validateAllowedScheme(String scheme) {
-        if (scheme.equals("vm")) {
-            throw new IllegalArgumentException("VM scheme is not allowed");
+        for (String denied : DENIED_TRANSPORT_SCHEMES) {
+            // The schemes should be case-insensitive but ignore case as a precaution
+            if (scheme.equalsIgnoreCase(denied)) {
+                throw new IllegalArgumentException("Transport scheme '" + scheme + "' is not allowed");
+            }
         }
     }
 }
