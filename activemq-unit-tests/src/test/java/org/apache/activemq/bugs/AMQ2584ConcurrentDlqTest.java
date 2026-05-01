@@ -43,12 +43,16 @@ import org.apache.activemq.store.PersistenceAdapter;
 import org.apache.activemq.store.kahadb.KahaDBPersistenceAdapter;
 import org.apache.activemq.store.kahadb.disk.journal.Journal;
 import org.apache.activemq.util.IntrospectionSupport;
+import org.apache.activemq.util.Wait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.junit.experimental.categories.Category;
+import org.apache.activemq.test.annotations.ParallelTest;
 
 // variation on AMQ2584 where the DLQ consumer works in parallel to producer so
 // that some dups are not suppressed as they are already acked by the consumer
 // the audit needs to be disabled to allow these dupes to be consumed
+@Category(ParallelTest.class)
 public class AMQ2584ConcurrentDlqTest extends org.apache.activemq.TestSupport {
 
     static final Logger LOG = LoggerFactory.getLogger(AMQ2584ConcurrentDlqTest.class);
@@ -97,20 +101,14 @@ public class AMQ2584ConcurrentDlqTest extends org.apache.activemq.TestSupport {
         // consumer all of the duplicates that arrived after the first ack
         closeDlqConsumer();
 
-        //get broker a chance to clean obsolete messages, wait 2*cleanupInterval
-        Thread.sleep(5000);
-
-        FilenameFilter justLogFiles = new FilenameFilter() {
-            public boolean accept(File file, String s) {
-                return s.endsWith(".log");
-            }
-        };
-        int numFiles = ((KahaDBPersistenceAdapter) broker.getPersistenceAdapter()).getDirectory().list(justLogFiles).length;
-        if (numFiles > 2) {
-            LOG.info(Arrays.toString(((KahaDBPersistenceAdapter) broker.getPersistenceAdapter()).getDirectory().list(justLogFiles)));
-        }
-        LOG.info("num files: " + numFiles);
-        assertEquals("kahaDB dir should contain 1 db file,is: " + numFiles, 1, numFiles);
+        //wait for broker to clean obsolete messages (cleanupInterval=2000ms)
+        final FilenameFilter justLogFiles = (file, s) -> s.endsWith(".log");
+        assertTrue("kahaDB dir should contain 1 db file after cleanup",
+            Wait.waitFor(() -> {
+                final int count = ((KahaDBPersistenceAdapter) broker.getPersistenceAdapter()).getDirectory().list(justLogFiles).length;
+                LOG.info("num kahadb log files: " + count);
+                return count == 1;
+            }, 15000, 500));
     }
 
     private void openConsumer(final CountDownLatch latch) throws Exception {

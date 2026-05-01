@@ -40,7 +40,10 @@ import jakarta.jms.Topic;
 
 import org.apache.activemq.ActiveMQContext;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.apache.activemq.test.annotations.ParallelTest;
 
+@Category(ParallelTest.class)
 public class ActiveMQJMS2ContextTest extends ActiveMQJMS2TestBase {
 
     @Test
@@ -268,22 +271,22 @@ public class ActiveMQJMS2ContextTest extends ActiveMQJMS2TestBase {
 
     @Test(expected = UnsupportedOperationException.class)
     public void testSessionSharedConsumer() throws JMSException {
-        session.createSharedConsumer(null, null);
+        session.createSharedConsumer(session.createTopic("test"), null);
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testSessionSharedConsumerSelector() throws JMSException {
-        session.createSharedConsumer(null, null, null);
+        session.createSharedConsumer(session.createTopic("test"), null, null);
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testSessionSharedDurableConsumer() throws JMSException {
-        session.createSharedDurableConsumer(null, null);
+        session.createSharedDurableConsumer(session.createTopic("test"), null);
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testSessionSharedDurableConsumerSelector() throws JMSException {
-        session.createSharedDurableConsumer(null, null, null);
+        session.createSharedDurableConsumer(session.createTopic("test"), null, null);
     }
 
     @Test(expected = UnsupportedOperationException.class)

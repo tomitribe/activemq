@@ -42,6 +42,8 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.openmbean.CompositeData;
+import org.junit.experimental.categories.Category;
+import org.apache.activemq.test.annotations.ParallelTest;
 
 /**
  * Tests that the broker allows/fails access to destinations based on the
@@ -49,6 +51,7 @@ import javax.management.openmbean.CompositeData;
  *
  *
  */
+@Category(ParallelTest.class)
 public class SimpleSecurityBrokerSystemTest extends SecurityTestSupport {
     private static final Logger LOG = LoggerFactory.getLogger(SimpleSecurityBrokerSystemTest.class);
 
@@ -58,7 +61,8 @@ public class SimpleSecurityBrokerSystemTest extends SecurityTestSupport {
     public static Principal WILDCARD;
     static {
         try {
-         WILDCARD = (Principal) DefaultAuthorizationMap.createGroupPrincipal("*", GroupPrincipal.class.getName());
+         WILDCARD = (Principal) DefaultAuthorizationMap.createGroupPrincipal(
+                 SecurityContext.WILDCARD, GroupPrincipal.class.getName());
         } catch (Exception e) {
             LOG.error("Failed to make wildcard principal", e);
         }

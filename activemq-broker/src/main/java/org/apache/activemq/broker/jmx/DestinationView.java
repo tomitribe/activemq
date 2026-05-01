@@ -17,6 +17,7 @@
 package org.apache.activemq.broker.jmx;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -136,6 +137,12 @@ public class DestinationView implements DestinationViewMBean {
         return messageStore != null ? messageStore.getMessageStoreStatistics().getMessageSize().getTotalSize() : 0;
     }
 
+    @Override
+    public long getMessagesCachedCount() {
+        return destination.getDestinationStatistics().getMessagesCached().getCount();
+    }
+
+    @Deprecated(forRemoval = true) // see: getMessagesCachedCount() instead. This method name is inconsistent
     public long getMessagesCached() {
         return destination.getDestinationStatistics().getMessagesCached().getCount();
     }
@@ -388,7 +395,7 @@ public class DestinationView implements DestinationViewMBean {
     @Override
     public String sendTextMessage(Map<String, String> headers, String body, String userName, @Sensitive String password) throws Exception {
 
-        String brokerUrl = "vm://" + broker.getBrokerName();
+        URI brokerUrl = broker.getVmConnectorURI();
         ActiveMQDestination dest = destination.getActiveMQDestination();
 
         ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerUrl);
@@ -437,10 +444,12 @@ public class DestinationView implements DestinationViewMBean {
         return destination.getMaxProducersToAudit();
     }
 
+    @Override
     public boolean isEnableAudit() {
         return destination.isEnableAudit();
     }
 
+    @Override
     public void setEnableAudit(boolean enableAudit) {
         destination.setEnableAudit(enableAudit);
     }

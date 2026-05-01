@@ -790,17 +790,24 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
     }
 
     public void rollbackPendingCursorAdditions(MessageId messageId) {
+        MessageContext toRollback = null;
         synchronized (indexOrderedCursorUpdates) {
             for (int i = indexOrderedCursorUpdates.size() - 1; i >= 0; i--) {
-                MessageContext mc = indexOrderedCursorUpdates.get(i);
+                final MessageContext mc = indexOrderedCursorUpdates.get(i);
                 if (mc.message.getMessageId().equals(messageId)) {
                     indexOrderedCursorUpdates.remove(mc);
-                    if (mc.onCompletion != null) {
-                        mc.onCompletion.run();
-                    }
+                    toRollback = mc;
                     break;
                 }
             }
+        }
+        // Invoke onCompletion outside synchronized(indexOrderedCursorUpdates) to avoid a
+        // lock-ordering deadlock with JDBCMessageStore.addMessage, which holds
+        // pendingAdditions while calling indexListener.onAdd() (which acquires
+        // indexOrderedCursorUpdates). The onCompletion callback acquires pendingAdditions,
+        // so calling it inside the lock produces a deadlock cycle.
+        if (toRollback != null && toRollback.onCompletion != null) {
+            toRollback.onCompletion.run();
         }
     }
 
@@ -1313,9 +1320,20 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
     }
 
     public void purge() throws Exception {
+        purge(this.destinationStatistics.getMessages().getCount());
+    }
+
+    public void purge(long numberOfMessages) throws Exception {
+
+        if (numberOfMessages <= 0) {
+            return;
+        }
+
         ConnectionContext c = createConnectionContext();
         List<MessageReference> list = null;
         sendLock.lock();
+
+        long purgeCount = 0L;
         try {
             long originalMessageCount = this.destinationStatistics.getMessages().getCount();
             do {
@@ -1323,24 +1341,32 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
                 pagedInMessagesLock.readLock().lock();
                 try {
                     list = new ArrayList<MessageReference>(pagedInMessages.values());
-                }finally {
+                } finally {
                     pagedInMessagesLock.readLock().unlock();
                 }
 
-                for (MessageReference ref : list) {
+                int deleteCount = list.size();
+                if ((numberOfMessages - purgeCount) < list.size()) {
+                    deleteCount = (int)(numberOfMessages - purgeCount);
+                }
+
+                for (int n=0; n < deleteCount; n++) {
                     try {
-                        QueueMessageReference r = (QueueMessageReference) ref;
+                        QueueMessageReference r = (QueueMessageReference) list.get(n);
                         removeMessage(c, r);
                         messages.rollback(r.getMessageId());
+                        purgeCount++;
                     } catch (IOException e) {
                     }
                 }
                 // don't spin/hang if stats are out and there is nothing left in the
                 // store
-            } while (!list.isEmpty() && this.destinationStatistics.getMessages().getCount() > 0);
+            } while (!list.isEmpty() &&
+                    this.destinationStatistics.getMessages().getCount() > 0 &&
+                    purgeCount < numberOfMessages);
 
-            if (this.destinationStatistics.getMessages().getCount() > 0) {
-                LOG.warn("{} after purge of {} messages, message count stats report: {}", getActiveMQDestination().getQualifiedName(), originalMessageCount, this.destinationStatistics.getMessages().getCount());
+            if (numberOfMessages == originalMessageCount && this.destinationStatistics.getMessages().getCount() > 0) {
+                LOG.warn("{} after purge {} of {} messages, message count stats report: {}", getActiveMQDestination().getQualifiedName(), numberOfMessages, originalMessageCount, this.destinationStatistics.getMessages().getCount());
             }
         } finally {
             sendLock.unlock();

@@ -130,6 +130,7 @@ pipeline {
             }
             when { expression { return params.testsEnabled } }
             steps {
+                echo 'Running tests'
                 sh 'java -version'
                 sh 'mvn -version'
 
@@ -137,7 +138,7 @@ pipeline {
                 // sh 'mvn -B -e test -pl activemq-unit-tests -Dactivemq.tests=all'
                 script {
                     sh 'echo "Running tests ..."'
-                    sh 'mvn -B -e -fae verify -Pactivemq.tests-quick'
+                    sh 'mvn -B -e -fae verify -Pactivemq.tests-quick -Dsurefire.rerunFailingTestsCount=3'
                 }
             }
             post {

@@ -39,6 +39,7 @@ import org.apache.activemq.broker.jmx.QueueViewMBean;
 import org.apache.activemq.broker.jmx.TopicViewMBean;
 import org.apache.activemq.store.kahadb.KahaDBStore;
 import org.apache.activemq.transport.mqtt.util.ResourceLoadingSslContext;
+import org.apache.activemq.util.IOHelper;
 import org.fusesource.mqtt.client.MQTT;
 import org.fusesource.mqtt.client.Tracer;
 import org.fusesource.mqtt.codec.MQTTFrame;
@@ -52,8 +53,6 @@ import org.slf4j.LoggerFactory;
 public class MQTTTestSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger(MQTTTestSupport.class);
-
-    public static final String KAHADB_DIRECTORY = "target/activemq-data/";
 
     protected BrokerService brokerService;
     protected int port;
@@ -103,6 +102,7 @@ public class MQTTTestSupport {
         System.setProperty("javax.net.ssl.keyStoreType", "jks");
 
         exceptions.clear();
+
         startBroker();
     }
 
@@ -143,7 +143,7 @@ public class MQTTTestSupport {
         brokerService.setPersistent(isPersistent());
         if (isPersistent()) {
             KahaDBStore kaha = new KahaDBStore();
-            kaha.setDirectory(new File(KAHADB_DIRECTORY + getTestName()));
+            kaha.setDirectory(new File(IOHelper.getDefaultDataDirectory() + "/" + getTestName()));
             brokerService.setPersistenceAdapter(kaha);
         }
         brokerService.setAdvisorySupport(advisorySupport);
@@ -413,7 +413,11 @@ public class MQTTTestSupport {
         return mqtt;
     }
 
-    private MQTT createMQTTSslConnection(String clientId, boolean clean) throws Exception {
+    protected MQTT createMQTTSslConnection(String clientId, boolean clean) throws Exception {
+        return createMQTTSslConnection(clientId, clean, null);
+    }
+
+    protected MQTT createMQTTSslConnection(String clientId, boolean clean, String sslProtocol) throws Exception {
         MQTT mqtt = new MQTT();
         mqtt.setConnectAttemptsMax(1);
         mqtt.setReconnectAttemptsMax(0);
@@ -433,6 +437,9 @@ public class MQTTTestSupport {
         sslContext.setKeyStorePassword("password");
         sslContext.setTrustStore(trustStore.getCanonicalPath());
         sslContext.setTrustStorePassword("password");
+        if (sslProtocol != null) {
+            sslContext.setProtocol(sslProtocol);
+        }
         sslContext.afterPropertiesSet();
 
         mqtt.setSslContext(sslContext.getSSLContext());

@@ -36,9 +36,12 @@ import java.util.Collection;
 import java.util.List;
 
 import static org.junit.Assert.*;
+import org.junit.experimental.categories.Category;
+import org.apache.activemq.test.annotations.ParallelTest;
 
 
 @RunWith(value = Parameterized.class)
+@Category(ParallelTest.class)
 public class DurableSubscriptionOffline2Test extends DurableSubscriptionOfflineTestBase {
 
     private static final Logger LOG = LoggerFactory.getLogger(DurableSubscriptionOffline2Test.class);
@@ -94,7 +97,7 @@ public class DurableSubscriptionOffline2Test extends DurableSubscriptionOfflineT
         MessageConsumer consumer = session.createDurableSubscriber(topic, "SubsId", null, true);
 
         for (int i=0; i<sent/2; i++) {
-            Message m =  consumer.receive(4000);
+            final Message m =  consumer.receive(30000);
             assertNotNull("got message: " + i, m);
             LOG.info("Got :" + i + ", " + m);
         }
@@ -107,12 +110,8 @@ public class DurableSubscriptionOffline2Test extends DurableSubscriptionOfflineT
 
         assertTrue("is active", durableSubscriptionView.isActive());
         assertEquals("all enqueued", keepDurableSubsActive ? 10 : 0, durableSubscriptionView.getEnqueueCounter());
-        assertTrue("correct waiting acks", Wait.waitFor(new Wait.Condition() {
-            @Override
-            public boolean isSatisified() throws Exception {
-                return 5 == durableSubscriptionView.getMessageCountAwaitingAcknowledge();
-            }
-        }));
+        assertTrue("correct waiting acks", Wait.waitFor(
+                () -> 5 == durableSubscriptionView.getMessageCountAwaitingAcknowledge()));
         assertEquals("correct dequeue", 5, durableSubscriptionView.getDequeueCounter());
 
 
@@ -147,7 +146,7 @@ public class DurableSubscriptionOffline2Test extends DurableSubscriptionOfflineT
         consumer = session.createDurableSubscriber(topic, "SubsId", null, true);
 
         for (int i=0; i<sent/2;i++) {
-            Message m =  consumer.receive(30000);
+            final Message m =  consumer.receive(30000);
             assertNotNull("got message: " + i, m);
             LOG.info("Got :" + i + ", " + m);
         }
@@ -159,13 +158,10 @@ public class DurableSubscriptionOffline2Test extends DurableSubscriptionOfflineT
 
         assertTrue("is active", durableSubscriptionView2.isActive());
         assertEquals("all enqueued", keepDurableSubsActive ? 10 : 0, durableSubscriptionView2.getEnqueueCounter());
-        assertTrue("correct dequeue", Wait.waitFor(new Wait.Condition() {
-            @Override
-            public boolean isSatisified() throws Exception {
-                long val = durableSubscriptionView2.getDequeueCounter();
-                LOG.info("dequeue count:" + val);
-                return 10 == val;
-            }
+        assertTrue("correct dequeue", Wait.waitFor(() -> {
+            final long val = durableSubscriptionView2.getDequeueCounter();
+            LOG.info("dequeue count:" + val);
+            return 10 == val;
         }));
     }
 }

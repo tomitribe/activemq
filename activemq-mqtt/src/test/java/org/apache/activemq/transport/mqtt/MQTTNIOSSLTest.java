@@ -16,9 +16,13 @@
  */
 package org.apache.activemq.transport.mqtt;
 
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+
 /**
  * Run the basic tests with the NIO Transport.
  */
+@Category(ParallelTest.class)
 public class MQTTNIOSSLTest extends MQTTTest {
 
     @Override
@@ -29,5 +33,15 @@ public class MQTTNIOSSLTest extends MQTTTest {
     @Override
     public boolean isUseSSL() {
         return true;
+    }
+
+    @Test(timeout = 60000)
+    public void testHandshakeRenegotiationTlsv12() throws Exception {
+        testHandshakeRenegotiation("TLSv1.2");
+    }
+
+    @Test(timeout = 60000)
+    public void testHandshakeRenegotiationTlsv13() throws Exception {
+        testHandshakeRenegotiation("TLSv1.3");
     }
 }

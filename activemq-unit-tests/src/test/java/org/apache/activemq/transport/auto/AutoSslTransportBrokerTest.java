@@ -21,7 +21,10 @@ import java.net.URISyntaxException;
 import junit.framework.Test;
 import junit.textui.TestRunner;
 import org.apache.activemq.transport.TransportBrokerTestSupport;
+import org.junit.experimental.categories.Category;
+import org.apache.activemq.test.annotations.ParallelTest;
 
+@Category(ParallelTest.class)
 public class AutoSslTransportBrokerTest extends TransportBrokerTestSupport {
 
     public static final String KEYSTORE_TYPE = "jks";
@@ -36,7 +39,9 @@ public class AutoSslTransportBrokerTest extends TransportBrokerTestSupport {
 
     @Override
     protected URI getBindURI() throws URISyntaxException {
-        return new URI(super.getBindURI().toString() + "?soWriteTimeout=20000");
+        String uri = super.getBindURI().toString() + "?soWriteTimeout=20000";
+        uri = enabledProtocols != null ? uri + "&socket.enabledProtocols=" + enabledProtocols : uri;
+        return new URI(uri);
     }
 
     @Override
@@ -51,6 +56,14 @@ public class AutoSslTransportBrokerTest extends TransportBrokerTestSupport {
 
         maxWait = 10000;
         super.setUp();
+    }
+
+    public void testSslHandshakeRenegotiationTlsv12() throws Exception {
+        testSslHandshakeRenegotiation("TLSv1.2");
+    }
+
+    public void testSslHandshakeRenegotiationTlsv13() throws Exception {
+        testSslHandshakeRenegotiation("TLSv1.3");
     }
 
     public static Test suite() {

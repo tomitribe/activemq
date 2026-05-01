@@ -35,6 +35,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.apache.activemq.util.FactoryFinder;
 import org.apache.activemq.util.IntrospectionSupport;
 import org.apache.activemq.web.view.MessageRenderer;
+import org.apache.activemq.web.view.RssMessageRenderer;
+import org.apache.activemq.web.view.SimpleMessageRenderer;
 import org.apache.activemq.web.view.XmlMessageRenderer;
 
 /**
@@ -46,43 +48,55 @@ import org.apache.activemq.web.view.XmlMessageRenderer;
  * <li>selector - specifies the SQL 92 selector to apply to the queue</li>
  * </ul>
  *
- * 
+ *
  */
 public class QueueBrowseServlet extends HttpServlet {
-    private static FactoryFinder factoryFinder = new FactoryFinder("META-INF/services/org/apache/activemq/web/view/");
+
+    public static final String QUEUE_BROWSE_VIEWS_PROP = "org.apache.activemq.web.view.QUEUE_BROWSE_CLASSES";
+    public static final String DEFAULT_ALLOWED_VIEWS = FactoryFinder.buildAllowedImpls(
+            RssMessageRenderer.class, XmlMessageRenderer.class, SimpleMessageRenderer.class);
+
+    private final  FactoryFinder<MessageRenderer> factoryFinder;
+
+    public QueueBrowseServlet() {
+        this.factoryFinder = new FactoryFinder<>("META-INF/services/org/apache/activemq/web/view/",
+                MessageRenderer.class, System.getProperty(QUEUE_BROWSE_VIEWS_PROP, DEFAULT_ALLOWED_VIEWS));
+    }
 
     // Implementation methods
     // -------------------------------------------------------------------------
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
-            WebClient client = WebClient.getWebClient(request);
-            Session session = client.getSession();
-            Queue queue = getQueue(request, session);
-            if (queue == null) {
-                throw new ServletException("No queue URI specified");
-            }
-
-            String msgId = request.getParameter("msgId");
-            if (msgId == null) {
-                MessageRenderer renderer = getMessageRenderer(request);
-                configureRenderer(request, renderer);
-
-                String selector = getSelector(request);
-                QueueBrowser browser = session.createBrowser(queue, selector);
-                renderer.renderMessages(request, response, browser);
-            }
-            else {
-                XmlMessageRenderer renderer = new XmlMessageRenderer();
-                QueueBrowser browser = session.createBrowser(queue, "JMSMessageID='" + msgId + "'");
-                if (!browser.getEnumeration().hasMoreElements()) {
-                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                    return;
+            try(WebClient client = WebClient.getWebClient(request);
+                Session session = client.getSession()) {
+                Queue queue = getQueue(request, session);
+                if (queue == null) {
+                    throw new ServletException("No queue URI specified");
                 }
-                Message message = (Message) browser.getEnumeration().nextElement();
 
-                PrintWriter writer = response.getWriter();
-                renderer.renderMessage(writer, request, response, browser, message);
-                writer.flush();
+                String msgId = request.getParameter("msgId");
+                if (msgId == null) {
+                    MessageRenderer renderer = getMessageRenderer(request);
+                    configureRenderer(request, renderer);
+
+                    String selector = getSelector(request);
+                    try (QueueBrowser browser = session.createBrowser(queue, selector)) {
+                        renderer.renderMessages(request, response, browser);
+                    }
+                } else {
+                    XmlMessageRenderer renderer = new XmlMessageRenderer();
+                    try (QueueBrowser browser = session.createBrowser(queue, "JMSMessageID='" + msgId + "'")) {
+                        if (!browser.getEnumeration().hasMoreElements()) {
+                            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                            return;
+                        }
+                        Message message = (Message) browser.getEnumeration().nextElement();
+
+                        PrintWriter writer = response.getWriter();
+                        renderer.renderMessage(writer, request, response, browser, message);
+                        writer.flush();
+                    }
+                }
             }
         }
         catch (JMSException e) {
@@ -96,24 +110,17 @@ public class QueueBrowseServlet extends HttpServlet {
             style = "simple";
         }
         try {
-            return (MessageRenderer) factoryFinder.newInstance(style);
+            return factoryFinder.newInstance(style);
         }
-        catch (IllegalAccessException e) {
-            throw new NoSuchViewStyleException(style, e);
-        }
-        catch (InstantiationException e) {
-            throw new NoSuchViewStyleException(style, e);
-        }
-        catch (ClassNotFoundException e) {
+        catch (IllegalAccessException | InstantiationException | ClassNotFoundException e) {
             throw new NoSuchViewStyleException(style, e);
         }
     }
 
-    @SuppressWarnings("unchecked")
     protected void configureRenderer(HttpServletRequest request, MessageRenderer renderer) {
-        Map<String, String> properties = new HashMap<String, String>();
+        Map<String, String> properties = new HashMap<>();
         for (Enumeration<String> iter = request.getParameterNames(); iter.hasMoreElements();) {
-            String name = (String) iter.nextElement();
+            String name = iter.nextElement();
             properties.put(name, request.getParameter(name));
         }
         IntrospectionSupport.setProperties(renderer, properties);

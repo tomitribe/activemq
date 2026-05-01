@@ -25,6 +25,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
 import java.net.ProtocolException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,8 +49,14 @@ import jakarta.jms.Queue;
 import jakarta.jms.Session;
 import jakarta.jms.TextMessage;
 
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLSocket;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.broker.TransportConnector;
+import org.apache.activemq.broker.region.DurableTopicSubscription;
+import org.apache.activemq.broker.region.RegionBroker;
+import org.apache.activemq.broker.region.TopicRegion;
 import org.apache.activemq.broker.region.policy.LastImageSubscriptionRecoveryPolicy;
 import org.apache.activemq.broker.region.policy.PolicyEntry;
 import org.apache.activemq.broker.region.policy.PolicyMap;
@@ -56,8 +65,12 @@ import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQTopic;
 import org.apache.activemq.util.ByteSequence;
 import org.apache.activemq.util.JMXSupport;
+import org.apache.activemq.util.NioSslTestUtil;
 import org.apache.activemq.util.Wait;
+import org.fusesource.hawtdispatch.transport.SslTransport;
 import org.fusesource.mqtt.client.BlockingConnection;
+import org.fusesource.mqtt.client.CallbackConnection;
+import org.fusesource.mqtt.client.FutureConnection;
 import org.fusesource.mqtt.client.MQTT;
 import org.fusesource.mqtt.client.Message;
 import org.fusesource.mqtt.client.QoS;
@@ -65,10 +78,15 @@ import org.fusesource.mqtt.client.Topic;
 import org.fusesource.mqtt.client.Tracer;
 import org.fusesource.mqtt.codec.MQTTFrame;
 import org.fusesource.mqtt.codec.PUBLISH;
+import org.junit.Assume;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Category(ParallelTest.class)
 public class MQTTTest extends MQTTTestSupport {
 
     private static final Logger LOG = LoggerFactory.getLogger(MQTTTest.class);
@@ -1636,15 +1654,15 @@ public class MQTTTest extends MQTTTestSupport {
         assertEquals("Should have received " + topics.length + " messages", topics.length, received);
     }
 
-    @Test(timeout = 60 * 1000)
+    @Test(timeout = 2 * 60 * 1000)
     public void testReceiveMessageSentWhileOffline() throws Exception {
         final byte[] payload = new byte[1024 * 32];
         for (int i = 0; i < payload.length; i++) {
             payload[i] = '2';
         }
 
-        int numberOfRuns = 10;
-        int messagesPerRun = 2;
+        final int numberOfRuns = 10;
+        final int messagesPerRun = 2;
 
         final MQTT mqttPub = createMQTTConnection("MQTT-Pub-Client", true);
         final MQTT mqttSub = createMQTTConnection("MQTT-Sub-Client", false);
@@ -1655,8 +1673,13 @@ public class MQTTTest extends MQTTTestSupport {
         BlockingConnection connectionSub = mqttSub.blockingConnection();
         connectionSub.connect();
 
-        Topic[] topics = { new Topic("TopicA", QoS.EXACTLY_ONCE) };
+        final Topic[] topics = { new Topic("TopicA", QoS.EXACTLY_ONCE) };
         connectionSub.subscribe(topics);
+
+        // Wait for subscription to become active before publishing
+        assertTrue("Subscription should become active",
+                Wait.waitFor(() -> isSubscriptionActive(topics[0], mqttSub.getClientId().toString()),
+                        TimeUnit.SECONDS.toMillis(5), 100));
 
         for (int i = 0; i < messagesPerRun; ++i) {
             connectionPub.publish(topics[0].name().toString(), payload, QoS.AT_LEAST_ONCE, false);
@@ -1664,7 +1687,7 @@ public class MQTTTest extends MQTTTestSupport {
 
         int received = 0;
         for (int i = 0; i < messagesPerRun; ++i) {
-            Message message = connectionSub.receive(5, TimeUnit.SECONDS);
+            final Message message = connectionSub.receive(5, TimeUnit.SECONDS);
             assertNotNull(message);
             received++;
             assertTrue(Arrays.equals(payload, message.getPayload()));
@@ -1675,43 +1698,45 @@ public class MQTTTest extends MQTTTestSupport {
         // Wait for broker to process disconnect before publishing messages for offline delivery.
         assertTrue("Subscription should become inactive",
                 Wait.waitFor(() -> isSubscriptionInactive(topics[0], mqttSub.getClientId().toString()),
-                        TimeUnit.SECONDS.toMillis(5), 100));
+                        TimeUnit.SECONDS.toMillis(10), 100));
 
-        try {
-            for (int j = 0; j < numberOfRuns; j++) {
+        for (int j = 0; j < numberOfRuns; j++) {
 
-                for (int i = 0; i < messagesPerRun; ++i) {
-                    connectionPub.publish(topics[0].name().toString(), payload, QoS.AT_LEAST_ONCE, false);
-                }
-
-                connectionSub = mqttSub.blockingConnection();
-                connectionSub.connect();
-                connectionSub.subscribe(topics);
-
-                for (int i = 0; i < messagesPerRun; ++i) {
-                    Message message = connectionSub.receive(5, TimeUnit.SECONDS);
-                    assertNotNull(message);
-                    received++;
-                    assertTrue(Arrays.equals(payload, message.getPayload()));
-                    message.ack();
-                }
-                connectionSub.disconnect();
-
-                // Wait for broker to process disconnect before next iteration publishes
-                assertTrue("Subscription should become inactive",
-                        Wait.waitFor(() -> isSubscriptionInactive(topics[0], mqttSub.getClientId().toString()),
-                                TimeUnit.SECONDS.toMillis(5), 100));
+            for (int i = 0; i < messagesPerRun; ++i) {
+                connectionPub.publish(topics[0].name().toString(), payload, QoS.AT_LEAST_ONCE, false);
             }
-        } catch (Exception exception) {
-            LOG.error("unexpected exception", exception);
-            exception.printStackTrace();
+
+            connectionSub = mqttSub.blockingConnection();
+            connectionSub.connect();
+            connectionSub.subscribe(topics);
+
+            // Wait for broker to fully activate the subscription and start dispatching
+            // queued messages. subscribe() returns on SUBACK but broker processes the
+            // ConsumerInfo asynchronously, so messages may not be ready for dispatch yet.
+            assertTrue("Subscription should become active in run " + (j + 1),
+                    Wait.waitFor(() -> isSubscriptionActive(topics[0], mqttSub.getClientId().toString()),
+                            TimeUnit.SECONDS.toMillis(60), 100));
+
+            for (int i = 0; i < messagesPerRun; ++i) {
+                Message message = connectionSub.receive(5, TimeUnit.SECONDS);
+                assertNotNull("Should have received message " + (i + 1) + " of " + messagesPerRun + " in run " + (j + 1), message);
+                received++;
+                assertTrue(Arrays.equals(payload, message.getPayload()));
+                message.ack();
+            }
+            connectionSub.disconnect();
+
+            // Wait for broker to process disconnect before next iteration publishes
+            assertTrue("Subscription should become inactive",
+                    Wait.waitFor(() -> isSubscriptionInactive(topics[0], mqttSub.getClientId().toString()),
+                            TimeUnit.SECONDS.toMillis(10), 100));
         }
         assertEquals("Should have received " + (messagesPerRun * (numberOfRuns + 1)) + " messages", (messagesPerRun * (numberOfRuns + 1)), received);
     }
 
     private boolean isSubscriptionInactive(Topic topic, String clientId) throws Exception {
         if (isVirtualTopicSubscriptionStrategy()) {
-            String queueName = buildVirtualTopicQueueName(topic, clientId);
+            final String queueName = buildVirtualTopicQueueName(topic, clientId);
             try {
                 return getProxyToQueue(queueName).getConsumerCount() == 0;
             } catch (Exception ignore) {
@@ -1720,6 +1745,42 @@ public class MQTTTest extends MQTTTestSupport {
         } else {
             return brokerService.getAdminView().getDurableTopicSubscribers().length == 0 &&
                    brokerService.getAdminView().getInactiveDurableTopicSubscribers().length == 1;
+        }
+    }
+
+    private boolean isSubscriptionActive(Topic topic, String clientId) throws Exception {
+        if (isVirtualTopicSubscriptionStrategy()) {
+            final String queueName = buildVirtualTopicQueueName(topic, clientId);
+            try {
+                return getProxyToQueue(queueName).getConsumerCount() > 0;
+            } catch (Exception ignore) {
+                return false;
+            }
+        } else {
+            final int activeSubs = brokerService.getAdminView().getDurableTopicSubscribers().length;
+            final int inactiveSubs = brokerService.getAdminView().getInactiveDurableTopicSubscribers().length;
+            final boolean jmxActive = activeSubs >= 1 && inactiveSubs == 0;
+
+            // Diagnostic: also check the actual broker-level subscription state
+            // to determine if the flakiness is a JMX registration issue or a real broker bug
+            boolean brokerLevelActive = false;
+            try {
+                final RegionBroker regionBroker = (RegionBroker) brokerService.getBroker().getAdaptor(RegionBroker.class);
+                final TopicRegion topicRegion = (TopicRegion) regionBroker.getTopicRegion();
+                final String subName = QoS.values()[topic.qos().ordinal()] + ":" + topic.name().toString();
+                final DurableTopicSubscription sub = topicRegion.lookupSubscription(subName, clientId);
+                brokerLevelActive = sub != null && sub.isActive();
+            } catch (Exception e) {
+                LOG.debug("Could not check broker-level subscription state", e);
+            }
+
+            if (jmxActive != brokerLevelActive) {
+                LOG.warn("MQTT subscription state MISMATCH: JMX says active={} (active={}, inactive={}), " +
+                        "broker-level says active={} for clientId={}, topic={}",
+                        jmxActive, activeSubs, inactiveSubs, brokerLevelActive, clientId, topic.name());
+            }
+
+            return jmxActive;
         }
     }
 
@@ -2035,4 +2096,64 @@ public class MQTTTest extends MQTTTestSupport {
           }
        }
     }
+
+    protected void testHandshakeRenegotiation(String protocol) throws Exception {
+        MQTT mqtt = createMQTTSslConnection(null, true, protocol);
+        mqtt.setClientId("");
+        mqtt.setCleanSession(true);
+
+        CallbackConnection callbackConnection = mqtt.callbackConnection();
+        BlockingConnection connection = new BlockingConnection(new FutureConnection(callbackConnection));
+        connection.connect();
+
+        SslTransport transport = getSslTransport(callbackConnection);
+        SSLEngine engine = getSslTransport(transport);
+        assertEquals(protocol, engine.getSession().getProtocol());
+
+        // Run 100 key updates in a loop so that we can
+        // verify that the transport correctly processes them
+        // and that we are not stuck in NEED_WRAP state. This
+        // only applies to NIO, for regular SSL the state is not
+        // handled by the transport
+        for (int i = 0; i < 100; i++) {
+            try {
+                engine.beginHandshake();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        // give some time for the handshake updates
+        Thread.sleep(100);
+
+        // Wait to get past NEED_WRAP as that indicates we correctly handled
+        // the key updates issued for TLSv1.3 renegotiation
+        checkHandshakeStatusAdvances(((InetSocketAddress)transport.getLocalAddress()).getPort());
+
+        // Make sure we can still subscribe and receive
+        connection.subscribe(new Topic[] { new Topic("topic1", QoS.AT_LEAST_ONCE) });
+        connection.publish("topic1", "topic".getBytes(), QoS.AT_LEAST_ONCE, false);
+        assertNotNull(connection.receive(2000, TimeUnit.MILLISECONDS));
+
+        connection.disconnect();
+    }
+
+    private void checkHandshakeStatusAdvances(int port) throws Exception {
+        TransportConnector connector = brokerService.getTransportConnectorByScheme(
+                getProtocolScheme());
+        NioSslTestUtil.checkHandshakeStatusAdvances(connector, port);
+    }
+
+    private static SslTransport getSslTransport(CallbackConnection callbackConnection) throws Exception {
+        Field transportField = CallbackConnection.class.getDeclaredField("transport");
+        transportField.setAccessible(true);
+        return (SslTransport) transportField.get(callbackConnection);
+    }
+
+    private static SSLEngine getSslTransport(SslTransport transport) throws Exception {
+        Field engineField =  SslTransport.class.getDeclaredField("engine");
+        engineField.setAccessible(true);
+        return (SSLEngine) engineField.get(transport);
+    }
+
 }

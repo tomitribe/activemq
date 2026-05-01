@@ -36,9 +36,12 @@ import org.apache.activemq.command.BrokerInfo;
 import org.apache.activemq.network.NetworkConnector;
 import org.apache.activemq.util.MessageIdList;
 import org.apache.activemq.util.Wait;
+import org.apache.activemq.test.annotations.ParallelTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.junit.experimental.categories.Category;
 
+@Category(ParallelTest.class)
 public class AdvisoryViaNetworkTest extends JmsMultipleBrokersTestSupport {
     private static final Logger LOG = LoggerFactory.getLogger(AdvisoryViaNetworkTest.class);
 
@@ -102,6 +105,7 @@ public class AdvisoryViaNetworkTest extends JmsMultipleBrokersTestSupport {
 
         startAllBrokers();
         verifyPeerBrokerInfo(brokers.get("A"), 1);
+        verifyPeerBrokerInfo(brokers.get("B"), 1);
 
         createConsumer("A", topic1);
         createConsumer("A", new ActiveMQTopic("A.FOO2"));
@@ -139,6 +143,7 @@ public class AdvisoryViaNetworkTest extends JmsMultipleBrokersTestSupport {
 
         startAllBrokers();
         verifyPeerBrokerInfo(brokers.get("A"), 1);
+        verifyPeerBrokerInfo(brokers.get("B"), 1);
 
         createConsumer("A", topic1);
         createConsumer("A", new ActiveMQTopic("A.FOO2"));
@@ -174,6 +179,7 @@ public class AdvisoryViaNetworkTest extends JmsMultipleBrokersTestSupport {
 
         startAllBrokers();
         verifyPeerBrokerInfo(brokers.get("A"), 1);
+        verifyPeerBrokerInfo(brokers.get("B"), 1);
 
         createConsumer("A", topic1);
         createConsumer("A", new ActiveMQTopic("A.FOO2"));
@@ -208,6 +214,7 @@ public class AdvisoryViaNetworkTest extends JmsMultipleBrokersTestSupport {
 
         startAllBrokers();
         verifyPeerBrokerInfo(brokers.get("A"), 1);
+        verifyPeerBrokerInfo(brokers.get("B"), 1);
 
         createConsumer("A", topic1);
         createConsumer("A", new ActiveMQTopic("A.FOO2"));
@@ -240,6 +247,7 @@ public class AdvisoryViaNetworkTest extends JmsMultipleBrokersTestSupport {
 
         startAllBrokers();
         verifyPeerBrokerInfo(brokers.get("A"), 1);
+        verifyPeerBrokerInfo(brokers.get("B"), 1);
 
         for (int i = 0; i < 10; i++) {
             createConsumer("A", new ActiveMQTopic("A.FOO"));
@@ -267,6 +275,7 @@ public class AdvisoryViaNetworkTest extends JmsMultipleBrokersTestSupport {
 
         startAllBrokers();
         verifyPeerBrokerInfo(brokers.get("A"), 1);
+        verifyPeerBrokerInfo(brokers.get("B"), 1);
 
         for (int i = 0; i < 10; i++) {
             createConsumer("A", new ActiveMQTopic("A.FOO"));
@@ -308,6 +317,7 @@ public class AdvisoryViaNetworkTest extends JmsMultipleBrokersTestSupport {
         networkBridge.setDuplex(true);
         startAllBrokers();
         verifyPeerBrokerInfo(brokers.get("A"), 1);
+        verifyPeerBrokerInfo(brokers.get("B"), 1);
 
 
         MessageConsumer consumerA = createConsumer("A", advisoryTopic);

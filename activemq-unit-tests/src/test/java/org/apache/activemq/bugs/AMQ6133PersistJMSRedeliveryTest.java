@@ -45,6 +45,7 @@ import org.apache.activemq.broker.region.policy.PolicyEntry;
 import org.apache.activemq.broker.region.policy.PolicyMap;
 import org.apache.activemq.store.kahadb.KahaDBPersistenceAdapter;
 import org.apache.activemq.store.kahadb.MessageDatabase;
+import org.apache.activemq.util.Wait;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
@@ -55,10 +56,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.junit.experimental.categories.Category;
+import org.apache.activemq.test.annotations.ParallelTest;
 
 /**
  * Test loss of message on index rebuild when presistJMSRedelivered is on.
  */
+@Category(ParallelTest.class)
 public class AMQ6133PersistJMSRedeliveryTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(AMQ6133PersistJMSRedeliveryTest.class);
@@ -86,11 +90,23 @@ public class AMQ6133PersistJMSRedeliveryTest {
 
         restart();
 
-        assertEquals(msgCount, getProxyToQueue(QUEUE_NAME).getQueueSize());
+        assertTrue("Queue size should match expected count: " + msgCount, Wait.waitFor(() -> {
+            try {
+                return getProxyToQueue(QUEUE_NAME).getQueueSize() == msgCount;
+            } catch (Exception e) {
+               return false;
+            }
+        }));
 
         restartWithRecovery(getPersistentDir());
 
-        assertEquals(msgCount, getProxyToQueue(QUEUE_NAME).getQueueSize());
+        assertTrue("Queue size should match expected count: " + msgCount, Wait.waitFor(() -> {
+            try {
+                return getProxyToQueue(QUEUE_NAME).getQueueSize() == msgCount;
+            } catch (Exception e) {
+                return false;
+            }
+        }));
     }
 
     @Before

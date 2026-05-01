@@ -123,6 +123,12 @@ public class ActiveMQConnectionFactory extends JNDIBaseStorable implements Conne
     private BlobTransferPolicy blobTransferPolicy = new BlobTransferPolicy();
     private MessageTransformer transformer;
 
+    /**
+     * If set to true, strict Jakarta Messaging 3.1 compliance is enforced.
+     * This strictly rejects non-standard property types such as Character, Map, and List.
+     */
+    private boolean strictCompliance = false;
+
     private boolean disableTimeStampsByDefault;
     private boolean optimizedMessageDispatch = true;
     private long optimizeAcknowledgeTimeOut = 300;
@@ -141,6 +147,7 @@ public class ActiveMQConnectionFactory extends JNDIBaseStorable implements Conne
     private int producerWindowSize = DEFAULT_PRODUCER_WINDOW_SIZE;
     private long warnAboutUnstartedConnectionTimeout = 500L;
     private int sendTimeout = 0;
+    private int requestTimeout = 0;
     private int connectResponseTimeout = 0;
     private boolean sendAcksAsync=true;
     private TransportListener transportListener;
@@ -408,6 +415,10 @@ public class ActiveMQConnectionFactory extends JNDIBaseStorable implements Conne
     protected ActiveMQConnection createActiveMQConnection(Transport transport, JMSStatsImpl stats) throws Exception {
         ActiveMQConnection connection = new ActiveMQConnection(transport, getClientIdGenerator(),
                 getConnectionIdGenerator(), stats);
+
+        // Copy the compliance flags from the Factory to the Connection
+        connection.setStrictCompliance(isStrictCompliance());
+
         return connection;
     }
 
@@ -434,6 +445,7 @@ public class ActiveMQConnectionFactory extends JNDIBaseStorable implements Conne
         connection.setProducerWindowSize(getProducerWindowSize());
         connection.setWarnAboutUnstartedConnectionTimeout(getWarnAboutUnstartedConnectionTimeout());
         connection.setSendTimeout(getSendTimeout());
+        connection.setRequestTimeout(getRequestTimeout());
         connection.setCloseTimeout(getCloseTimeout());
         connection.setSendAcksAsync(isSendAcksAsync());
         connection.setAuditDepth(getAuditDepth());
@@ -739,6 +751,20 @@ public class ActiveMQConnectionFactory extends JNDIBaseStorable implements Conne
     }
 
     /**
+     * @return the requestTimeout (in milliseconds)
+     */
+    public int getRequestTimeout() {
+        return requestTimeout;
+    }
+
+    /**
+     * @param requestTimeout the requestTimeout to set (in milliseconds)
+     */
+    public void setRequestTimeout(int requestTimeout) {
+        this.requestTimeout = requestTimeout;
+    }
+
+    /**
      * @return the sendAcksAsync
      */
     public boolean isSendAcksAsync() {
@@ -864,6 +890,7 @@ public class ActiveMQConnectionFactory extends JNDIBaseStorable implements Conne
         props.setProperty("alwaysSyncSend", Boolean.toString(isAlwaysSyncSend()));
         props.setProperty("producerWindowSize", Integer.toString(getProducerWindowSize()));
         props.setProperty("sendTimeout", Integer.toString(getSendTimeout()));
+        props.setProperty("requestTimeout", Integer.toString(getRequestTimeout()));
         props.setProperty("connectResponseTimeout", Integer.toString(getConnectResponseTimeout()));
         props.setProperty("sendAcksAsync",Boolean.toString(isSendAcksAsync()));
         props.setProperty("auditDepth", Integer.toString(getAuditDepth()));
@@ -998,6 +1025,17 @@ public class ActiveMQConnectionFactory extends JNDIBaseStorable implements Conne
      */
     public void setNestedMapAndListEnabled(boolean structuredMapsEnabled) {
         this.nestedMapAndListEnabled = structuredMapsEnabled;
+    }
+
+    public boolean isStrictCompliance() {
+        return strictCompliance;
+    }
+
+    /**
+     * If this flag is set then the connection follows strict Jakarta Messaging compliance.
+     */
+    public void setStrictCompliance(boolean strictCompliance) {
+        this.strictCompliance = strictCompliance;
     }
 
     public String getClientIDPrefix() {

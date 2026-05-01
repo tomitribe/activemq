@@ -34,8 +34,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.junit.experimental.categories.Category;
+import org.apache.activemq.test.annotations.ParallelTest;
 
 @RunWith(value = Parameterized.class)
+@Category(ParallelTest.class)
 public class QueueMbeanRestartTest extends TestSupport {
     private static final transient Logger LOG = LoggerFactory.getLogger(QueueMbeanRestartTest.class);
 
@@ -85,7 +88,6 @@ public class QueueMbeanRestartTest extends TestSupport {
     private void restartBroker() throws Exception {
         broker.stop();
         broker.waitUntilStopped();
-        Thread.sleep(5 * 1000);
         createBroker(false);
         broker.waitUntilStarted();
     }

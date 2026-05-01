@@ -152,9 +152,14 @@ public abstract class AbstractCachedLDAPAuthorizationMapLegacyTest extends Abstr
     public void testTemporary() throws Exception {
         map.query();
 
-        Thread.sleep(1000);
+        assertTrue("did not get expected temp ACLs", Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                Set<?> acls = map.getTempDestinationReadACLs();
+                return acls != null && acls.size() == 2;
+            }
+        }));
         Set<?> readACLs = map.getTempDestinationReadACLs();
-        assertEquals("set size: " + readACLs, 2, readACLs.size());
         assertTrue("Contains admin group", readACLs.contains(ADMINS));
         assertTrue("Contains users group", readACLs.contains(USERS));
     }
@@ -174,10 +179,12 @@ public abstract class AbstractCachedLDAPAuthorizationMapLegacyTest extends Abstr
 
         reader.close();
 
-        Thread.sleep(2000);
-
-        failedACLs = map.getReadACLs(new ActiveMQQueue("FAILED"));
-        assertEquals("set size: " + failedACLs, 2, failedACLs.size());
+        assertTrue("did not get expected size after add", Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                return map.getReadACLs(new ActiveMQQueue("FAILED")).size() == 2;
+            }
+        }));
     }
 
     @Test
@@ -194,14 +201,24 @@ public abstract class AbstractCachedLDAPAuthorizationMapLegacyTest extends Abstr
         }
 
         reader.close();
-        Thread.sleep(2000);
 
-        failedACLs = map.getReadACLs(new ActiveMQQueue("TEST.FOO"));
-        assertEquals("set size: " + failedACLs, 0, failedACLs.size());
+        assertTrue("did not get expected size after remove", Wait.waitFor(
+                () -> map.getReadACLs(new ActiveMQQueue("TEST.FOO")).size() == 0));
 
-        assertTrue(map.getTempDestinationReadACLs() == null || map.getTempDestinationReadACLs().isEmpty());
-        assertTrue(map.getTempDestinationWriteACLs() == null || map.getTempDestinationWriteACLs().isEmpty());
-        assertTrue(map.getTempDestinationAdminACLs() == null || map.getTempDestinationAdminACLs().isEmpty());
+        // Temp destination ACLs are removed by a separate LDAP listener
+        // (on the Temp subtree), so events may arrive after the Queue events.
+        assertTrue("Temp read ACLs not cleared after remove", Wait.waitFor(() -> {
+            final Set<?> acls = map.getTempDestinationReadACLs();
+            return acls == null || acls.isEmpty();
+        }));
+        assertTrue("Temp write ACLs not cleared after remove", Wait.waitFor(() -> {
+            final Set<?> acls = map.getTempDestinationWriteACLs();
+            return acls == null || acls.isEmpty();
+        }));
+        assertTrue("Temp admin ACLs not cleared after remove", Wait.waitFor(() -> {
+            final Set<?> acls = map.getTempDestinationAdminACLs();
+            return acls == null || acls.isEmpty();
+        }));
     }
 
     @Test
@@ -215,11 +232,12 @@ public abstract class AbstractCachedLDAPAuthorizationMapLegacyTest extends Abstr
         connection.rename(new Dn("cn=TEST.FOO," + getQueueBaseDn()),
                 new Rdn("cn=TEST.BAR"));
 
-        Thread.sleep(2000);
-
-        failedACLs = map.getReadACLs(new ActiveMQQueue("TEST.FOO"));
-        assertEquals("set size: " + failedACLs, 0, failedACLs.size());
-
+        assertTrue("TEST.FOO ACLs not removed after rename", Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                return map.getReadACLs(new ActiveMQQueue("TEST.FOO")).size() == 0;
+            }
+        }));
 
         failedACLs = map.getReadACLs(new ActiveMQQueue("TEST.BAR"));
         assertEquals("set size: " + failedACLs, 2, failedACLs.size());
@@ -232,21 +250,25 @@ public abstract class AbstractCachedLDAPAuthorizationMapLegacyTest extends Abstr
         // Test for a permission rename
         connection.delete(new Dn("cn=Read,cn=TEST.FOO," + getQueueBaseDn()));
 
-        Thread.sleep(2000);
+        assertTrue("Read ACLs not removed after delete", Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                return map.getReadACLs(new ActiveMQQueue("TEST.FOO")).size() == 0;
+            }
+        }));
 
-        Set<?> failedACLs = map.getReadACLs(new ActiveMQQueue("TEST.FOO"));
-        assertEquals("set size: " + failedACLs, 0, failedACLs.size());
-
-        failedACLs = map.getWriteACLs(new ActiveMQQueue("TEST.FOO"));
+        Set<?> failedACLs = map.getWriteACLs(new ActiveMQQueue("TEST.FOO"));
         assertEquals("set size: " + failedACLs, 2, failedACLs.size());
 
         connection.rename(new Dn("cn=Write,cn=TEST.FOO," + getQueueBaseDn()),
                 new Rdn("cn=Read"));
 
-        Thread.sleep(2000);
-
-        failedACLs = map.getReadACLs(new ActiveMQQueue("TEST.FOO"));
-        assertEquals("set size: " + failedACLs, 2, failedACLs.size());
+        assertTrue("Read ACLs not restored after rename", Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                return map.getReadACLs(new ActiveMQQueue("TEST.FOO")).size() == 2;
+            }
+        }));
 
         failedACLs = map.getWriteACLs(new ActiveMQQueue("TEST.FOO"));
         assertEquals("set size: " + failedACLs, 0, failedACLs.size());
@@ -268,10 +290,12 @@ public abstract class AbstractCachedLDAPAuthorizationMapLegacyTest extends Abstr
 
         connection.modify(request);
 
-        Thread.sleep(2000);
-
-        failedACLs = map.getReadACLs(new ActiveMQQueue("TEST.FOO"));
-        assertEquals("set size: " + failedACLs, 1, failedACLs.size());
+        assertTrue("Read ACLs not updated after modify", Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                return map.getReadACLs(new ActiveMQQueue("TEST.FOO")).size() == 1;
+            }
+        }));
 
         // Change destination entry
         request = new ModifyRequestImpl();
@@ -280,10 +304,12 @@ public abstract class AbstractCachedLDAPAuthorizationMapLegacyTest extends Abstr
 
         connection.modify(request);
 
-        Thread.sleep(2000);
-
-        failedACLs = map.getReadACLs(new ActiveMQQueue("TEST.FOO"));
-        assertEquals("set size: " + failedACLs, 1, failedACLs.size());
+        assertTrue("Read ACLs changed unexpectedly after destination modify", Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                return map.getReadACLs(new ActiveMQQueue("TEST.FOO")).size() == 1;
+            }
+        }));
     }
 
     @Test
@@ -313,7 +339,7 @@ public abstract class AbstractCachedLDAPAuthorizationMapLegacyTest extends Abstr
 
         // wait for the context to be closed
         // as we can't rely on ldap server isStarted()
-        Wait.waitFor(new Wait.Condition() {
+        assertTrue("Context was not closed after LDAP server stop", Wait.waitFor(new Wait.Condition() {
             @Override
             public boolean isSatisified() throws Exception {
                 if (sync) {
@@ -322,14 +348,34 @@ public abstract class AbstractCachedLDAPAuthorizationMapLegacyTest extends Abstr
                     return map.context == null;
                 }
             }
-        }, 5*60*1000);
+        }, 5*60*1000));
 
-        failedACLs = map.getReadACLs(new ActiveMQQueue("TEST.FOO"));
-        assertEquals("set size: " + failedACLs, 2, failedACLs.size());
+        // Verify cached ACLs are still available while LDAP is down.
+        // Avoid calling getReadACLs here in async mode as it triggers
+        // checkForUpdates which submits an async reconnection task to the
+        // single-threaded updater.  That task blocks on the dead LDAP
+        // server (TCP connect timeout), preventing later reconnection
+        // tasks from executing and causing the test to time out.
+        if (sync) {
+            failedACLs = map.getReadACLs(new ActiveMQQueue("TEST.FOO"));
+            assertEquals("set size: " + failedACLs, 2, failedACLs.size());
+        }
 
         getLdapServer().start();
 
-        Thread.sleep(2000);
+        // Wait for the LDAP server to be fully ready and force a synchronous
+        // reconnection of the map, re-registering event listeners.
+        assertTrue("Map did not reconnect to restarted LDAP server", Wait.waitFor(new Wait.Condition() {
+            @Override
+            public boolean isSatisified() throws Exception {
+                try {
+                    map.query();
+                    return true;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+        }));
 
         connection = getLdapConnection();
 
@@ -347,7 +393,7 @@ public abstract class AbstractCachedLDAPAuthorizationMapLegacyTest extends Abstr
             public boolean isSatisified() throws Exception {
                 return map.getReadACLs(new ActiveMQQueue("FAILED")).size() == 2;
             }
-        }, 5*60*1000));
+        }));
     }
 
     protected SimpleCachedLDAPAuthorizationMap createMap() {

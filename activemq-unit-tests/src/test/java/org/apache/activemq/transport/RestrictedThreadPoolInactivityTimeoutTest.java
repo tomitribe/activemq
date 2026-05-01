@@ -32,9 +32,13 @@ import javax.management.ObjectName;
 import java.net.URI;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import org.junit.experimental.categories.Category;
+import org.apache.activemq.test.annotations.ParallelTest;
 
+@Category(ParallelTest.class)
 public class RestrictedThreadPoolInactivityTimeoutTest extends JmsTestSupport {
     private static final Logger LOG = LoggerFactory.getLogger(RestrictedThreadPoolInactivityTimeoutTest.class);
+    private static final int TEST_TIMEOUT_MS = 120_000;
 
     public String brokerTransportScheme = "tcp";
     public Boolean rejectWork = Boolean.FALSE;
@@ -86,6 +90,7 @@ public class RestrictedThreadPoolInactivityTimeoutTest extends JmsTestSupport {
         addCombinationValues("rejectWork", new Object[] {Boolean.TRUE, Boolean.FALSE});
     }
 
+    @org.junit.Test(timeout = TEST_TIMEOUT_MS)
     public void testThreadsInvolvedInXInactivityTimeouts() throws Exception {
 
         URI tcpBrokerUri = URISupport.removeQuery(broker.getTransportConnectors().get(0).getConnectUri());
