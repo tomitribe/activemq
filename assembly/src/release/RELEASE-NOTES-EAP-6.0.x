@@ -1,5 +1,8 @@
 Apache ActiveMQ 6.0.x-TT.x
 
+ Changes in ActiveMQ EAP 6.0.2-TT.14
+   - Upgrade to Camel 4.14.7 to address CVE-2026-40453 and CVE-2026-40860
+
  Changes in ActiveMQ EAP 6.0.2-TT.11
   - CVE-2025-11143: Upgrade to jetty 11.0.27-TT.1
   - CVE-2025-66168: Improper validation of remaining length which may lead to an overflow during the decoding of malformed packets
