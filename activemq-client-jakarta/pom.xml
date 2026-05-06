@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.apache.activemq</groupId>
         <artifactId>activemq-parent</artifactId>
-        <version>6.0.2-TT.14</version>
+        <version>6.0.2-TT.15-SNAPSHOT</version>
     </parent>
     <artifactId>activemq-client-jakarta</artifactId>
     <packaging>pom</packaging>
