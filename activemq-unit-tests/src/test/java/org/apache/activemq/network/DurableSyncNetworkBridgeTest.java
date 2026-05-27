@@ -63,7 +63,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
-public class DurableSyncNetworkBridgeTest extends DynamicNetworkTestSupport {
+public class DurableSyncNetworkBridgeTest extends AbstractDurableSyncNetworkBridgeTest {
 
     protected static final Logger LOG = LoggerFactory.getLogger(DurableSyncNetworkBridgeTest.class);
 
@@ -700,14 +700,6 @@ public class DurableSyncNetworkBridgeTest extends DynamicNetworkTestSupport {
         return compositeTopic;
     }
 
-    protected void restartBroker(BrokerService broker, boolean startNetworkConnector) throws Exception {
-        if (broker.getBrokerName().equals("localBroker")) {
-            restartLocalBroker(startNetworkConnector);
-        } else  {
-            restartRemoteBroker();
-        }
-    }
-
     protected void restartBrokers(boolean startNetworkConnector) throws Exception {
         doTearDown();
         doSetUp(false, startNetworkConnector, localBroker.getDataDirectoryFile(),
@@ -719,23 +711,13 @@ public class DurableSyncNetworkBridgeTest extends DynamicNetworkTestSupport {
         included = new ActiveMQTopic(testTopicName);
         doSetUpRemoteBroker(deleteAllMessages, remoteDataDir, 0);
         doSetUpLocalBroker(deleteAllMessages, startNetworkConnector, localDataDir);
-        //Give time for advisories to propagate
-        Thread.sleep(1000);
-    }
-
-    protected void restartLocalBroker(boolean startNetworkConnector) throws Exception {
-        stopLocalBroker();
-        doSetUpLocalBroker(false, startNetworkConnector, localBroker.getDataDirectoryFile());
-    }
-
-    protected void restartRemoteBroker() throws Exception {
-        int port = 0;
-        if (remoteBroker != null) {
-            List<TransportConnector> transportConnectors = remoteBroker.getTransportConnectors();
-            port = transportConnectors.get(0).getConnectUri().getPort();
+        //Wait for the bridge to be fully started (advisory consumers registered).
+        //Note: activeBridges().size() == 1 is NOT sufficient because bridges are added
+        //to the map before start() completes asynchronously. We must wait for the
+        //startedLatch which counts down after advisory consumers are registered.
+        if (startNetworkConnector) {
+            waitForBridgeFullyStarted();
         }
-        stopRemoteBroker();
-        doSetUpRemoteBroker(false, remoteBroker.getDataDirectoryFile(), port);
     }
 
     protected void doSetUpLocalBroker(boolean deleteAllMessages, boolean startNetworkConnector,
@@ -817,6 +799,7 @@ public class DurableSyncNetworkBridgeTest extends DynamicNetworkTestSupport {
         return brokerService;
     }
 
+    @Override
     protected NetworkConnector configureLocalNetworkConnector() throws Exception {
         List<TransportConnector> transportConnectors = remoteBroker.getTransportConnectors();
         URI remoteURI = transportConnectors.get(0).getConnectUri();
