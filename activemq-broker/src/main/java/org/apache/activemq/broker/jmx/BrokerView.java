@@ -45,7 +45,7 @@ public class BrokerView implements BrokerViewMBean {
     private static final Logger LOG = LoggerFactory.getLogger(BrokerView.class);
 
     public static final Set<String> DENIED_TRANSPORT_SCHEMES = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList("vm", "http",
+            new HashSet<>(Arrays.asList("vm", "http", "https",
             "multicast", "zeroconf", "discovery", "fanout", "mock", "peer", "failover",
             "proxy", "reliable", "simple", "udp")));
 
