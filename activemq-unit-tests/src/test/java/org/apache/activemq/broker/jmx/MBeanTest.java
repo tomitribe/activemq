@@ -16,6 +16,7 @@
  */
 package org.apache.activemq.broker.jmx;
 
+import static org.apache.activemq.util.TransportValidationUtils.DENIED_TRANSPORT_SCHEMES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 

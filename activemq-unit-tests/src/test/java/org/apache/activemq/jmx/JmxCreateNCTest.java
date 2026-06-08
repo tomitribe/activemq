@@ -26,6 +26,7 @@ import org.junit.Test;
 
 import javax.management.ObjectName;
 
+import static org.apache.activemq.util.TransportValidationUtils.DENIED_TRANSPORT_SCHEMES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
