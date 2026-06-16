@@ -1,5 +1,18 @@
  Apache ActiveMQ 5.18.x-TT.x
 
+ Changes in ActiveMQ EAP 5.18.8-TT.11
+ - CVE-2026-42253 - Apache ActiveMQ's MessageServlet copies JMS message properties into HTTP response headers without input validation, enabling header injectionttacks.
+ - CVE-2026-42588 - Authenticated attackers can exploit ActiveMQ's Jolokia API via a crafted masterslave:// URI to load a malicious Spring context and execute code.
+ - CVE-2026-45505 - ActiveMQ's Jolokia RCE fix (CVE-2026-34197) is bypassed by non-parenthesized discovery wrappers, enabling authenticated code execution.
+ - CVE-2026-46605 - Incomplete authorization in Apache ActiveMQ allows authenticated users to remove message destinations beyond their permitted access.
+ - CVE-2026-49157 - Incorrect default permissions in Apache ActiveMQ grant low-privileged web users unintended access to Jolokia broker management operations.
+ - CVE-2026-49270 - Apache ActiveMQ brokers expose durable subscription metadata to unauthenticated requests via BrokerInfo when syncDurableSubs is enabled.
+
+ Changes in ActiveMQ EAP 5.18.8-TT.10
+ - Fix for CVE-2026-40466
+ - Fix for CVE-2026-41043
+ - Fix for CVE-2026-41044
+
  Changes in ActiveMQ EAP 5.18.8-TT.9
   - CVE-2026-39304: Improper SSL/TLS session handling in NIO SSL transport
 
