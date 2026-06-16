@@ -90,6 +90,15 @@ public class JmxCreateNCTest {
             assertEquals("VM scheme is not allowed", e.getMessage());
         }
 
+        // Test composite with missing parens
+        try {
+            proxy.addNetworkConnector("static:vm://localhost,tcp://127.0.0.1:0");
+            fail("Should have failed trying to add vm connector bridge");
+        } catch (IllegalArgumentException e) {
+            assertEquals("VM scheme is not allowed", e.getMessage());
+        }
+
+        // verify direct connector as well
         try {
             proxy.addNetworkConnector("multicast:(vm://localhost)");
             fail("Should have failed trying to add vm connector bridge");
@@ -112,6 +121,14 @@ public class JmxCreateNCTest {
         } catch (IllegalArgumentException e) {
             assertEquals("VM scheme is not allowed", e.getMessage());
         }
+
+        try {
+            // verify nested composite URI is blocked when not using parens
+            proxy.addNetworkConnector("static:static:static:tcp://localhost:0,vm://localhost");
+            fail("Should have failed trying to add vm connector bridge");
+        } catch (IllegalArgumentException e) {
+            assertEquals("VM scheme is not allowed", e.getMessage());
+        }
     }
 
     @Test
@@ -121,6 +138,15 @@ public class JmxCreateNCTest {
             proxy.addNetworkConnector(
                     "static:(failover:(failover:(failover:(failover:(failover:(tcp://localhost:0))))))");
             fail("Should have failed trying to add vm connector bridge");
+        } catch (IllegalArgumentException e) {
+            assertEquals("URI can't contain more than 5 nested composite URIs", e.getMessage());
+        }
+
+        try {
+            // verify nested composite URI with more than 5 levels is blocked without parens
+            proxy.addNetworkConnector(
+                    "static:static:static:static:static:static:tcp://localhost:0");
+            fail("Should have failed trying to add more than 5 connector bridges");
         } catch (IllegalArgumentException e) {
             assertEquals("URI can't contain more than 5 nested composite URIs", e.getMessage());
         }
