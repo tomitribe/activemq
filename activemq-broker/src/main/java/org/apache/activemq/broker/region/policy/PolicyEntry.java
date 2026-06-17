@@ -27,6 +27,7 @@ import org.apache.activemq.broker.region.Queue;
 import org.apache.activemq.broker.region.QueueBrowserSubscription;
 import org.apache.activemq.broker.region.QueueSubscription;
 import org.apache.activemq.broker.region.Subscription;
+import org.apache.activemq.broker.region.TempDestination;
 import org.apache.activemq.broker.region.Topic;
 import org.apache.activemq.broker.region.TopicSubscription;
 import org.apache.activemq.broker.region.cursors.PendingMessageCursor;
@@ -105,6 +106,7 @@ public class PolicyEntry extends DestinationMapEntry {
     private boolean doOptimzeMessageStorage = true;
     private int maxDestinations = -1;
     private boolean useTopicSubscriptionInflightStats = true;
+    private boolean allowTempDestinationStealing = false;
 
     /*
      * percentage of in-flight messages above which optimize message store is disabled
@@ -298,6 +300,12 @@ public class PolicyEntry extends DestinationMapEntry {
         }
         if (isUpdate("sendDuplicateFromStoreToDLQ", includedProperties)) {
             destination.setSendDuplicateFromStoreToDLQ(isSendDuplicateFromStoreToDLQ());
+        }
+        if (destination instanceof TempDestination) {
+            if (isUpdate("allowTempDestinationStealing", includedProperties)) {
+                ((TempDestination) destination).setAllowTempDestinationStealing(
+                        isAllowTempDestinationStealing());
+            }
         }
     }
 
@@ -1152,5 +1160,13 @@ public class PolicyEntry extends DestinationMapEntry {
 
     public void setUseTopicSubscriptionInflightStats(boolean useTopicSubscriptionInflightStats) {
         this.useTopicSubscriptionInflightStats = useTopicSubscriptionInflightStats;
+    }
+
+    public boolean isAllowTempDestinationStealing() {
+        return allowTempDestinationStealing;
+    }
+
+    public void setAllowTempDestinationStealing(boolean allowTempDestinationStealing) {
+        this.allowTempDestinationStealing = allowTempDestinationStealing;
     }
 }
