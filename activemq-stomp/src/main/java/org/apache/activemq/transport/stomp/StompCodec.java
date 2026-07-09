@@ -17,6 +17,7 @@
 package org.apache.activemq.transport.stomp;
 
 import java.io.ByteArrayInputStream;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -47,11 +48,11 @@ public class StompCodec {
         this.wireFormat = (StompWireFormat) Objects.requireNonNull(transport.getWireFormat());
     }
 
-    public void parse(ByteArrayInputStream input, int readSize) throws Exception {
+    public void parse(ByteBuffer input, int readSize) throws Exception {
        int i = 0;
        int b;
        while(i++ < readSize) {
-           b = input.read();
+           b = input.get();
            // skip repeating nulls
            if (!processedHeaders && previousByte == 0 && b == 0) {
                continue;
@@ -67,6 +68,15 @@ public class StompCodec {
                }
 
                currentCommand.write(b);
+
+               if (currentCommand.size() > wireFormat.getMaxFrameSize()) {
+                   StompFrameError errorFrame = new StompFrameError(
+                           new ProtocolException("The maximum frame size was exceeded while processing headers.", true));
+                   errorFrame.setAction(this.action);
+                   transport.doConsume(errorFrame);
+                   return;
+               }
+
                // end of headers section, parse action and header
                if (b == '\n' && (previousByte == '\n' || currentCommand.endsWith(crlfcrlf))) {
                    DataByteArrayInputStream data = new DataByteArrayInputStream(currentCommand.toByteArray());

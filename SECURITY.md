@@ -37,25 +37,29 @@ Apache ActiveMQ project recommends applying defense-in-depth and security-first 
 
 Layers of security provide valuable options to prevent attacks, and to provide a buffer for when vulnerabilities at any layer are reported to provide reasonable time to test and apply fixes without impacting business-critical messaging traffic.
 
-Users are advised to secure their environments
+Users are expected to secure their environments
 
-1. The web console is not designed to be exposed to the public Internet.
+1. The Web Console and Jolokia REST API are not designed to be exposed to the public Internet. Only admins should be granted access.
 
 2. Require user authentication and authorization for all connectivity including JMX, Jolokia, REST API and the web console.
 
-3. Require SSL connections on all transport connectors. 
+3. Require SSL connections on all transport connectors.
 
 4. Disable transport connectors for protocols that are not used by application clients.
 
-5. Two-way SSL is the recommended security mechanism for identity and authentication of application clients.
+5. Configure an appropriate [maxFrameSize](https://activemq.apache.org/components/classic/documentation/configuring-wire-formats) on transports for your use case to prevent OOM DOS. The default XML configuration defaults to 10 MB but this can be adjusted as needed. 
 
-6. Stay current with Java JDK updates
+6. Two-way SSL is the recommended security mechanism for identity and authentication of application clients.
 
-7. Use highest possible security SSL protocol and algorithms.
+7. Stay current with Java JDK updates
 
-8. Limit inbound and outbound network connectivity to and from an ActiveMQ server.
+8. Use highest possible security SSL protocol and algorithms.
 
-9. Normal users need permission to create advisory topics but should generally **not** be given permission to read/write to those topics as those messages are meant for admins. A notable exception is for temporary destination advisory topics. For more information see the authorization section [here](https://activemq.apache.org/components/classic/documentation/security#authorization). 
+9. Limit inbound and outbound network connectivity to and from an ActiveMQ server.
+
+10. Do not run the broker using the root user, instead create a user account to use for the broker. Users are expected to secure their OS and their file system with proper permissions and controls. The broker does not try and limit access to files, it relies on the operating system to do so.
+
+11. Normal users need permission to create advisory topics but should generally **not** be given permission to read/write to those topics as those messages are meant for admins. A notable exception is for temporary destination advisory topics. For more information see the authorization section [here](https://activemq.apache.org/components/classic/documentation/security#authorization).
 
 ## ActiveMQ Security Improvement Project
 
@@ -75,6 +79,12 @@ The Apache ActiveMQ team has initiated a security hardening project to move from
 
 7. [Done] VM Transport creation blocks the XBean factory by default
 
+8. [Done] Limit the maximum size of uncompressed message bodies with the `maxInflatedDataSize` and `maxInflatedDataSizeRatio` settings.
+
+9. [Done] Validate all size values during unmarshalling before using those sizes for allocating buffers
+
+10. [Done] The WebConsole and Jolokia have been restricted to only admins.
+
 ## Security vs Features
 
 AI code scanning tools often mistaken designed features as a security issue. It is the responsibility of the reporter to review AI output and verify if it's a real issue. There has been a large number of invalid submissions that could be avoided by simply reviewing the JMS spec and the features of the broker itself.
@@ -88,3 +98,11 @@ Some of the most common reported examples:
 3. Durable Subscriptions - The JMS spec allows authorized connections to connect to any existing durable subscription (combination of client id and subscription name) as long as it is offline. Authorized clients are allowed to delete the durable subscriptions as well even if they didn't create it.
 
 4. BlobMessages - Blob message support is a side-channel for moving large messages with the JMS API by routing the large message through a different endpoint such as http, sftp or scp. Clients using BlobMessages are responsible for validating the authenticity and validity of the uri provided by the received message before taking any action such as downloading or deleting the file. ActiveMQ recommends using SSL secured transports, with two-way SSL as the most preferred.
+
+## Non-Security issues
+
+1. Exploits that are only possible because users did not configure authentication or authorization. It is expected users modify the default configuration appropriately to enable security for their environment. 
+
+2. Any attack that require administrative access to be granted. For example, by default Jolokia and the web console now requires administrative access. By definition admins are allowed to do anything, so if the issue requires the user to login with admin credentials then the report will not be accepted and would be treated as a bug.
+
+3. DoS attacks caused by OOM because users did not configure a maxFrameSize or maxInflatedDataSize which are designed to limit the size of messages in memory.
