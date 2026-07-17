@@ -36,6 +36,13 @@ import org.junit.Test;
 
 public class MarshallingSupportTest {
 
+    private static Map<String, Object> mapOf(String k1, Object v1, String k2, Object v2) {
+        Map<String, Object> m = new HashMap<>();
+        m.put(k1, v1);
+        m.put(k2, v2);
+        return m;
+    }
+
     /**
      * Test method for
      * {@link org.apache.activemq.util.MarshallingSupport#propertiesToString(java.util.Properties)}.
@@ -63,8 +70,8 @@ public class MarshallingSupportTest {
         Map<String, Object> testMap = new HashMap<>();
         testMap.put("key1", "value1");
         // nested map with nested collection, should require depth of 2 being allowed
-        testMap.put("key2", Map.of("string","string", "nested",
-                List.of("one")));
+        testMap.put("key2", mapOf("string","string", "nested",
+                java.util.Arrays.asList("one")));
 
         MarshallingSupport.marshalPrimitiveMap(testMap, dataOut);
         DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(bytesOut.toByteArray()));
@@ -96,8 +103,8 @@ public class MarshallingSupportTest {
         List<Object> testList = new ArrayList<>();
         testList.add("value");
         // nested list with nested collection, should require depth of 2 being allowed
-        testList.add(List.of(List.of("one")));
-        testList.add(Map.of("one","two","three","four"));
+        testList.add(java.util.Arrays.asList(java.util.Arrays.asList("one")));
+        testList.add(mapOf("one","two","three","four"));
 
         MarshallingSupport.marshalPrimitiveList(testList, dataOut);
         DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(bytesOut.toByteArray()));

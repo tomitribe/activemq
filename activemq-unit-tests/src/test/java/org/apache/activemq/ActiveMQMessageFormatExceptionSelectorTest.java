@@ -83,8 +83,9 @@ public class ActiveMQMessageFormatExceptionSelectorTest {
     // DLQ'd and removed for normal queue consumers
     @Test(timeout = 30000)
     public void testUnmarshalQueueBrowseSubscription() throws Exception {
-        try (ActiveMQConnection connection = (ActiveMQConnection) new ActiveMQConnectionFactory(
-                clientUri).createConnection()) {
+        ActiveMQConnection connection = (ActiveMQConnection) new ActiveMQConnectionFactory(
+                clientUri).createConnection();
+        try {
             connection.setClientID("client");
             connection.start();
 
@@ -126,6 +127,8 @@ public class ActiveMQMessageFormatExceptionSelectorTest {
             assertTrue(destination.getMemoryUsage().getUsage() > 0);
             assertEquals(0, dlqCount.get());
             assertEquals(100, destination.getMessageStore().getMessageCount());
+        } finally {
+            connection.close();
         }
     }
 
@@ -173,8 +176,9 @@ public class ActiveMQMessageFormatExceptionSelectorTest {
     }
 
     private void testMultipleSubs(boolean durable) throws Exception {
-        try (ActiveMQConnection connection = (ActiveMQConnection) new ActiveMQConnectionFactory(
-                clientUri).createConnection()) {
+        ActiveMQConnection connection = (ActiveMQConnection) new ActiveMQConnectionFactory(
+                clientUri).createConnection();
+        try {
             connection.setClientID("client");
             connection.start();
 
@@ -213,12 +217,15 @@ public class ActiveMQMessageFormatExceptionSelectorTest {
                     500, 10));
             assertTrue(Wait.waitFor(
                     () -> destination.getMemoryUsage().getUsage() == 0, 1000, 100));
+        } finally {
+            connection.close();
         }
     }
 
     private void testUnmarshalFail(String destName, boolean queue, boolean durable) throws Exception {
-        try (ActiveMQConnection connection = (ActiveMQConnection) new ActiveMQConnectionFactory(
-                clientUri).createConnection()) {
+        ActiveMQConnection connection = (ActiveMQConnection) new ActiveMQConnectionFactory(
+                clientUri).createConnection();
+        try {
             connection.setClientID("client");
             connection.start();
 
@@ -259,6 +266,8 @@ public class ActiveMQMessageFormatExceptionSelectorTest {
             assertTrue(Wait.waitFor(
                     () -> destination.getMemoryUsage().getUsage() == 0, 1000, 100));
             assertEquals(0, destination.getMessageStore().getMessageCount());
+        } finally {
+            connection.close();
         }
     }
 
@@ -327,8 +336,9 @@ public class ActiveMQMessageFormatExceptionSelectorTest {
     // The queue should detect that error when trying to add to the consumer and DLQ
     @Test
     public void testXpath() throws Exception {
-        try (ActiveMQConnection connection = (ActiveMQConnection) new ActiveMQConnectionFactory(
-                clientUri).createConnection()) {
+        ActiveMQConnection connection = (ActiveMQConnection) new ActiveMQConnectionFactory(
+                clientUri).createConnection();
+        try {
             connection.start();
 
             Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -350,6 +360,8 @@ public class ActiveMQMessageFormatExceptionSelectorTest {
             assertTrue(Wait.waitFor(
                     () -> destination.getMemoryUsage().getUsage() == 0, 1000, 100));
             assertEquals(0, destination.getMessageStore().getMessageCount());
+        } finally {
+            connection.close();
         }
     }
 

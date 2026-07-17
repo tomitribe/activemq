@@ -594,7 +594,9 @@ public class JMSInteroperabilityTest extends JMSClientTestSupport {
         // Raw Transformer doesn't expand the body
         assumeFalse(!transformer.equals("jms"));
 
-        try (Connection openwire = createJMSConnection(); Connection amqp = createConnection()) {
+        Connection openwire = createJMSConnection();
+        Connection amqp = createConnection();
+        try {
             openwire.start();
             amqp.start();
             Session openwireSession = openwire.createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -628,6 +630,9 @@ public class JMSInteroperabilityTest extends JMSClientTestSupport {
             assertTrue(Wait.waitFor(() -> brokerService.getDestination(dest)
                     .getDestinationStatistics().getMessages().getCount() == 0, 500, 10));
             assertTrue(sentToDlq.get());
+        } finally {
+            amqp.close();
+            openwire.close();
         }
     }
 

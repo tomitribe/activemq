@@ -1793,7 +1793,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
 
     protected void removeAndSendToDlq(ConnectionContext c, QueueMessageReference r, Exception e) throws IOException {
         MessageAck ack = new MessageAck();
-        ack.setAckType(MessageAck.POISON_ACK_TYPE);
+        ack.setAckType(MessageAck.POSION_ACK_TYPE);
         ack.setPoisonCause(e);
         ack.setDestination(destination);
         ack.setMessageID(r.getMessageId());

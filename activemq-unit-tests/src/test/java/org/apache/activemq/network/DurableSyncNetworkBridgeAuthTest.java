@@ -162,7 +162,7 @@ public class DurableSyncNetworkBridgeAuthTest extends AbstractDurableSyncNetwork
 
         // find the established bridge
         DemandForwardingBridge bridge = (DemandForwardingBridge) localBroker.getNetworkConnectors().get(0).activeBridges().stream()
-                .findFirst().orElseThrow();
+                .findFirst().get();
 
         // send to one of the brokers (networked brokers will have already received a BrokerInfo)
         // the duplicate will trigger the bridge connection to close

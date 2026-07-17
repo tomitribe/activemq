@@ -27,7 +27,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1030,11 +1032,7 @@ public class TransportConnection implements Connection, Task, CommandVisitor {
         if (TRANSPORTLOG.isDebugEnabled()) {
             TRANSPORTLOG.debug("{} had an unexpected Message format error: {}", this, e.getMessage(), e);
         } else if (TRANSPORTLOG.isWarnEnabled()) {
-            if (connector.isDisplayStackTrace()) {
-                TRANSPORTLOG.warn("{} had an unexpected Message format  error", this, e);
-            } else {
-                TRANSPORTLOG.warn("{} had an unexpected Message format  error: {}", this, e.getMessage());
-            }
+            TRANSPORTLOG.warn("{} had an unexpected Message format  error: {}", this, e.getMessage());
         }
 
         ConsumerBrokerExchange consumerExchange = getConsumerBrokerExchange(messageDispatch.getConsumerId());
@@ -1045,7 +1043,7 @@ public class TransportConnection implements Connection, Task, CommandVisitor {
             if (consumerExchange != null) {
                 MessageAck ack = new MessageAck();
                 // Acking with a poison ack will send to the DLQ
-                ack.setAckType(MessageAck.POISON_ACK_TYPE);
+                ack.setAckType(MessageAck.POSION_ACK_TYPE);
                 ack.setPoisonCause(e);
                 ack.setConsumerId(messageDispatch.getConsumerId());
                 ack.setDestination(messageDispatch.getDestination());

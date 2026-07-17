@@ -37,10 +37,18 @@ public class WireFormatInfoTest {
 
     private final OpenWireFormat wireFormat = new OpenWireFormat();
 
+    private static String repeat(String s, int count) {
+        StringBuilder sb = new StringBuilder(s.length() * count);
+        for (int i = 0; i < count; i++) {
+            sb.append(s);
+        }
+        return sb.toString();
+    }
+
     @Test
     public void testWireFormatLimits() throws Exception {
         WireFormatInfo wfi = new WireFormatInfo();
-        byte[] bytes = "a".repeat(WireFormatInfo.MAX_PROPERTY_BUFFER_SIZE).getBytes();
+        byte[] bytes = repeat("a",WireFormatInfo.MAX_PROPERTY_BUFFER_SIZE).getBytes();
 
         // We allow up to 64 properties with 512 bytes
         for (int i = 0; i < WireFormatInfo.MAX_PROPERTY_SIZE; i++) {
@@ -81,20 +89,20 @@ public class WireFormatInfoTest {
 
     @Test
     public void testWireFormatInfoTooLargeBytes() throws Exception {
-        testWireFormatInfoValidation("a".repeat(WireFormatInfo.MAX_PROPERTY_BUFFER_SIZE + 1).getBytes(),
+        testWireFormatInfoValidation(repeat("a",WireFormatInfo.MAX_PROPERTY_BUFFER_SIZE + 1).getBytes(),
                 "Max buffer size: 512 exceeded, size: 513");
     }
 
     @Test
     public void testWireFormatInfoTooLargeString() throws Exception {
-        testWireFormatInfoValidation("a".repeat(WireFormatInfo.MAX_PROPERTY_BUFFER_SIZE + 1),
+        testWireFormatInfoValidation(repeat("a",WireFormatInfo.MAX_PROPERTY_BUFFER_SIZE + 1),
                 "Max buffer size: 512 exceeded, size: 513");
     }
 
     @Test
     public void testWireFormatInfoTooLargeList() throws Exception {
         // buffer is too large but we also don't allow lists
-        testWireFormatInfoValidation("a".repeat(WireFormatInfo.MAX_PROPERTY_BUFFER_SIZE + 1).chars()
+        testWireFormatInfoValidation(repeat("a",WireFormatInfo.MAX_PROPERTY_BUFFER_SIZE + 1).chars()
                 .mapToObj(c -> (char) c)
                 .collect(Collectors.toList()), "Max unmarshaling depth: 0 exceeded");
     }
@@ -103,10 +111,10 @@ public class WireFormatInfoTest {
     @Test
     public void testWireFormatInfoNestedList() throws Exception {
         // we don't allow any lists at all
-        testWireFormatInfoValidation(List.of("blocked"), "Max unmarshaling depth: 0 exceeded");
+        testWireFormatInfoValidation(java.util.Arrays.asList("blocked"), "Max unmarshaling depth: 0 exceeded");
 
         // also check nested
-        List<List<String>> list = List.of(List.of("blocked"));
+        List<List<String>> list = java.util.Arrays.asList(java.util.Arrays.asList("blocked"));
         testWireFormatInfoValidation(list, "Max unmarshaling depth: 0 exceeded");
     }
 
@@ -122,19 +130,19 @@ public class WireFormatInfoTest {
 
     @Test
     public void testWireFormatInfoNestedMap() throws Exception {
-        Map<String,Map<String,String>> map = Map.of("blocked", Map.of("a", "b"));
+        Map<String,Map<String,String>> map = java.util.Collections.singletonMap("blocked", java.util.Collections.singletonMap("a", "b"));
         testWireFormatInfoValidation(map, "Max unmarshaling depth: 0 exceeded");
     }
 
     @Test
     public void testWireFormatInfoNestedMapOfList() throws Exception {
-        Map<String,List<String>> map = Map.of("blocked", List.of("test"));
+        Map<String,List<String>> map = java.util.Collections.singletonMap("blocked", java.util.Arrays.asList("test"));
         testWireFormatInfoValidation(map, "Max unmarshaling depth: 0 exceeded");
     }
 
     @Test
     public void testWireFormatInfoNestedListOfMap() throws Exception {
-        List<Map<String,String>> list = List.of(Map.of("blocked", "blocked"));
+        List<Map<String,String>> list = java.util.Arrays.asList(java.util.Collections.singletonMap("blocked", "blocked"));
         testWireFormatInfoValidation(list, "Max unmarshaling depth: 0 exceeded");
     }
 
@@ -142,7 +150,7 @@ public class WireFormatInfoTest {
     // Anythin over Short.MAX_VALUE / 4 will be a big string type
     @Test
     public void testWireFormatInfoTooLargeBigString() throws Exception {
-        testWireFormatInfoValidation("a".repeat((Short.MAX_VALUE / 4) + 1),
+        testWireFormatInfoValidation(repeat("a",(Short.MAX_VALUE / 4) + 1),
                 "Max buffer size: 512 exceeded, size: 8192");
     }
 

@@ -19,7 +19,6 @@ package org.apache.activemq.util;
 import javax.jms.JMSException;
 import javax.jms.MessageEOFException;
 import javax.jms.MessageFormatException;
-import javax.jms.MessageFormatRuntimeException;
 
 import java.util.ArrayList;
 import java.util.List;

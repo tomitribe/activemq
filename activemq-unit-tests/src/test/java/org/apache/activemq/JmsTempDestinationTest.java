@@ -106,7 +106,7 @@ public class JmsTempDestinationTest {
         tempTopicEntry.setAllowTempDestinationStealing(allowTempDestinationStealing);
 
         PolicyMap pMap = new PolicyMap();
-        pMap.setPolicyEntries(List.of(tempQueueEntry, tempTopicEntry));
+        pMap.setPolicyEntries(Arrays.asList(tempQueueEntry, tempTopicEntry));
 
         brokerService.setDestinationPolicy(pMap);
         brokerService.start();
