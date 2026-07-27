@@ -29,6 +29,7 @@ import javax.jms.TextMessage;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.test.spring.CamelSpringTestSupport;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,7 @@ public class CamelJmsTest extends CamelSpringTestSupport {
     
     protected String expectedBody = "<hello>world!</hello>";
 
+    @Ignore("CVE-2026-43866: forked Camel 2.25.5-TT.x defaults objectMessageEnabled=false, so Camel no longer auto-consumes JMS ObjectMessages; this test asserts the pre-fix behaviour. ActiveMQ is not affected in its default config (trustedPackages rejects the payload). See tomitribe/cve docs/security-audits/2026/CVE-2026-43866.md")
     @Test
     public void testSendingViaJmsIsReceivedByCamel() throws Exception {
         MockEndpoint result = resolveMandatoryEndpoint("mock:result", MockEndpoint.class);
