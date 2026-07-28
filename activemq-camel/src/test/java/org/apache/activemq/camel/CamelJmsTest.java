@@ -29,43 +29,82 @@ import javax.jms.TextMessage;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.test.spring.CamelSpringTestSupport;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
- * 
+ *
  */
 public class CamelJmsTest extends CamelSpringTestSupport {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(CamelJmsTest.class);
-    
+
     protected String expectedBody = "<hello>world!</hello>";
 
-    @Ignore("CVE-2026-43866: forked Camel 2.25.5-TT.x defaults objectMessageEnabled=false, so Camel no longer auto-consumes JMS ObjectMessages; this test asserts the pre-fix behaviour. ActiveMQ is not affected in its default config (trustedPackages rejects the payload). See tomitribe/cve docs/security-audits/2026/CVE-2026-43866.md")
+    /**
+     * CVE-2026-43866: the forked Camel 2.25.5-TT.x defaults {@code objectMessageEnabled=false},
+     * so Camel refuses to unmarshal an inbound JMS ObjectMessage and nothing reaches the route.
+     * (ActiveMQ is not affected in its default config: trustedPackages would reject the payload
+     * too - this gate simply fires first. See tomitribe/cve
+     * docs/security-audits/2026/CVE-2026-43866.md.)
+     */
     @Test
-    public void testSendingViaJmsIsReceivedByCamel() throws Exception {
-        MockEndpoint result = resolveMandatoryEndpoint("mock:result", MockEndpoint.class);
+    public void testSendingObjectMessageIsRefusedByDefault() throws Exception {
+        final MockEndpoint result = resolveMandatoryEndpoint("mock:result", MockEndpoint.class);
+        result.expectedMessageCount(0);
+        result.setResultWaitTime(2000L);
+
+        final Destination destination = getMandatoryBean(Destination.class, "sendTo");
+        final ConnectionFactory factory = getMandatoryBean(ConnectionFactory.class, "connectionFactory");
+
+        final Connection connection = factory.createConnection();
+        connection.start();
+        final Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        final MessageProducer producer = session.createProducer(destination);
+
+        final ObjectMessage message = session.createObjectMessage(expectedBody);
+        message.setStringProperty("foo", "bar");
+        producer.send(message);
+
+        // the ObjectMessage must not reach the route; if it surfaces at all it is only as the
+        // "disabled" refusal, never as a successful delivery
+        try {
+            result.assertIsSatisfied();
+        } catch (final AssertionError refused) {
+            assertTrue("expected ObjectMessage to be refused as disabled, but was: "
+                            + refused.getMessage(),
+                    refused.getMessage().contains("ObjectMessage is disabled"));
+        }
+        connection.close();
+    }
+
+    /**
+     * Companion to {@link #testSendingObjectMessageIsRefusedByDefault()}: a plain TextMessage
+     * is still delivered end to end, confirming the {@code objectMessageEnabled} gate is specific
+     * to ObjectMessage and does not break ordinary JMS-to-Camel bridging.
+     */
+    @Test
+    public void testSendingTextMessageIsReceivedByCamel() throws Exception {
+        final MockEndpoint result = resolveMandatoryEndpoint("mock:result", MockEndpoint.class);
         result.expectedBodiesReceived(expectedBody);
         result.message(0).header("foo").isEqualTo("bar");
 
-        // lets create a message
-        Destination destination = getMandatoryBean(Destination.class, "sendTo");
-        ConnectionFactory factory = getMandatoryBean(ConnectionFactory.class, "connectionFactory");
+        final Destination destination = getMandatoryBean(Destination.class, "sendTo");
+        final ConnectionFactory factory = getMandatoryBean(ConnectionFactory.class, "connectionFactory");
 
-        Connection connection = factory.createConnection();
+        final Connection connection = factory.createConnection();
         connection.start();
-        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        MessageProducer producer = session.createProducer(destination);
+        final Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        final MessageProducer producer = session.createProducer(destination);
 
-        // now lets send a message
-        ObjectMessage message = session.createObjectMessage(expectedBody);
+        final TextMessage message = session.createTextMessage(expectedBody);
         message.setStringProperty("foo", "bar");
         producer.send(message);
 
         result.assertIsSatisfied();
+        connection.close();
 
         LOG.info("Received message: " + result.getReceivedExchanges());
     }
@@ -73,25 +112,25 @@ public class CamelJmsTest extends CamelSpringTestSupport {
     @Test
     public void testConsumingViaJMSReceivesMessageFromCamel() throws Exception {
         // lets create a message
-        Destination destination = getMandatoryBean(Destination.class, "consumeFrom");
-        ConnectionFactory factory = getMandatoryBean(ConnectionFactory.class, "connectionFactory");
-        ProducerTemplate template = getMandatoryBean(ProducerTemplate.class, "camelTemplate");
+        final Destination destination = getMandatoryBean(Destination.class, "consumeFrom");
+        final ConnectionFactory factory = getMandatoryBean(ConnectionFactory.class, "connectionFactory");
+        final ProducerTemplate template = getMandatoryBean(ProducerTemplate.class, "camelTemplate");
         assertNotNull("template is valid", template);
-        
-        Connection connection = factory.createConnection();
+
+        final Connection connection = factory.createConnection();
         connection.start();
-        Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+        final Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
         LOG.info("Consuming from: " + destination);
-        MessageConsumer consumer = session.createConsumer(destination);
+        final MessageConsumer consumer = session.createConsumer(destination);
 
         // now lets send a message
         template.sendBody("seda:consumer", expectedBody);
 
-        Message message = consumer.receive(5000);
+        final Message message = consumer.receive(5000);
         assertNotNull("Should have received a message from destination: " + destination, message);
 
-        TextMessage textMessage = assertIsInstanceOf(TextMessage.class, message);
+        final TextMessage textMessage = assertIsInstanceOf(TextMessage.class, message);
         assertEquals("Message body", expectedBody, textMessage.getText());
 
         LOG.info("Received message: " + message);
