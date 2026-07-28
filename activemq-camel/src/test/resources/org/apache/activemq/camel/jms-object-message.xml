@@ -15,6 +15,20 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 -->
+<!--
+    CVE-2026-43866 two-gate matrix (see ObjectMessageTest):
+
+      Gate 1 - camel-jms objectMessageEnabled (CAMEL-23373 backport): defaults FALSE in the
+               TT fork, so Camel refuses to unmarshal ANY JMS ObjectMessage before trust is
+               even consulted. The four "activemq-*" components below leave it at that default.
+      Gate 2 - ActiveMQ trustedPackages: only reached once gate 1 is opened. The four
+               "activemq-*-enabled" components set objectMessageEnabled=true and reuse the same
+               four connection factories, so they exercise the trust dimension in isolation.
+
+    The payload class is org.apache.activemq.camel.ObjectPayload, so:
+      trust "org.apache.activemq" -> ACCEPTED   trust "org.apache.camel" -> REJECTED
+      trustAllPackages=true       -> ACCEPTED   empty trust               -> REJECTED
+-->
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="
@@ -23,6 +37,7 @@
     ">
 
     <camelContext xmlns="http://camel.apache.org/schema/spring">
+        <!-- Gate 1: objectMessageEnabled defaults false on these -->
         <route>
             <from uri="activemq-activemq:topic:foo"/>
             <to uri="mock:result-activemq"/>
@@ -39,29 +54,29 @@
             <from uri="activemq-trusted:topic:foo"/>
             <to uri="mock:result-trusted"/>
         </route>
+
+        <!-- Gate 2: same four trust configs, but objectMessageEnabled=true (opt-in) -->
+        <route>
+            <from uri="activemq-activemq-enabled:topic:foo"/>
+            <to uri="mock:result-activemq-enabled"/>
+        </route>
+        <route>
+            <from uri="activemq-camel-enabled:topic:foo"/>
+            <to uri="mock:result-camel-enabled"/>
+        </route>
+        <route>
+            <from uri="activemq-empty-enabled:topic:foo"/>
+            <to uri="mock:result-empty-enabled"/>
+        </route>
+        <route>
+            <from uri="activemq-trusted-enabled:topic:foo"/>
+            <to uri="mock:result-trusted-enabled"/>
+        </route>
     </camelContext>
 
-    <!-- configuration for activemq-camel endpoint -->
+    <!-- ================= connection factories (trust dimension) ================= -->
 
-    <bean id="camelConnectionFactory" class="org.apache.activemq.spring.ActiveMQConnectionFactory">
-        <property name="brokerURL" value="vm://localhost?broker.persistent=false"/>
-        <property name="trustedPackages">
-            <list>
-                <value>org.apache.camel</value>
-            </list>
-        </property>
-    </bean>
-
-    <bean id="camelConfig" class="org.apache.camel.component.jms.JmsConfiguration">
-        <property name="connectionFactory" ref="camelConnectionFactory"/>
-    </bean>
-
-    <bean id="activemq-camel" class="org.apache.activemq.camel.component.ActiveMQComponent">
-        <property name="configuration" ref="camelConfig"/>
-    </bean>
-
-    <!-- configuration for activemq-activemq endpoint -->
-
+    <!-- trusts the payload's package -> ObjectPayload accepted (once gate 1 is open) -->
     <bean id="activemqConnectionFactory" class="org.apache.activemq.spring.ActiveMQConnectionFactory">
         <property name="brokerURL" value="vm://localhost?broker.persistent=false"/>
         <property name="trustedPackages">
@@ -71,16 +86,17 @@
         </property>
     </bean>
 
-    <bean id="activemqConfig" class="org.apache.camel.component.jms.JmsConfiguration">
-        <property name="connectionFactory" ref="activemqConnectionFactory"/>
+    <!-- trusts an unrelated package -> ObjectPayload rejected -->
+    <bean id="camelConnectionFactory" class="org.apache.activemq.spring.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="vm://localhost?broker.persistent=false"/>
+        <property name="trustedPackages">
+            <list>
+                <value>org.apache.camel</value>
+            </list>
+        </property>
     </bean>
 
-    <bean id="activemq-activemq" class="org.apache.activemq.camel.component.ActiveMQComponent">
-        <property name="configuration" ref="activemqConfig"/>
-    </bean>
-
-    <!-- configuration for activemq-empty endpoint -->
-
+    <!-- empty trust -> ObjectPayload rejected -->
     <bean id="emptyConnectionFactory" class="org.apache.activemq.spring.ActiveMQConnectionFactory">
         <property name="brokerURL" value="vm://localhost?broker.persistent=false"/>
         <property name="trustedPackages">
@@ -90,27 +106,74 @@
         </property>
     </bean>
 
-    <bean id="emptyConfig" class="org.apache.camel.component.jms.JmsConfiguration">
-        <property name="connectionFactory" ref="emptyConnectionFactory"/>
-    </bean>
-
-    <bean id="activemq-empty" class="org.apache.activemq.camel.component.ActiveMQComponent">
-        <property name="configuration" ref="emptyConfig"/>
-    </bean>
-
-    <!-- configuration for activemq-trusted endpoint -->
-
+    <!-- trust everything -> ObjectPayload accepted (once gate 1 is open) -->
     <bean id="trustedConnectionFactory" class="org.apache.activemq.spring.ActiveMQConnectionFactory">
         <property name="brokerURL" value="vm://localhost?broker.persistent=false"/>
         <property name="trustAllPackages" value="true"/>
     </bean>
 
+    <!-- ============ gate 1 components: objectMessageEnabled defaults false ============ -->
+
+    <bean id="activemqConfig" class="org.apache.camel.component.jms.JmsConfiguration">
+        <property name="connectionFactory" ref="activemqConnectionFactory"/>
+    </bean>
+    <bean id="activemq-activemq" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="configuration" ref="activemqConfig"/>
+    </bean>
+
+    <bean id="camelConfig" class="org.apache.camel.component.jms.JmsConfiguration">
+        <property name="connectionFactory" ref="camelConnectionFactory"/>
+    </bean>
+    <bean id="activemq-camel" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="configuration" ref="camelConfig"/>
+    </bean>
+
+    <bean id="emptyConfig" class="org.apache.camel.component.jms.JmsConfiguration">
+        <property name="connectionFactory" ref="emptyConnectionFactory"/>
+    </bean>
+    <bean id="activemq-empty" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="configuration" ref="emptyConfig"/>
+    </bean>
+
     <bean id="trustedConfig" class="org.apache.camel.component.jms.JmsConfiguration">
         <property name="connectionFactory" ref="trustedConnectionFactory"/>
     </bean>
-
     <bean id="activemq-trusted" class="org.apache.activemq.camel.component.ActiveMQComponent">
         <property name="configuration" ref="trustedConfig"/>
+    </bean>
+
+    <!-- ====== gate 2 components: objectMessageEnabled=true, same four trust configs ====== -->
+
+    <bean id="activemqConfigEnabled" class="org.apache.camel.component.jms.JmsConfiguration">
+        <property name="connectionFactory" ref="activemqConnectionFactory"/>
+        <property name="objectMessageEnabled" value="true"/>
+    </bean>
+    <bean id="activemq-activemq-enabled" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="configuration" ref="activemqConfigEnabled"/>
+    </bean>
+
+    <bean id="camelConfigEnabled" class="org.apache.camel.component.jms.JmsConfiguration">
+        <property name="connectionFactory" ref="camelConnectionFactory"/>
+        <property name="objectMessageEnabled" value="true"/>
+    </bean>
+    <bean id="activemq-camel-enabled" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="configuration" ref="camelConfigEnabled"/>
+    </bean>
+
+    <bean id="emptyConfigEnabled" class="org.apache.camel.component.jms.JmsConfiguration">
+        <property name="connectionFactory" ref="emptyConnectionFactory"/>
+        <property name="objectMessageEnabled" value="true"/>
+    </bean>
+    <bean id="activemq-empty-enabled" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="configuration" ref="emptyConfigEnabled"/>
+    </bean>
+
+    <bean id="trustedConfigEnabled" class="org.apache.camel.component.jms.JmsConfiguration">
+        <property name="connectionFactory" ref="trustedConnectionFactory"/>
+        <property name="objectMessageEnabled" value="true"/>
+    </bean>
+    <bean id="activemq-trusted-enabled" class="org.apache.activemq.camel.component.ActiveMQComponent">
+        <property name="configuration" ref="trustedConfigEnabled"/>
     </bean>
 
 </beans>
