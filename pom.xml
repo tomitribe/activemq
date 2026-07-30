@@ -87,6 +87,10 @@
     <karaf-version>4.3.7</karaf-version>
     <log4j-version>2.25.4</log4j-version>
     <mockito-version>4.8.1</mockito-version>
+    <!-- Pin byte-buddy to the version required by mockito-inline ${mockito-version}.
+         jmock-imposters transitively pulls an older byte-buddy (1.9.12) that cannot
+         instrument JDK 17, which breaks Mockito's inline mock maker. -->
+    <byte-buddy-version>1.12.16</byte-buddy-version>
     <owasp-dependency-check-version>8.4.2</owasp-dependency-check-version>
     <mqtt-client-version>1.16</mqtt-client-version>
     <org-apache-derby-version>10.16.1.1</org-apache-derby-version>
@@ -918,6 +922,21 @@
         <groupId>org.mockito</groupId>
         <artifactId>mockito-inline</artifactId>
         <version>${mockito-version}</version>
+        <scope>test</scope>
+      </dependency>
+      <!-- Force byte-buddy to the mockito-inline-compatible version so the older
+           1.9.12 pulled in transitively by jmock-imposters does not win resolution
+           (1.9.12 cannot instrument JDK 17, breaking the inline mock maker). -->
+      <dependency>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy</artifactId>
+        <version>${byte-buddy-version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>net.bytebuddy</groupId>
+        <artifactId>byte-buddy-agent</artifactId>
+        <version>${byte-buddy-version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>

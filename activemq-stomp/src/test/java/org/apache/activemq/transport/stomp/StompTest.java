@@ -26,7 +26,6 @@ import static org.junit.Assert.fail;
 import jakarta.jms.Destination;
 import java.io.IOException;
 import java.io.StringReader;
-import java.lang.reflect.Field;
 import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -34,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -53,15 +53,19 @@ import jakarta.jms.Session;
 import jakarta.jms.TextMessage;
 import javax.management.ObjectName;
 
-import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLSocket;
+import org.apache.activemq.ActiveMQConnection;
+import org.apache.activemq.broker.Broker;
+import org.apache.activemq.broker.BrokerFilter;
+import org.apache.activemq.broker.BrokerPlugin;
+import org.apache.activemq.broker.BrokerPluginSupport;
 import org.apache.activemq.broker.BrokerService;
-import org.apache.activemq.broker.TransportConnection;
+import org.apache.activemq.broker.ConnectionContext;
 import org.apache.activemq.broker.TransportConnector;
 import org.apache.activemq.broker.jmx.BrokerViewMBean;
 import org.apache.activemq.broker.jmx.QueueViewMBean;
 import org.apache.activemq.broker.region.AbstractSubscription;
+import org.apache.activemq.broker.region.MessageReference;
 import org.apache.activemq.broker.region.RegionBroker;
 import org.apache.activemq.broker.region.Subscription;
 import org.apache.activemq.broker.region.policy.PolicyEntry;
@@ -70,7 +74,9 @@ import org.apache.activemq.command.ActiveMQDestination;
 import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQQueue;
 import org.apache.activemq.command.ActiveMQTextMessage;
-import org.apache.activemq.transport.nio.NIOSSLTransport;
+import org.apache.activemq.transport.stomp.Stomp.Commands;
+import org.apache.activemq.transport.stomp.Stomp.Responses;
+import org.apache.activemq.util.ByteSequenceData;
 import org.apache.activemq.util.NioSslTestUtil;
 import org.apache.activemq.util.Wait;
 import org.junit.Assume;
@@ -121,6 +127,9 @@ public class StompTest extends StompTestSupport {
         + "]"
         + "}}";
 
+
+    final AtomicBoolean sentToDlq = new AtomicBoolean(false);
+
     @Override
     public void setUp() throws Exception {
         // The order of the entries is different when using ibm jdk 5.
@@ -156,6 +165,7 @@ public class StompTest extends StompTestSupport {
         xstream = new XStream();
         xstream.processAnnotations(SamplePojo.class);
         xstream.allowTypes(new Class[] { SamplePojo.class });
+        sentToDlq.set(false);
     }
 
     @Override
@@ -176,6 +186,26 @@ public class StompTest extends StompTestSupport {
         } finally {
             super.tearDown();
         }
+    }
+
+    @Override
+    protected void addAdditionalPlugins(List<BrokerPlugin> plugins) throws Exception {
+        super.addAdditionalPlugins(plugins);
+        plugins.add(new BrokerPluginSupport() {
+            @Override
+            public Broker installPlugin(Broker broker) {
+                return new BrokerFilter(broker) {
+                    @Override
+                    public boolean sendToDeadLetterQueue(ConnectionContext context,
+                            MessageReference messageReference, Subscription subscription,
+                            Throwable poisonCause) {
+                        sentToDlq.set(true);
+                        return super.sendToDeadLetterQueue(context, messageReference,
+                                subscription, poisonCause);
+                    }
+                };
+            }
+        });
     }
 
     public void sendMessage(String msg) throws Exception {
@@ -233,6 +263,117 @@ public class StompTest extends StompTestSupport {
         assertTrue(Math.abs(tnow - tmsg) < 1000);
     }
 
+    // Test that a string that requires 4 bytes to encode using standard
+    // UTF-8 does not break when sent by Stomp and received by JMS/OpenWire
+    // AMQ uses a modified UTF-8 encoding that only uses 3 bytes so conversion
+    // needs to happen so this works.
+    @Test(timeout = 60000)
+    public void testSend4ByteUtf8StompToJms() throws Exception {
+        // Create test string using emojis, requires 4 bytes with standard UTF-8
+        String body = "!®౩\uD83D\uDE42";
+        MessageConsumer consumer = session.createConsumer(queue);
+
+        String frame = "CONNECT\n" + "login:system\n" + "passcode:manager\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+
+        frame = stompConnection.receiveFrame();
+        assertTrue(frame.startsWith("CONNECTED"));
+
+        // publish message with string that requires 4-byte UTF-8 encoding
+        frame = "SEND\n" + "destination:/queue/" + getQueueName() + "\n\n" + body + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+
+        // Verify received message is original sent string
+        TextMessage message = (TextMessage)consumer.receive(2500);
+        assertNotNull(message);
+        assertEquals(body, message.getText());
+    }
+
+    // Test that a string that requires 4 bytes to encode using standard
+    // UTF-8 does not break when sent by JMS/OpenWire and received by Stomp
+    // AMQ uses a modified UTF-8 encoding that only uses 3 bytes so conversion
+    // needs to happen so this works.
+    @Test(timeout = 60000)
+    public void testSend4ByteUtf8JmsToStomp() throws Exception {
+        // Create test string using emojis, requires 4 bytes with standard UTF-8
+        String body = "!®౩\uD83D\uDE42";
+        MessageProducer producer = session.createProducer(queue);
+
+        String frame = "CONNECT\n" + "login:system\n" + "passcode:manager\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+
+        frame = stompConnection.receiveFrame();
+        assertTrue(frame.startsWith("CONNECTED"));
+        frame = "SUBSCRIBE\n" + "destination:/queue/" + getQueueName() + "\n" + "ack:auto\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+
+        // publish message with string that requires 4-byte UTF-8 encoding
+        producer.send(session.createTextMessage(body));
+
+        // Verify received message is original sent string
+        StompFrame message = stompConnection.receive();
+        assertNotNull(message);
+        assertEquals(body, message.getBody());
+    }
+
+    // Test that a string that requires 4 bytes to encode using standard
+    // UTF-8 does not break when sent by Stomp and received by Stomp
+    @Test(timeout = 60000)
+    public void testSend4ByteUtf8StompToStomp() throws Exception {
+        // Create test string using emojis, requires 4 bytes with standard UTF-8
+        String body = "!®౩\uD83D\uDE42";
+
+        String frame = "CONNECT\n" + "login:system\n" + "passcode:manager\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+        frame = stompConnection.receiveFrame();
+        assertTrue(frame.startsWith("CONNECTED"));
+
+        // publish message with string that requires 4-byte UTF-8 encoding
+        frame = "SEND\n" + "destination:/queue/" + getQueueName() + "\n\n" + body + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+
+        frame = "SUBSCRIBE\n" + "destination:/queue/" + getQueueName() + "\n" + "ack:auto\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+
+        // Verify received message is original sent string
+        StompFrame message = stompConnection.receive();
+        assertNotNull(message);
+        assertEquals(body, message.getBody());
+    }
+
+    // The following test will corrupt a message and test the Stomp
+    // protocol correctly passes the error during
+    // dispatch to allow the Transport Connection to properly handle
+    // with a poison ack so the message will be removed from the subscription.
+    @Test(timeout = 60000)
+    public void testCorruptMessage() throws Exception {
+        MessageProducer producer = session.createProducer(queue);
+        String frame = "CONNECT\n" + "login:system\n" + "passcode:manager\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+        frame = stompConnection.receiveFrame();
+        assertTrue(frame.startsWith("CONNECTED"));
+        frame = "SUBSCRIBE\n" + "destination:/queue/" + getQueueName() + "\n" + "ack:auto\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+        ActiveMQTextMessage msg = (ActiveMQTextMessage) session.createTextMessage("test");
+
+        // corrupt the buffer
+        msg.storeContentAndClear();
+        ByteSequenceData.writeIntBig(msg.getContent(), 1000);
+        producer.send(msg);
+
+        // Message should not be received because the UTF8 buffer is corrupt
+        try {
+            StompFrame frameNull = stompConnection.receive(500);
+            if (frameNull != null) {
+                fail("Should not have received any messages");
+            }
+        } catch (SocketTimeoutException ignored) {}
+
+        // Message should go to the DLQ
+        assertTrue(Wait.waitFor(() -> brokerService.getDestination(queue)
+                .getDestinationStatistics().getMessages().getCount() == 0, 500, 10));
+        assertTrue(sentToDlq.get());
+    }
     @Test(timeout = 60000)
     public void testJMSXGroupIdCanBeSet() throws Exception {
 
@@ -2521,6 +2662,110 @@ public class StompTest extends StompTestSupport {
 
         // Make sure we can still subscribe and receive
         receiveForSslHandshakeTest();
+    }
+
+    @Test(timeout = 60000)
+    public void testMissingConnectFrame() throws Exception {
+        final boolean isAutoTransport = transportConnectorName.contains("auto");
+
+        // Send a frame without first sending a CONNECT frame, which is a protocol violation
+        String frame = "SEND\n" + "destination:/queue/" + getQueueName() + " \n\n" + "body" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+
+        // The auto transport will just disconnect because it can't detect the protocol
+        // without the CONNECT frame
+        if (isAutoTransport) {
+            try {
+                stompConnection.receive();
+            } catch (IOException e) {
+               // Expected, the connection should be closed because the transport
+               // can't detect the wire protocol without the initial packet
+            }
+        } else {
+            // For the other stomp transports we should get an error back first
+            StompFrame message = stompConnection.receive();
+            assertEquals(Responses.ERROR, message.getAction());
+            assertTrue(message.getBody().contains(
+                    "StompWireFormat is configured for 'server' mode and received an"
+                            + " unexpected frame before CONNECT or STOMP frame: SEND"));
+            // make sure the connection was closed by the server
+            assertConnectionClosed(5000);
+        }
+    }
+
+    @Test(timeout = 60000)
+    public void testNegativeContentLength() throws Exception {
+        String frame = "CONNECT\n" + "login:system\n" + "passcode:manager\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+
+        frame = stompConnection.receiveFrame();
+        assertTrue(frame.startsWith("CONNECTED"));
+
+        frame = "SEND\n" + "destination:/queue/" + getQueueName() + "\ncontent-length:-1" + " \n\n" + "body" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+
+        // Negative content length is a protocol error and should return
+        // an error and close the connection
+        StompFrame message = stompConnection.receive();
+        assertEquals(Responses.ERROR, message.getAction());
+        assertTrue(message.getBody().contains("Specified content-length may not be negative"));
+
+        // make sure the connection was closed by the server
+        assertConnectionClosed(5000);
+    }
+
+    @Test(timeout = 60000)
+    public void testDuplicateConnect() throws Exception {
+        testDuplicateConnect(Commands.CONNECT);
+    }
+
+    @Test(timeout = 60000)
+    public void testDuplicateStomp() throws Exception {
+        testDuplicateConnect(Commands.STOMP);
+    }
+
+    private void testDuplicateConnect(String connectPacket) throws Exception {
+        String frame = connectPacket + "\n" + "login:system\n" + "passcode:manager\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+
+        String received = stompConnection.receiveFrame();
+        assertTrue(received.startsWith("CONNECTED"));
+
+        // Sending a second CONNECT frame is not allowed and should error
+        stompConnection.sendFrame(frame);
+        StompFrame message = stompConnection.receive();
+        assertEquals(Responses.ERROR, message.getAction());
+        assertTrue(message.getBody().contains("duplicate CONNECT or STOMP frame"));
+
+        // make sure the connection was closed by the server
+        assertConnectionClosed(5000);
+    }
+
+    @Test(timeout = 60000)
+    public void testInvalidServerResponseReceived() throws Exception {
+        String frame = "CONNECT\n" + "login:system\n" + "passcode:manager\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+
+        String received = stompConnection.receiveFrame();
+        assertTrue(received.startsWith("CONNECTED"));
+
+        // Sending a server response to the server, which is invalid
+        frame = "RECEIPT\n" + "receipt-id:message-12345\n\n" + Stomp.NULL;
+        stompConnection.sendFrame(frame);
+        StompFrame message = stompConnection.receive();
+        assertEquals(Responses.ERROR, message.getAction());
+        assertTrue(message.getBody().contains("StompWireFormat is configured for 'server' mode and received a"
+                + " frame that is only expected when configured for 'client' mode: RECEIPT"));
+
+        // make sure the connection was closed by the server
+        assertConnectionClosed(5000);
+    }
+
+    protected void assertConnectionClosed(int timeout) throws Exception {
+        stompConnection.getStompSocket().setSoTimeout(timeout);
+        // -1 read means the socket was closed by the server
+        assertTrue("Should drop connection", Wait.waitFor(
+                () -> stompConnection.getStompSocket().getInputStream().read() == -1, timeout, 10));
     }
 
     private void checkHandshakeStatusAdvances(SSLSocket socket) throws Exception {
