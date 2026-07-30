@@ -20,12 +20,14 @@ import org.apache.activemq.broker.BrokerService;
 import org.apache.activemq.broker.jmx.BrokerViewMBean;
 import org.apache.activemq.broker.jmx.NetworkConnectorViewMBean;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.management.ObjectName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import static org.apache.activemq.util.TransportValidationUtils.DENIED_TRANSPORT_SCHEMES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -33,10 +35,10 @@ import static org.junit.Assert.fail;
 /**
  * This test shows that when we create a network connector via JMX,
  * the NC/bridge shows up in the MBean Server
- *
- * @author <a href="http://www.christianposta.com/blog">Christian Posta</a>
  */
 public class JmxCreateNCTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JmxCreateNCTest.class);
 
     private static final String BROKER_NAME = "jmx-broker";
 
@@ -81,63 +83,92 @@ public class JmxCreateNCTest {
     }
 
     @Test
-    public void testVmBridgeBlocked() throws Exception {
+    public void testTransportSchemeBridgeAllowed() throws Exception {
+        // Test composite network connector uri
+        String name = proxy.addNetworkConnector("static:(tcp://localhost,amqp://localhost)");
+        proxy.removeNetworkConnector(name);
+
+        // Test composite with missing parens
+        name = proxy.addNetworkConnector("static:amqp://localhost,tcp://127.0.0.1:0");
+        proxy.removeNetworkConnector(name);
+
+        // verify direct connector as well
+        name = proxy.addNetworkConnector("static:stomp://localhost");
+        proxy.removeNetworkConnector(name);
+
+        // verify nested composite URI
+        name = proxy.addNetworkConnector(
+                "static:(static:(static:(tcp+ssl://localhost:0,auto+nio+ssl://localhost)))");
+        proxy.removeNetworkConnector(name);
+
+        // verify nested composite URI is not blocked when not using parens
+        name = proxy.addNetworkConnector(
+                "static:static:static:123://localhost:0,auto+nio+ssl://localhost");
+        proxy.removeNetworkConnector(name);
+    }
+
+    @Test
+    public void testTransportSchemeBridgeBlocked() throws Exception {
+        for (String deniedScheme : DENIED_TRANSPORT_SCHEMES) {
+            LOG.info("verify testTransportSchemeBridgeBlocked scheme: {}", deniedScheme);
+            testTransportSchemeBridgeBlocked(deniedScheme);
+        }
+    }
+
+    protected void testTransportSchemeBridgeBlocked(String scheme) throws Exception {
         // Test composite network connector uri
         try {
-            proxy.addNetworkConnector("static:(vm://localhost)");
-            fail("Should have failed trying to add vm connector bridge");
+            proxy.addNetworkConnector("static:(" + scheme + "://localhost)");
+            fail("Should have failed trying to add connector bridge with scheme: " + scheme);
         } catch (IllegalArgumentException e) {
-            assertEquals("VM scheme is not allowed", e.getMessage());
+            assertEquals("Transport scheme '" + scheme + "' is not allowed", e.getMessage());
         }
 
         // Test composite with missing parens
         try {
-            proxy.addNetworkConnector("static:vm://localhost,tcp://127.0.0.1:0");
-            fail("Should have failed trying to add vm connector bridge");
+            proxy.addNetworkConnector("static:" + scheme + "://localhost,tcp://127.0.0.1:0");
+            fail("Should have failed trying to add connector bridge with scheme: " + scheme);
         } catch (IllegalArgumentException e) {
-            assertEquals("VM scheme is not allowed", e.getMessage());
+            assertEquals("Transport scheme '" + scheme + "' is not allowed", e.getMessage());
         }
 
         // verify direct connector as well
         try {
-            proxy.addNetworkConnector("multicast:(vm://localhost)");
-            fail("Should have failed trying to add vm connector bridge");
+            proxy.addNetworkConnector(scheme + "://localhost");
+            fail("Should have failed trying to add connector bridge with scheme: " + scheme);
         } catch (IllegalArgumentException e) {
-            assertEquals("VM scheme is not allowed", e.getMessage());
-        }
-
-        // verify direct vm as well
-        try {
-            proxy.addNetworkConnector("vm://localhost");
-            fail("Should have failed trying to add vm connector bridge");
-        } catch (IllegalArgumentException e) {
-            assertEquals("VM scheme is not allowed", e.getMessage());
+            assertEquals("Transport scheme '" + scheme + "' is not allowed", e.getMessage());
         }
 
         try {
             // verify nested composite URI is blocked
-            proxy.addNetworkConnector("static:(failover:(failover:(tcp://localhost:0,vm://localhost)))");
-            fail("Should have failed trying to add vm connector bridge");
+            proxy.addNetworkConnector("static:(static:(static:(tcp://localhost:0," + scheme + "://localhost)))");
+            fail("Should have failed trying to add connector bridge with scheme: " + scheme);
         } catch (IllegalArgumentException e) {
-            assertEquals("VM scheme is not allowed", e.getMessage());
+            assertEquals("Transport scheme '" + scheme + "' is not allowed", e.getMessage());
         }
 
         try {
             // verify nested composite URI is blocked when not using parens
-            proxy.addNetworkConnector("static:static:static:tcp://localhost:0,vm://localhost");
-            fail("Should have failed trying to add vm connector bridge");
+            proxy.addNetworkConnector("static:static:static:tcp://localhost:0," + scheme + "://localhost");
+            fail("Should have failed trying to add connector bridge with scheme: " + scheme);
         } catch (IllegalArgumentException e) {
-            assertEquals("VM scheme is not allowed", e.getMessage());
+            assertEquals("Transport scheme '" + scheme + "' is not allowed", e.getMessage());
         }
     }
 
     @Test
     public void testAddNetworkConnectorMaxComposite() throws Exception {
+        // Should allow 5 nested (excludes first wrapper) so no exception thrown
+        assertNotNull(proxy.addNetworkConnector(
+                "static:(static:(static:(static:(static:(bad://localhost)))))"));
+
         try {
-            // verify nested composite URI with more than 5 levels is blocked
+            // verify nested composite URI with more than 5 levels is blocked. This has 6 nested
+            // (not including first wrapper url)
             proxy.addNetworkConnector(
-                    "static:(failover:(failover:(failover:(failover:(failover:(tcp://localhost:0))))))");
-            fail("Should have failed trying to add vm connector bridge");
+                    "static:(static:(static:(static:(static:(static:(tcp://localhost:0))))))");
+            fail("Should have failed trying to add more than 5 connector bridges");
         } catch (IllegalArgumentException e) {
             assertEquals("URI can't contain more than 5 nested composite URIs", e.getMessage());
         }
