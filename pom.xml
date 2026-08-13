@@ -25,7 +25,7 @@
 
   <groupId>org.apache.activemq</groupId>
   <artifactId>activemq-parent</artifactId>
-  <version>6.2.8-TT.2-SNAPSHOT</version>
+  <version>6.2.9-TT.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>ActiveMQ</name>
   <inceptionYear>2005</inceptionYear>
@@ -61,8 +61,8 @@
     <httpclient-version>4.5.14</httpclient-version>
     <httpcore-version>4.4.16</httpcore-version>
     <insight-version>1.2.0.Beta4</insight-version>
-    <jackson-version>2.21.4</jackson-version>
-    <jackson-annotations-version>2.21</jackson-annotations-version>
+    <jackson-version>2.22.1</jackson-version>
+    <jackson-annotations-version>2.22</jackson-annotations-version>
     <jakarta-jms-api-version>3.1.0</jakarta-jms-api-version>
     <jasypt-version>1.9.3</jasypt-version>
     <jaxb-version>4.0.6</jaxb-version>
@@ -90,7 +90,7 @@
     <shiro-version>2.2.1</shiro-version>
     <slf4j-version>2.0.17</slf4j-version>
     <snappy-version>1.1.10.7</snappy-version>
-    <spring-version>6.2.18</spring-version>
+    <spring-version>6.2.19</spring-version>
     <spring-version-range>[6,7)</spring-version-range>
     <taglibs-version>1.2.5</taglibs-version>
     <xpp3-version>1.1.4c</xpp3-version>
