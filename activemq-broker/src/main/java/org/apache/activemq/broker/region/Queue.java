@@ -800,17 +800,24 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
     }
 
     public void rollbackPendingCursorAdditions(MessageId messageId) {
+        MessageContext toRollback = null;
         synchronized (indexOrderedCursorUpdates) {
             for (int i = indexOrderedCursorUpdates.size() - 1; i >= 0; i--) {
-                MessageContext mc = indexOrderedCursorUpdates.get(i);
+                final MessageContext mc = indexOrderedCursorUpdates.get(i);
                 if (mc.message.getMessageId().equals(messageId)) {
                     indexOrderedCursorUpdates.remove(mc);
-                    if (mc.onCompletion != null) {
-                        mc.onCompletion.run();
-                    }
+                    toRollback = mc;
                     break;
                 }
             }
+        }
+        // Invoke onCompletion outside synchronized(indexOrderedCursorUpdates) to avoid a
+        // lock-ordering deadlock with JDBCMessageStore.addMessage, which holds
+        // pendingAdditions while calling indexListener.onAdd() (which acquires
+        // indexOrderedCursorUpdates). The onCompletion callback acquires pendingAdditions,
+        // so calling it inside the lock produces a deadlock cycle.
+        if (toRollback != null && toRollback.onCompletion != null) {
+            toRollback.onCompletion.run();
         }
     }
 
@@ -1888,14 +1895,16 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
         }
     }
 
-    protected void removeAndSendToDlq(ConnectionContext c, QueueMessageReference r, Exception e) throws IOException {
+    private void discardAndSendToDlq(ConnectionContext c, QueueMessageReference r, Exception e) throws IOException {
         MessageAck ack = new MessageAck();
         ack.setAckType(MessageAck.POISON_ACK_TYPE);
         ack.setPoisonCause(e);
         ack.setDestination(destination);
         ack.setMessageID(r.getMessageId());
         removeMessage(c, null, r, ack);
-        broker.getRoot().sendToDeadLetterQueue(c, r.getMessage(), null, e);
+        // this.messageDiscarded() sends to the DLQ with the poison cause
+        // as well as sending the discarded advisory (if enabled).
+        this.messageDiscarded(c, null, r, e);
     }
 
     protected void removeMessage(ConnectionContext c, Subscription subs, QueueMessageReference r) throws IOException {
@@ -2414,7 +2423,7 @@ public class Queue extends BaseDestination implements Task, UsageListener, Index
             throws IOException {
         if (messageFormatErrors != null) {
             for (Entry<QueueMessageReference, ActiveMQMessageFormatException> error : messageFormatErrors.entrySet()) {
-                removeAndSendToDlq(broker.getAdminConnectionContext(), error.getKey(),
+                discardAndSendToDlq(broker.getAdminConnectionContext(), error.getKey(),
                         error.getValue());
             }
         }

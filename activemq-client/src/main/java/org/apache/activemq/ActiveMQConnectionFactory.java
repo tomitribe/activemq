@@ -333,7 +333,7 @@ public class ActiveMQConnectionFactory extends JNDIBaseStorable implements Conne
     @Override
     public JMSContext createContext(int sessionMode) {
         try {
-            return new ActiveMQContext(createActiveMQConnection(), sessionMode);
+            return new ActiveMQContext(createActiveMQConnection(getUserName(), getPassword()), sessionMode);
         } catch (JMSException e) {
             throw JMSExceptionSupport.convertToJMSRuntimeException(e);
         }
