@@ -61,6 +61,12 @@ Users are expected to secure their environments
 
 11. Normal users need permission to create advisory topics but should generally **not** be given permission to read/write to those topics as those messages are meant for admins. A notable exception is for temporary destination advisory topics. For more information see the authorization section [here](https://activemq.apache.org/components/classic/documentation/security#authorization).
 
+12. Specify maxUncommittedCount (Broker) and maxDestinations (PolicyEntry) to prevent DoS attacks.
+
+13. Administrators are expected to change the default password (and optionally the default 'admin' user id)
+
+=======
+
 ## ActiveMQ Security Improvement Project
 
 The Apache ActiveMQ team has initiated a security hardening project to move from a default configuration that is geared for developer testing and learning to a secured-by-default stance.
@@ -106,3 +112,9 @@ Some of the most common reported examples:
 2. Any attack that require administrative access to be granted. For example, by default Jolokia and the web console now requires administrative access. By definition admins are allowed to do anything, so if the issue requires the user to login with admin credentials then the report will not be accepted and would be treated as a bug.
 
 3. DoS attacks caused by OOM because users did not configure a maxFrameSize or maxInflatedDataSize which are designed to limit the size of messages in memory.
+
+## Threat Model
+
+What the project treats as in scope and out of scope, the security
+properties it provides and disclaims, the adversary model, and how
+findings are triaged are documented in [THREAT_MODEL.md](./THREAT_MODEL.md).
