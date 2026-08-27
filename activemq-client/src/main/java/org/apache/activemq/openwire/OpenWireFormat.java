@@ -210,6 +210,7 @@ public final class OpenWireFormat implements WireFormat {
                 if (maxFrameSizeEnabled && size > maxFrameSize) {
                     throw IOExceptionSupport.createFrameSizeException(size, maxFrameSize);
                 }
+                // This will also verify size is not negative
                 context.setFrameSize(size);
             }
             return doUnmarshal(bytesIn);
@@ -285,11 +286,12 @@ public final class OpenWireFormat implements WireFormat {
             final MarshallingContext context = new MarshallingContext();
             marshallingContext.set(context);
 
-          if (!sizePrefixDisabled) {
+            if (!sizePrefixDisabled) {
                 int size = dis.readInt();
             if (maxFrameSizeEnabled && size > maxFrameSize) {
                     throw IOExceptionSupport.createFrameSizeException(size, maxFrameSize);
                 }
+                // This will also verify size is not negative
                 context.setFrameSize(size);
             }
             return doUnmarshal(dis);
