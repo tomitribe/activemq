@@ -1583,17 +1583,21 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
         }
 
         List<ConsumerId> candidateConsumers = consumerInfo.getNetworkConsumerIds();
+        // null when the destination's region is not an AbstractRegion (no
+        // subscription view available) - nothing to compare against
         Collection<Subscription> currentSubs = getRegionSubscriptions(consumerInfo.getDestination());
-        for (Subscription sub : currentSubs) {
-            List<ConsumerId> networkConsumers = sub.getConsumerInfo().getNetworkConsumerIds();
-            if (!networkConsumers.isEmpty()) {
-                if (matchFound(candidateConsumers, networkConsumers)) {
-                    if (isInActiveDurableSub(sub)) {
-                        suppress = false;
-                    } else {
-                        suppress = hasLowerPriority(sub, candidate.getLocalInfo());
+        if (currentSubs != null) {
+            for (Subscription sub : currentSubs) {
+                List<ConsumerId> networkConsumers = sub.getConsumerInfo().getNetworkConsumerIds();
+                if (!networkConsumers.isEmpty()) {
+                    if (matchFound(candidateConsumers, networkConsumers)) {
+                        if (isInActiveDurableSub(sub)) {
+                            suppress = false;
+                        } else {
+                            suppress = hasLowerPriority(sub, candidate.getLocalInfo());
+                        }
+                        break;
                     }
-                    break;
                 }
             }
         }
@@ -2007,7 +2011,7 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
      * Used to allow for async tasks to await receipt of the BrokerInfo from the local and
      * remote sides of the network bridge.
      */
-    private static class FutureBrokerInfo implements Future<BrokerInfo> {
+    static class FutureBrokerInfo implements Future<BrokerInfo> {
 
         private final CountDownLatch slot = new CountDownLatch(1);
         private final AtomicBoolean disposed;
@@ -2058,7 +2062,7 @@ public abstract class DemandForwardingBridgeSupport implements NetworkBridge, Br
                 if (info == null) {
                     long deadline = System.currentTimeMillis() + unit.toMillis(timeout);
 
-                    while (!disposed.get() || System.currentTimeMillis() - deadline < 0) {
+                    while (!disposed.get() && System.currentTimeMillis() - deadline < 0) {
                         if (slot.await(1, TimeUnit.MILLISECONDS)) {
                             break;
                         }
