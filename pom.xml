@@ -25,14 +25,14 @@
 
   <groupId>org.apache.activemq</groupId>
   <artifactId>activemq-parent</artifactId>
-  <version>5.19.11-TT.2-SNAPSHOT</version>
+  <version>5.19.12-TT.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>ActiveMQ</name>
   <inceptionYear>2005</inceptionYear>
 
   <properties>
     <!-- for reproducible builds -->	
-    <project.build.outputTimestamp>2026-08-27T03:35:37Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2026-09-02T17:40:50Z</project.build.outputTimestamp>
 
     <activeio-version>3.1.4</activeio-version>
     <siteId>activemq-${project.version}</siteId>
@@ -70,14 +70,14 @@
     <insight-version>1.2.0.Beta4</insight-version>
     <jakarta-jms-api-version>2.0.3</jakarta-jms-api-version>
     <jakarta-jms-api-v3-version>3.1.0</jakarta-jms-api-v3-version>
-    <jackson-version>2.22.1</jackson-version>
+    <jackson-version>2.22.2</jackson-version>
     <jackson-annotations-version>2.22</jackson-annotations-version>
     <jasypt-version>1.9.3</jasypt-version>
     <jaxb-bundle-version>2.3.2_1</jaxb-bundle-version>
     <jetty9-version>9.4.59-TT.1</jetty9-version>
     <jetty-version>${jetty9-version}</jetty-version>
     <jmdns-version>3.6.3</jmdns-version>
-    <tomcat-api-version>9.0.120</tomcat-api-version>
+    <tomcat-api-version>9.0.121</tomcat-api-version>
     <javassist-version>3.32.0-GA</javassist-version>
     <jettison-version>1.5.7</jettison-version>
     <jmock-version>2.13.1</jmock-version>
@@ -97,8 +97,8 @@
     <linkedin-zookeeper-version>1.4.0</linkedin-zookeeper-version>
     <zookeeper-version>3.4.14</zookeeper-version>
     <qpid-proton-version>0.35.0</qpid-proton-version>
-    <qpid-jms-version>1.16.0</qpid-jms-version>
-    <netty-version>4.2.16.Final</netty-version>
+    <qpid-jms-version>1.17.0</qpid-jms-version>
+    <netty-version>4.2.17.Final</netty-version>
     <regexp-version>1.4</regexp-version>
     <rome-version>2.1.0</rome-version>
     <shiro-version>1.13.0-TT.3</shiro-version>
