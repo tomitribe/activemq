@@ -33,6 +33,9 @@
   <properties>
     <javaVersion>17</javaVersion>
 
+    <!--CH: Enable TT release and signing, don't forget to set after OSS fast forwards. -->
+    <version.maven-gpg-plugin>3.1.0</version.maven-gpg-plugin>
+
     <surefire.argLine />
     <maven.surefire.allow.securitymanager />
     <javadoc.options>-Xdoclint:none</javadoc.options>
