@@ -25,7 +25,7 @@
 
   <groupId>org.apache.activemq</groupId>
   <artifactId>activemq-parent</artifactId>
-  <version>6.2.10-TT.2-SNAPSHOT</version>
+  <version>6.2.11-TT.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>ActiveMQ</name>
   <inceptionYear>2005</inceptionYear>
@@ -67,7 +67,7 @@
     <jasypt-version>1.9.3</jasypt-version>
     <jaxb-version>4.0.9</jaxb-version>
     <jaxb-bundle-version>2.3.2_1</jaxb-bundle-version>
-    <jetty-version>11.0.27-TT.1</jetty-version>
+    <jetty-version>11.0.26</jetty-version>
     <jetty-version-range>[11,13)</jetty-version-range>
     <jmdns-version>3.6.3</jmdns-version>
     <javassist-version>3.32.0-GA</javassist-version>
@@ -84,14 +84,13 @@
     <org-apache-derby-version>10.16.1.1</org-apache-derby-version>
     <osgi-version>6.0.0</osgi-version>
     <qpid-proton-version>0.35.0</qpid-proton-version>
-    <qpid-jms-version>2.10.0</qpid-jms-version>
-    <netty-version>4.2.16.Final</netty-version>
+    <qpid-jms-version>2.11.0</qpid-jms-version>
+    <netty-version>4.2.17.Final</netty-version>
     <rome-version>2.1.0</rome-version>
     <shiro-version>2.2.1</shiro-version>
     <slf4j-version>2.0.18</slf4j-version>
     <snappy-version>1.1.10.7</snappy-version>
-    <spring-version>6.2.19.RELEASE-TT.1</spring-version>
-    <spring-version-range>[6,7)</spring-version-range>
+    <spring-version>6.2.19.RELEASE-TT.1</spring-version>    <spring-version-range>[6,7)</spring-version-range>
     <taglibs-version>1.2.5</taglibs-version>
     <xpp3-version>1.1.4c</xpp3-version>
     <xstream-version>1.4.21</xstream-version>
