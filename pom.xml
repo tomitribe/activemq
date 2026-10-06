@@ -70,7 +70,7 @@
     <hawtdispatch-version>1.22</hawtdispatch-version>
     <httpclient-version>4.5.14</httpclient-version>
     <httpcore-version>4.4.16</httpcore-version>
-    <jackson-version>2.22.2</jackson-version>
+    <jackson-version>2.22.3</jackson-version>
     <jackson-annotations-version>2.22</jackson-annotations-version>
     <jakarta-jms-api-version>3.1.0</jakarta-jms-api-version>
     <jakarta-annotation-api-version>3.0.0</jakarta-annotation-api-version>
@@ -80,12 +80,12 @@
     <asm-version>9.10.1</asm-version>
     <jasypt-version>1.9.3</jasypt-version>
     <jaxb-version>4.0.9</jaxb-version>
-    <jetty-version>12.1.12</jetty-version>
+    <jetty-version>12.1.13</jetty-version>
     <jetty-version-range>[12,13)</jetty-version-range>
     <jmdns-version>3.6.3</jmdns-version>
     <javassist-version>3.33.0-GA</javassist-version>
     <jettison-version>1.5.7</jettison-version>
-    <jolokia-version>2.6.1</jolokia-version>
+    <jolokia-version>2.6.3</jolokia-version>
     <jmh-version>1.37</jmh-version>
     <junit-version>4.13.2</junit-version>
     <h2-version>2.4.240</h2-version>
