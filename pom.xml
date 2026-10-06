@@ -69,18 +69,18 @@
     <httpclient-version>4.5.14</httpclient-version>
     <httpcore-version>4.4.16</httpcore-version>
     <insight-version>1.2.0.Beta4</insight-version>
-    <jackson-version>2.21.4</jackson-version>
+    <jackson-version>2.21.7</jackson-version>
     <jackson-annotations-version>2.21</jackson-annotations-version>
     <jasypt-version>1.9.3</jasypt-version>
     <jaxb-bundle-version>2.2.11_1</jaxb-bundle-version>
-    <jetty9-version>9.4.59-TT.1</jetty9-version>
+    <jetty9-version>9.4.59-TT.2</jetty9-version>
     <jetty-version>${jetty9-version}</jetty-version>
     <jmdns-version>3.4.1</jmdns-version>
     <tomcat-api-version>9.0.58</tomcat-api-version>
     <jettison-version>1.5.4</jettison-version>
     <javassist-version>3.30.2-GA</javassist-version>
     <jmock-version>2.5.1</jmock-version>
-    <jolokia-version>1.6.2</jolokia-version>
+    <jolokia-version>1.7.3</jolokia-version>
     <josql-version>1.5_5</josql-version>
     <!-- for json-simple use same version as jolokia uses -->
     <json-simple-version>1.1.1</json-simple-version>
@@ -109,7 +109,7 @@
     <shiro-version>1.13.0-TT.3</shiro-version>
     <scalatest-version>3.0.8</scalatest-version>
     <slf4j-version>1.7.36</slf4j-version>
-    <snappy-version>1.1.10.5</snappy-version>
+    <snappy-version>1.1.10.9-TT.1</snappy-version>
     <spring-version>4.3.30.RELEASE-TT.12</spring-version>
     <taglibs-version>1.2.5</taglibs-version>
     <velocity-version>2.3</velocity-version>
