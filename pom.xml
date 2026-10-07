@@ -98,7 +98,7 @@
     <osgi-version>6.0.0</osgi-version>
     <linkedin-zookeeper-version>1.4.0</linkedin-zookeeper-version>
     <zookeeper-version>3.4.14</zookeeper-version>
-    <qpid-proton-version>0.33.10</qpid-proton-version>
+    <qpid-proton-version>0.35.0</qpid-proton-version>
     <qpid-jms-version>0.61.0</qpid-jms-version>
     <netty-version>4.1.75.Final</netty-version>
     <reload4j-version>1.2.25</reload4j-version>
