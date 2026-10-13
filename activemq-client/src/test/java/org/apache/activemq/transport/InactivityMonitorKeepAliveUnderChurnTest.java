@@ -74,13 +74,27 @@ public class InactivityMonitorKeepAliveUnderChurnTest {
     /** Upper bound on the observation window; reaching it is already a failure. */
     private static final long OBSERVATION_TIMEOUT = 30000;
 
-    /** Live connections holding tasks in the shared queue, what makes a purge expensive. */
+    /**
+     * Live connections holding tasks in the shared queue, which is what makes a purge
+     * expensive. Do not lower this number: the starvation is linear in it, and the test stops
+     * being able to fail well before the count looks unreasonable. Largest gap measured
+     * against the pre-fix code, one churn thread: 4.000 monitors gives 61ms, 20.000 gives
+     * 391ms, 40.000 gives 729ms, 50.000 gives 1.121ms to 1.562ms. Only the last clears the
+     * 500ms bound, so a population of 20.000 would quietly turn this into a test that passes
+     * against the broken code.
+     *
+     * <p>The cost is modest: 40MB live after a full GC, against the 512MB this module gives
+     * surefire, and about two seconds of the test's runtime.</p>
+     */
     private static final int IDLE_MONITORS = 50000;
 
     /**
      * Connections being opened and closed in a loop. One is enough, and is in fact the worst
      * case: the teardown path is serialised on {@code AbstractInactivityMonitor.class}, so
-     * extra closing threads only take turns on that lock instead of adding pressure.
+     * extra closing threads do not purge in parallel, they only take turns on that lock and
+     * each hand-off is a window for the timer thread to get back in. Measured against the
+     * pre-fix code at 20.000 idle monitors: 16 churn threads starve the quiet connection for
+     * 159ms, a single churn thread starves it for 391ms.
      */
     private static final int CHURN_THREADS = 1;
 
