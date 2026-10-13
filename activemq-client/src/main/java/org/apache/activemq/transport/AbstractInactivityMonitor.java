@@ -17,11 +17,12 @@
 package org.apache.activemq.transport;
 
 import java.io.IOException;
-import java.util.Timer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -32,7 +33,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.activemq.command.KeepAliveInfo;
 import org.apache.activemq.command.WireFormatInfo;
-import org.apache.activemq.thread.SchedulerTimerTask;
 import org.apache.activemq.util.ThreadPoolUtils;
 import org.apache.activemq.wireformat.WireFormat;
 import org.slf4j.Logger;
@@ -53,8 +53,11 @@ public abstract class AbstractInactivityMonitor extends TransportFilter {
 
     private static ThreadPoolExecutor ASYNC_TASKS;
     private static int CHECKER_COUNTER;
-    private static Timer READ_CHECK_TIMER;
-    private static Timer WRITE_CHECK_TIMER;
+    // Single-threaded schedulers shared by every monitor of the JVM. Cancelled
+    // tasks are removed from the queue eagerly (removeOnCancel), so stopping a
+    // monitor is O(log n) and never needs a purge of the whole queue.
+    private static ScheduledThreadPoolExecutor READ_CHECK_SCHEDULER;
+    private static ScheduledThreadPoolExecutor WRITE_CHECK_SCHEDULER;
 
     private final AtomicBoolean monitorStarted = new AtomicBoolean(false);
 
@@ -68,9 +71,9 @@ public abstract class AbstractInactivityMonitor extends TransportFilter {
 
     private final ReentrantReadWriteLock sendLock = new ReentrantReadWriteLock();
 
-    private SchedulerTimerTask connectCheckerTask;
-    private SchedulerTimerTask writeCheckerTask;
-    private SchedulerTimerTask readCheckerTask;
+    private ScheduledFuture<?> connectCheckerTask;
+    private ScheduledFuture<?> writeCheckerTask;
+    private ScheduledFuture<?> readCheckerTask;
 
     private long connectAttemptTimeout = DEFAULT_CHECK_TIME_MILLS;
     private long readCheckTime = DEFAULT_CHECK_TIME_MILLS;
@@ -414,19 +417,15 @@ public abstract class AbstractInactivityMonitor extends TransportFilter {
         this.connectAttemptTimeout = connectionTimeout;
 
         if (connectCheckerTask == null) {
-            connectCheckerTask = new SchedulerTimerTask(connectChecker);
-
             synchronized (AbstractInactivityMonitor.class) {
-                if (CHECKER_COUNTER == 0) {
-                    if (ASYNC_TASKS == null || ASYNC_TASKS.isShutdown()) {
-                        ASYNC_TASKS = createExecutor();
-                    }
-                    if (READ_CHECK_TIMER == null) {
-                        READ_CHECK_TIMER = new Timer(READ_CHECK_THREAD_NAME, true);
-                    }
+                if (ASYNC_TASKS == null || ASYNC_TASKS.isShutdown()) {
+                    ASYNC_TASKS = createExecutor();
+                }
+                if (READ_CHECK_SCHEDULER == null || READ_CHECK_SCHEDULER.isShutdown()) {
+                    READ_CHECK_SCHEDULER = createScheduler(READ_CHECK_THREAD_NAME);
                 }
                 CHECKER_COUNTER++;
-                READ_CHECK_TIMER.schedule(connectCheckerTask, connectionTimeout);
+                connectCheckerTask = READ_CHECK_SCHEDULER.schedule(new CheckerTask(connectChecker), connectionTimeout, TimeUnit.MILLISECONDS);
             }
         }
     }
@@ -441,11 +440,10 @@ public abstract class AbstractInactivityMonitor extends TransportFilter {
     public synchronized boolean stopConnectCheckTask() {
         if (connectCheckerTask != null) {
             LOG.trace("Stopping connection check task for: {}", this);
-            connectCheckerTask.cancel();
+            connectCheckerTask.cancel(false);
             connectCheckerTask = null;
 
             synchronized (AbstractInactivityMonitor.class) {
-                purgeTimers(READ_CHECK_TIMER);
                 CHECKER_COUNTER--;
             }
             return true;
@@ -462,33 +460,29 @@ public abstract class AbstractInactivityMonitor extends TransportFilter {
             return;
         }
 
-        if (readCheckTime > 0) {
-            readCheckerTask = new SchedulerTimerTask(readChecker);
-        }
-
-        if (writeCheckTime > 0) {
-            writeCheckerTask = new SchedulerTimerTask(writeChecker);
-        }
-
         if (writeCheckTime > 0 || readCheckTime > 0) {
             monitorStarted.set(true);
             synchronized (AbstractInactivityMonitor.class) {
                 if (ASYNC_TASKS == null || ASYNC_TASKS.isShutdown()) {
                     ASYNC_TASKS = createExecutor();
                 }
-                if (READ_CHECK_TIMER == null) {
-                    READ_CHECK_TIMER = new Timer(READ_CHECK_THREAD_NAME, true);
+                if (READ_CHECK_SCHEDULER == null || READ_CHECK_SCHEDULER.isShutdown()) {
+                    READ_CHECK_SCHEDULER = createScheduler(READ_CHECK_THREAD_NAME);
                 }
-                if (WRITE_CHECK_TIMER == null) {
-                    WRITE_CHECK_TIMER = new Timer(WRITE_CHECK_THREAD_NAME, true);
+                if (WRITE_CHECK_SCHEDULER == null || WRITE_CHECK_SCHEDULER.isShutdown()) {
+                    WRITE_CHECK_SCHEDULER = createScheduler(WRITE_CHECK_THREAD_NAME);
                 }
 
                 CHECKER_COUNTER++;
+                // Fixed delay, like the former Timer.schedule(task, delay, period):
+                // a late run does not trigger a burst of catch-up runs.
                 if (readCheckTime > 0) {
-                    READ_CHECK_TIMER.schedule(readCheckerTask, initialDelayTime, readCheckTime);
+                    readCheckerTask = READ_CHECK_SCHEDULER.scheduleWithFixedDelay(
+                        new CheckerTask(readChecker), initialDelayTime, readCheckTime, TimeUnit.MILLISECONDS);
                 }
                 if (writeCheckTime > 0) {
-                    WRITE_CHECK_TIMER.schedule(writeCheckerTask, initialDelayTime, writeCheckTime);
+                    writeCheckerTask = WRITE_CHECK_SCHEDULER.scheduleWithFixedDelay(
+                        new CheckerTask(writeChecker), initialDelayTime, writeCheckTime, TimeUnit.MILLISECONDS);
                 }
             }
         }
@@ -498,30 +492,30 @@ public abstract class AbstractInactivityMonitor extends TransportFilter {
         final boolean stoppedConnectTask = stopConnectCheckTask();
         final boolean stoppingMonitor = monitorStarted.compareAndSet(true, false);
 
-        // If the monitor threads are stopping then cancel the tasks
+        // If the monitor threads are stopping then cancel the tasks. With
+        // removeOnCancel the tasks leave the scheduler queue right away.
         if (stoppingMonitor) {
             cancelTasks(readCheckerTask, writeCheckerTask);
+            readCheckerTask = null;
+            writeCheckerTask = null;
         }
 
         // If either the connect task was stopped or the monitor
         // threads were stopped then the CHECKER_COUNTER static variable
         // needs to be checked to see if it is 0. If it is 0 then
-        // the timer threads and thread pool should also be shut down.
+        // the scheduler threads and thread pool should also be shut down.
         if (stoppedConnectTask || stoppingMonitor) {
             synchronized (AbstractInactivityMonitor.class) {
-                // If we are stopping the monitor threads then purge
-                // the timers and decrement the counter.
                 if (stoppingMonitor) {
-                    purgeTimers(WRITE_CHECK_TIMER, READ_CHECK_TIMER, null);
                     CHECKER_COUNTER--;
                 }
 
-                // There are no active checker tasks so cancel any active
-                // timer threads and shutdown the executor
+                // There are no active checker tasks so stop the
+                // scheduler threads and shutdown the executor
                 if (CHECKER_COUNTER == 0) {
-                    cancelTimers(WRITE_CHECK_TIMER, READ_CHECK_TIMER);
-                    WRITE_CHECK_TIMER = null;
-                    READ_CHECK_TIMER = null;
+                    shutdownSchedulers(WRITE_CHECK_SCHEDULER, READ_CHECK_SCHEDULER);
+                    WRITE_CHECK_SCHEDULER = null;
+                    READ_CHECK_SCHEDULER = null;
                     try {
                         ThreadPoolUtils.shutdownGraceful(ASYNC_TASKS, 0);
                     } finally {
@@ -532,27 +526,61 @@ public abstract class AbstractInactivityMonitor extends TransportFilter {
         }
     }
 
-    private static void purgeTimers(Timer... timers) {
-        for (Timer timer : timers) {
-            if (timer != null) {
-                timer.purge();
+    private static ScheduledThreadPoolExecutor createScheduler(final String threadName) {
+        final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1, (final Runnable runnable) -> {
+            final Thread thread = new Thread(runnable, threadName);
+            thread.setDaemon(true);
+            return thread;
+        });
+        // Cancelled tasks are unlinked from the delay queue immediately
+        // instead of lingering until their next due time.
+        scheduler.setRemoveOnCancelPolicy(true);
+        // shutdown() drops every pending task and lets the thread exit,
+        // matching the former Timer.cancel() behaviour.
+        scheduler.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
+        scheduler.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
+        return scheduler;
+    }
+
+    private static void shutdownSchedulers(final ScheduledThreadPoolExecutor... schedulers) {
+        for (final ScheduledThreadPoolExecutor scheduler : schedulers) {
+            if (scheduler != null) {
+                scheduler.shutdown();
             }
         }
     }
 
-    private static void cancelTimers(Timer... timers) {
-        for (Timer timer : timers) {
-            if (timer != null) {
-                timer.cancel();
-            }
-        }
-    }
-
-    private static void cancelTasks(SchedulerTimerTask... tasks) {
-        for (SchedulerTimerTask task : tasks) {
+    private static void cancelTasks(final ScheduledFuture<?>... tasks) {
+        for (final ScheduledFuture<?> task : tasks) {
             if (task != null) {
-                task.cancel();
+                task.cancel(false);
             }
+        }
+    }
+
+    /**
+     * Keeps a periodic check scheduled after a runtime exception. Errors remain
+     * fatal to that check, as they are for other scheduled executor tasks.
+     */
+    private static final class CheckerTask implements Runnable {
+        private final Runnable task;
+
+        CheckerTask(final Runnable task) {
+            this.task = task;
+        }
+
+        @Override
+        public void run() {
+            try {
+                task.run();
+            } catch (final RuntimeException error) {
+                LOG.error("Inactivity check {} failed, the check will run again at its next due time", task, error);
+            }
+        }
+
+        @Override
+        public String toString() {
+            return task.toString();
         }
     }
 
