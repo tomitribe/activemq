@@ -20,6 +20,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.security.AccessController;
 import java.security.Principal;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -45,7 +46,20 @@ import org.slf4j.LoggerFactory;
  */
 public class AnnotatedMBean extends StandardMBean {
 
-    private static final Map<String, Class<?>> primitives = new HashMap<String, Class<?>>();
+    // Methods of each MBean interface by signature, built once. StandardMBean asks for every
+    // attribute and operation of every instance, and a getMethod miss throws NoSuchMethodException.
+    private static final ClassValue<Map<String, Method>> METHODS = new ClassValue<Map<String, Method>>() {
+        @Override
+        protected Map<String, Method> computeValue(final Class<?> type) {
+            final Map<String, Method> methods = new HashMap<>();
+            for (final Method method : type.getMethods()) {
+                // Same pick as Class.getMethod when interfaces redeclare a method: most specific return type
+                methods.merge(signature(method.getName(), typeNames(method.getParameterTypes())), method,
+                        (first, second) -> first.getReturnType().isAssignableFrom(second.getReturnType()) ? second : first);
+            }
+            return Collections.unmodifiableMap(methods);
+        }
+    };
 
     private static final Logger LOG = LoggerFactory.getLogger("org.apache.activemq.audit");
 
@@ -58,10 +72,6 @@ public class AnnotatedMBean extends StandardMBean {
     private static AuditLogService auditLog;
 
     static {
-        Class<?>[] p = { byte.class, short.class, int.class, long.class, float.class, double.class, char.class, boolean.class, };
-        for (Class<?> c : p) {
-            primitives.put(c.getName(), c);
-        }
         audit = byteFromProperty("org.apache.activemq.audit");
         if (audit != OFF) {
             auditLog = AuditLogService.getAuditLog();
@@ -183,21 +193,21 @@ public class AnnotatedMBean extends StandardMBean {
      *
      * @return a Method
      */
-    private static Method getMethod(Class<?> mbean, String method, String... params) {
-        try {
-            final ClassLoader loader = mbean.getClassLoader();
-            final Class<?>[] paramClasses = new Class<?>[params.length];
-            for (int i = 0; i < params.length; i++) {
-                paramClasses[i] = primitives.get(params[i]);
-                if (paramClasses[i] == null)
-                    paramClasses[i] = Class.forName(params[i], false, loader);
-            }
-            return mbean.getMethod(method, paramClasses);
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            return null;
+    private static Method getMethod(final Class<?> mbean, final String method, final String... params) {
+        return METHODS.get(mbean).get(signature(method, params));
+    }
+
+    // Parameter types as Class.getName() spells them, which is also what MBeanParameterInfo.getType() returns
+    private static String signature(final String method, final String... params) {
+        return method + '(' + String.join(",", params) + ')';
+    }
+
+    private static String[] typeNames(final Class<?>[] types) {
+        final String[] names = new String[types.length];
+        for (int i = 0; i < types.length; i++) {
+            names[i] = types[i].getName();
         }
+        return names;
     }
 
     @Override

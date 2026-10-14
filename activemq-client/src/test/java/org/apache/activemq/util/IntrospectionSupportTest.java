@@ -16,7 +16,13 @@
  */
 package org.apache.activemq.util;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -51,5 +57,65 @@ public class IntrospectionSupportTest {
         IntrospectionSupport.setProperty(dummyClass, "trace", value);
 
         assertTrue(dummyClass.isTrace());
+    }
+
+    public static class Options {
+        int size;
+        String name;
+
+        public void setSize(int size) {
+            this.size = size;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public void setPair(String first, String second) {
+        }
+
+        public void setNothing() {
+        }
+    }
+
+    public static class MoreOptions extends Options {
+        boolean extra;
+
+        public void setExtra(boolean extra) {
+            this.extra = extra;
+        }
+    }
+
+    @Test
+    public void testFindSetterMatchesSingleArgumentSettersOnly() {
+        assertEquals("setSize", IntrospectionSupport.findSetterMethod(Options.class, "size").getName());
+        assertNull(IntrospectionSupport.findSetterMethod(Options.class, "pair"));
+        assertNull(IntrospectionSupport.findSetterMethod(Options.class, "nothing"));
+        assertNull(IntrospectionSupport.findSetterMethod(Options.class, "unknown"));
+    }
+
+    @Test
+    public void testFindSetterIsResolvedPerClass() {
+        assertNull(IntrospectionSupport.findSetterMethod(Options.class, "extra"));
+        assertEquals("setExtra", IntrospectionSupport.findSetterMethod(MoreOptions.class, "extra").getName());
+        assertEquals("setSize", IntrospectionSupport.findSetterMethod(MoreOptions.class, "size").getName());
+    }
+
+    @Test
+    public void testSetPropertiesRepeatedlyOnNewInstances() {
+        for (int i = 0; i < 3; i++) {
+            final MoreOptions options = new MoreOptions();
+            final Map<String, Object> props = new HashMap<>();
+            props.put("size", "4" + i);
+            props.put("name", "n" + i);
+            props.put("extra", "true");
+            props.put("unknown", "x");
+
+            assertTrue(IntrospectionSupport.setProperties(options, props));
+            assertEquals(40 + i, options.size);
+            assertEquals("n" + i, options.name);
+            assertTrue(options.extra);
+            assertEquals(Collections.singleton("unknown"), props.keySet());
+        }
     }
 }

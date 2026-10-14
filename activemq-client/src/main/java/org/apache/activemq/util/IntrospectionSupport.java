@@ -270,15 +270,23 @@ public final class IntrospectionSupport {
     public static Method findSetterMethod(Class clazz, String name) {
         // Build the method name.
         name = "set" + Character.toUpperCase(name.charAt(0)) + name.substring(1);
-        Method[] methods = clazz.getMethods();
-        for (Method method : methods) {
-            Class<?> params[] = method.getParameterTypes();
-            if (method.getName().equals(name) && params.length == 1 ) {
-                return method;
-            }
-        }
-        return null;
+        return SETTERS.get(clazz).get(name);
     }
+
+    // Single-argument public methods by name, first one in getMethods() order: transports set
+    // their options on every accepted socket, and getMethods() copies the whole array each call
+    private static final ClassValue<Map<String, Method>> SETTERS = new ClassValue<Map<String, Method>>() {
+        @Override
+        protected Map<String, Method> computeValue(final Class<?> type) {
+            final Map<String, Method> setters = new HashMap<>();
+            for (final Method method : type.getMethods()) {
+                if (method.getParameterCount() == 1) {
+                    setters.putIfAbsent(method.getName(), method);
+                }
+            }
+            return setters;
+        }
+    };
 
     public static Method findGetterMethod(Class clazz, String name) {
         // Build the method name.
